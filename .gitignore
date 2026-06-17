@@ -19,6 +19,7 @@
 
 # production
 /build
+/.deploybuild
 
 # misc
 .DS_Store
@@ -32,6 +33,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# .env.production содержит только ПУБЛИЧНЫЕ NEXT_PUBLIC_* — коммитим намеренно,
+# чтобы прод-сборка всегда знала API-origin (split) и его нельзя было забыть.
+!.env.production
 
 # vercel
 .vercel
@@ -39,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# JetBrains IDE
+/.idea

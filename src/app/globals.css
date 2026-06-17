@@ -1,26 +1,733 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Тема варианта B «Respect Arena». Тёмная тема — единственная.
+   Токены продублированы из prototypes/variant-b-respect-arena.
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #09090c;
+  --surface: #15161b;
+  --surface-2: #1c1e25;
+  --primary: #ff6a1a;
+  --primary-2: #ff8a3d;
+  --accent: #22d3ee;
+  --accent-2: #c026d3;
+  --fg: #f5f5f7;
+  --muted: #9a9aa6;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --gold: #ffc53d;
+  --silver: #c9d2dc;
+  --bronze: #e08a4b;
+  --twitch: #9146ff;
+  --boosty: #f15f2c;
+  --ok: #34d399;
+  --danger: #ff6b6b;
+
+  --grad-energy: linear-gradient(100deg, #ff6a1a 0%, #c026d3 100%);
+  --grad-warm: linear-gradient(100deg, #ff8a3d 0%, #ff6a1a 60%, #c026d3 130%);
+  --grad-cyan: linear-gradient(100deg, #ff6a1a 0%, #22d3ee 130%);
+  --grad-text: linear-gradient(92deg, #ff8a3d 0%, #ff6a1a 45%, #c026d3 110%);
+
+  --glow-primary: 0 0 0 1px rgba(255, 106, 26, 0.45), 0 8px 40px -8px rgba(255, 106, 26, 0.55);
+  --glow-cyan: 0 0 0 1px rgba(34, 211, 238, 0.4), 0 8px 40px -10px rgba(34, 211, 238, 0.5);
+
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 18px;
+
+  /* Russo One — display (есть кириллица); Chakra Petch — body (латиница,
+     для кириллицы откатывается на system-ui, как и в прототипе). */
+  --ff-display: var(--font-russo), -apple-system, system-ui, sans-serif;
+  --ff-body: var(--font-chakra), -apple-system, system-ui, sans-serif;
 }
 
+/* Маппинг токенов в утилиты Tailwind (bg-primary, text-muted, font-display, …) */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-primary: var(--primary);
+  --color-primary-2: var(--primary-2);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --color-twitch: var(--twitch);
+  --color-boosty: var(--boosty);
+
+  --font-display: var(--ff-display);
+  --font-body: var(--ff-body);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(120% 70% at 100% -10%, rgba(34, 211, 238, 0.06) 0%, rgba(9, 9, 12, 0) 50%),
+      radial-gradient(120% 80% at 0% -10%, rgba(255, 106, 26, 0.08) 0%, rgba(192, 38, 211, 0.04) 30%, rgba(9, 9, 12, 0) 60%),
+      var(--bg);
+    color: var(--fg);
+    font-family: var(--ff-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--ff-display);
+    font-weight: 400;
+    text-transform: uppercase;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  ::selection {
+    background: rgba(255, 106, 26, 0.32);
+    color: #fff;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* эйбрау + градиентный текст заголовков */
+  .eyebrow {
+    font-family: var(--ff-body);
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 2px;
+    background: var(--grad-energy);
+    display: inline-block;
+  }
+  .grad {
+    background: var(--grad-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* кнопки — скошенный параллелограм, фон на ::before, дети контр-скошены */
+  .btn {
+    --skew: -12deg;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-family: var(--ff-display);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    padding: 11px 20px;
+    color: var(--fg);
+    transform: skewX(var(--skew));
+    transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    min-height: 42px;
+    white-space: nowrap;
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+  .btn > span,
+  .btn > svg {
+    transform: skewX(calc(var(--skew) * -1));
+  }
+  .btn > svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+  .btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transition: filter 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-primary {
+    color: #1a0c02;
+  }
+  .btn-primary::before {
+    background: var(--grad-warm);
+    box-shadow: var(--glow-primary);
+  }
+  .btn-primary:hover {
+    transform: skewX(var(--skew)) translateY(-2px);
+    filter: saturate(1.12);
+  }
+  .btn-ghost::before {
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+  .btn-ghost:hover {
+    transform: skewX(var(--skew)) translateY(-2px);
+  }
+  .btn-ghost:hover::before {
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.5), 0 8px 30px -12px rgba(34, 211, 238, 0.4);
+  }
+  .btn-cyan {
+    color: var(--accent);
+  }
+  .btn-cyan::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.55);
+  }
+  .btn-cyan:hover {
+    transform: skewX(var(--skew)) translateY(-2px);
+  }
+  .btn-cyan:hover::before {
+    box-shadow: var(--glow-cyan);
+  }
+  .btn-danger {
+    color: var(--danger);
+  }
+  .btn-danger::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.5);
+  }
+  .btn-danger:hover {
+    transform: skewX(var(--skew)) translateY(-2px);
+  }
+  .btn-danger:hover::before {
+    box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.8), 0 8px 30px -12px rgba(255, 107, 107, 0.4);
+  }
+  .btn-twitch {
+    color: #fff;
+  }
+  .btn-twitch::before {
+    background: var(--twitch);
+    box-shadow: 0 8px 30px -10px rgba(145, 70, 255, 0.6);
+  }
+  .btn-twitch:hover {
+    transform: skewX(var(--skew)) translateY(-2px);
+    filter: saturate(1.1);
+  }
+  .btn-sm {
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    min-height: 36px;
+  }
+  .btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* чип (clip-path-срез) */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 5px 12px;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+    color: var(--fg);
+    clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+  }
+  .chip .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .chip-cyan .dot {
+    background: var(--accent);
+  }
+
+  /* статус-пилл (скос) */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--ff-display);
+    font-size: 0.62rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    transform: skewX(-12deg);
+    white-space: nowrap;
+  }
+  .pill > * {
+    transform: skewX(12deg);
+  }
+  .pill-live {
+    background: rgba(255, 106, 26, 0.16);
+    color: var(--primary-2);
+    box-shadow: inset 0 0 0 1px rgba(255, 106, 26, 0.4);
+  }
+  .pill-soon {
+    background: rgba(255, 138, 61, 0.14);
+    color: var(--primary-2);
+    box-shadow: inset 0 0 0 1px rgba(255, 138, 61, 0.35);
+  }
+  .pill-announce {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.32);
+  }
+  .pill-done {
+    background: rgba(154, 154, 166, 0.1);
+    color: var(--muted);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .pill-ok {
+    background: rgba(52, 211, 153, 0.12);
+    color: var(--ok);
+    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.35);
+  }
+  .pill-no {
+    background: rgba(255, 107, 107, 0.12);
+    color: var(--danger);
+    box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.32);
+  }
+  .pill-wait {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.32);
+  }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 0 rgba(255, 106, 26, 0.6);
+    animation: pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 106, 26, 0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(255, 106, 26, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 106, 26, 0); }
+  }
+
+  /* бейджи */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--ff-display);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    transform: skewX(-12deg);
+    white-space: nowrap;
+  }
+  .badge > * {
+    transform: skewX(12deg);
+  }
+  .badge-champ {
+    background: rgba(255, 197, 61, 0.14);
+    color: var(--gold);
+    box-shadow: inset 0 0 0 1px rgba(255, 197, 61, 0.34);
+  }
+  .badge-glad {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.3);
+  }
+  .badge-org {
+    background: rgba(192, 38, 211, 0.14);
+    color: #e070ff;
+    box-shadow: inset 0 0 0 1px rgba(192, 38, 211, 0.34);
+  }
+  .badge-boosty {
+    background: rgba(241, 95, 44, 0.14);
+    color: var(--boosty);
+    box-shadow: inset 0 0 0 1px rgba(241, 95, 44, 0.34);
+  }
+  .badge-official {
+    background: rgba(154, 154, 166, 0.1);
+    color: var(--muted);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+
+  /* очки/штраф */
+  .pts {
+    font-family: var(--ff-display);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    transform: skewX(-12deg);
+    white-space: nowrap;
+    display: inline-block;
+  }
+  .pts > span {
+    display: block;
+    transform: skewX(12deg);
+  }
+  .pts-cyan {
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.3);
+  }
+  .pts-orange {
+    background: rgba(255, 106, 26, 0.16);
+    color: var(--primary-2);
+    box-shadow: inset 0 0 0 1px rgba(255, 106, 26, 0.35);
+  }
+  .pts-minus {
+    background: rgba(154, 154, 166, 0.12);
+    color: var(--silver);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+
+  /* панель/карточка с glow-кромкой */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .panel.glow-edge {
+    position: relative;
+  }
+  .panel.glow-edge::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--grad-energy);
+    z-index: 1;
+  }
+
+  /* лого-значок (молния) — скошенный параллелограмм с тёплым градиентом */
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: #1a0c02;
+    background: var(--grad-warm);
+    clip-path: polygon(22% 0, 100% 0, 78% 100%, 0 100%);
+    flex: none;
+  }
+  .logo-mark svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ссылка навбара с анимированным подчёркиванием */
+  .nav-link {
+    position: relative;
+    font-family: var(--ff-display);
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding: 4px 2px;
+    transition: color 0.18s ease;
+  }
+  .nav-link:hover,
+  .nav-link[aria-current="page"] {
+    color: var(--fg);
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 2px;
+    background: var(--grad-energy);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
+  }
+  .nav-link:hover::after,
+  .nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* аватар — скошенный параллелограмм с инициалами */
+  .avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    font-family: var(--ff-display);
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    color: #1a0c02;
+    background: var(--grad-warm);
+    clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%);
+    flex: none;
+    overflow: hidden;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .avatar-cyan {
+    background: linear-gradient(120deg, #22d3ee, #0891b2);
+    color: #04181b;
+  }
+  .avatar-bronze {
+    background: linear-gradient(120deg, #e08a4b, #b5673a);
+  }
+  .avatar-muted {
+    background: #2a2c35;
+    color: var(--fg);
+  }
+  .avatar-sm {
+    width: 30px;
+    height: 30px;
+    font-size: 0.72rem;
+  }
+  .avatar-lg {
+    width: 64px;
+    height: 64px;
+    font-size: 1.3rem;
+  }
+
+  /* медаль ранга в рейтинге */
+  .rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    font-family: var(--ff-display);
+    font-size: 0.9rem;
+    color: var(--muted);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+    clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 100%);
+  }
+  .rank-1 {
+    color: #1a0c02;
+    background: linear-gradient(120deg, var(--gold), #e0a52e);
+  }
+  .rank-2 {
+    color: #0c0c10;
+    background: linear-gradient(120deg, var(--silver), #9fb0bf);
+  }
+  .rank-3 {
+    color: #1a0c02;
+    background: linear-gradient(120deg, var(--bronze), #b5673a);
+  }
+
+  /* энергобар побед/поражений */
+  .wl-bar {
+    display: flex;
+    height: 7px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .wl-bar .w {
+    background: var(--grad-warm);
+  }
+  .wl-bar .l {
+    background: rgba(154, 154, 166, 0.32);
+  }
+
+  /* трек раундов */
+  .round-track {
+    display: inline-flex;
+    gap: 5px;
+  }
+  .round-track .s {
+    width: 26px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .round-track .s.done {
+    background: rgba(255, 106, 26, 0.55);
+  }
+  .round-track .s.now {
+    background: var(--grad-warm);
+  }
+
+  /* skip-link для доступности */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 200;
+  }
+  .skip-link:focus {
+    left: 16px;
+    top: 12px;
+    padding: 8px 14px;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+    color: var(--fg);
+  }
+
+  /* табы (рейтинг 1×1 / 2×2) */
+  .tabs {
+    display: inline-flex;
+    gap: 6px;
+  }
+  .tab {
+    font-family: var(--ff-display);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    padding: 9px 18px;
+    transform: skewX(-12deg);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+    cursor: pointer;
+    transition: color 0.18s ease, box-shadow 0.2s ease;
+  }
+  .tab > span {
+    display: inline-block;
+    transform: skewX(12deg);
+  }
+  .tab:hover {
+    color: var(--fg);
+  }
+  .tab[aria-selected="true"] {
+    color: #150800;
+    background: var(--grad-warm);
+    box-shadow: var(--glow-primary);
+  }
+
+  /* VS-глиф в карточках матчей */
+  .vs-glyph {
+    font-family: var(--ff-display);
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 4px 10px;
+    transform: skewX(-12deg);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .vs-glyph > span {
+    display: inline-block;
+    transform: skewX(12deg);
+  }
+
+  /* поля форм (кабинет, регистрация) */
+  .input,
+  .select,
+  .textarea {
+    width: 100%;
+    background: var(--surface-2);
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: var(--fg);
+    box-shadow: inset 0 0 0 1px var(--border);
+    outline: none;
+    transition: box-shadow 0.18s ease;
+  }
+  .input:focus,
+  .select:focus,
+  .textarea:focus {
+    box-shadow: inset 0 0 0 1px var(--primary);
+  }
+  .textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+  .field-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  /* сегмент-контрол (баллы/процент, fixed/percent) */
+  .seg {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .seg-btn {
+    font-family: var(--ff-display);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding: 7px 14px;
+    transform: skewX(-12deg);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+    cursor: pointer;
+  }
+  .seg-btn > span {
+    display: inline-block;
+    transform: skewX(12deg);
+  }
+  .seg-btn[aria-pressed="true"] {
+    color: #150800;
+    background: var(--grad-warm);
+  }
+
+  /* админ: ссылка сайдбара */
+  .side-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 14px;
+    font-family: var(--ff-display);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    white-space: nowrap;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .side-link:hover {
+    color: var(--fg);
+    background: var(--surface-2);
+  }
+  .side-link[aria-current="page"] {
+    color: #150800;
+    background: var(--grad-warm);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
