@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/admin", label: "Обзор", exact: true },
   { href: "/admin/schedule", label: "Расписание" },
   { href: "/admin/registrations", label: "Заявки" },
+  { href: "/admin/users", label: "Пользователи" },
   { href: "/admin/live", label: "Эфир" },
   { href: "/admin/starter-tasks", label: "Стартовые задания" },
   { href: "/admin/tasks", label: "Бонусные задания" },

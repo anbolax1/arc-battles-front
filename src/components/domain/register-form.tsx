@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { Panel } from "@/components/ui/card";
 import type { User } from "@/lib/types";
@@ -9,25 +10,24 @@ const fieldCls =
   "w-full bg-surface-2 px-3.5 py-2.5 text-sm text-fg shadow-[inset_0_0_0_1px_var(--border)] outline-none transition focus:shadow-[inset_0_0_0_1px_var(--primary)]";
 
 export function RegisterForm({ user }: { user: User }) {
-  const [embarkId, setEmbarkId] = React.useState(user.embarkId ?? "");
+  // Embark ID берём из профиля (там и редактируется) — в заявке его не вводят.
+  const embarkId = (user.embarkId ?? "").trim();
+  const hasEmbark = embarkId.length > 0;
   const [note, setNote] = React.useState("");
   const [status, setStatus] = React.useState<"idle" | "sending" | "ok" | "error">("idle");
   const [error, setError] = React.useState("");
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!embarkId.trim()) {
+    if (!hasEmbark) {
       setStatus("error");
-      setError("Укажи свой Embark ID.");
+      setError("Сначала укажи Embark ID в профиле.");
       return;
     }
     setStatus("sending");
     setError("");
     try {
-      await api.post(`/registrations`, {
-        embarkId: embarkId.trim(),
-        note: note.trim(),
-      });
+      await api.post(`/registrations`, { note: note.trim() });
       setStatus("ok");
     } catch (err) {
       setStatus("error");
@@ -62,17 +62,27 @@ export function RegisterForm({ user }: { user: User }) {
         </div>
       ) : (
         <form className="space-y-4" onSubmit={onSubmit}>
+          {/* Embark ID — из профиля, не редактируется здесь */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-eid" className="text-xs uppercase tracking-wide text-muted">
-              Embark ID
-            </label>
-            <input
-              id="reg-eid"
-              className={fieldCls}
-              placeholder="например, ник#0000"
-              value={embarkId}
-              onChange={(e) => setEmbarkId(e.target.value)}
-            />
+            <span className="text-xs uppercase tracking-wide text-muted">Embark ID</span>
+            {hasEmbark ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-display uppercase tnum">{embarkId}</span>
+                <Link href="/profile" className="text-xs text-accent transition hover:underline">
+                  изменить в профиле
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2 bg-surface-2 p-3 shadow-[inset_0_0_0_1px_rgba(255,106,26,0.35)]">
+                <p className="text-sm">
+                  Чтобы подать заявку, укажи свой <span className="font-display">Embark ID</span> в профиле —
+                  он нужен организатору для лобби в Arc Raiders.
+                </p>
+                <Link href="/profile" className="btn btn-cyan btn-sm">
+                  <span>Заполнить профиль</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -90,7 +100,7 @@ export function RegisterForm({ user }: { user: User }) {
 
           {status === "error" && <p className="text-sm text-danger">{error}</p>}
 
-          <button type="submit" className="btn btn-primary" disabled={status === "sending"}>
+          <button type="submit" className="btn btn-primary" disabled={!hasEmbark || status === "sending"}>
             <span>{status === "sending" ? "Отправляем…" : "Подать заявку"}</span>
           </button>
         </form>

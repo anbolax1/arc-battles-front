@@ -211,6 +211,15 @@ export interface PlayerProfile {
   history: PlayerHistoryItem[];
 }
 
+/** Пользователь + агрегаты участия: GET /api/users/overview (кабинет, раздел «Пользователи»). */
+export interface UserOverview extends User {
+  email?: string;
+  tournaments: number; // завершённых турниров
+  wins: number; // побед в завершённых
+  points: number; // суммарные очки в завершённых
+  participations: number; // всего участий (включая текущие/анонсы)
+}
+
 /** Ответ GET /api/leaderboard — ОБЁРНУТ в { mode, rows }. */
 export interface LeaderboardResponse {
   mode: TournamentMode;

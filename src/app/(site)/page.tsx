@@ -130,7 +130,7 @@ export default async function HomePage() {
         <div className="space-y-2">
           <h2 className="text-2xl sm:text-3xl">Готов выйти на арену?</h2>
           <p className="max-w-xl text-muted">
-            Войди через Twitch, укажи Embark ID и подай заявку на ближайший турнир.
+            Войди через Twitch, укажи Embark ID в профиле и подай заявку на ближайший турнир.
           </p>
         </div>
         <Link href="/register" className="btn btn-primary flex-none">

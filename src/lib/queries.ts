@@ -18,6 +18,7 @@ import type {
   TournamentMode,
   TournamentStatus,
   User,
+  UserOverview,
 } from "@/lib/types";
 
 async function safe<T>(label: string, p: Promise<T>, fallback: T): Promise<T> {
@@ -94,6 +95,26 @@ export function getMe(): Promise<User | null> {
 /** Список пользователей для кабинета (выбор участников). Organizer-only. */
 export function getUsers(): Promise<User[]> {
   return safe("users", serverFetch<User[]>("/users", { auth: true }), []);
+}
+
+/** Страница пользователей с агрегатами участия (раздел «Пользователи»). Organizer-only. */
+export function getUsersOverview(params: {
+  limit?: number;
+  offset?: number;
+  q?: string;
+  sort?: string;
+} = {}): Promise<{ items: UserOverview[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  if (params.offset != null) qs.set("offset", String(params.offset));
+  if (params.q) qs.set("q", params.q);
+  if (params.sort) qs.set("sort", params.sort);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return safe(
+    "users/overview",
+    serverFetch<{ items: UserOverview[]; total: number }>(`/users/overview${suffix}`, { auth: true }),
+    { items: [], total: 0 },
+  );
 }
 
 /** Пул стартовых заданий (скрыт от публики). Organizer-only. */
