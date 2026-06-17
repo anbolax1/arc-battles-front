@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getLeaderboard, getOverlayState, getTournaments } from "@/lib/queries";
+import { getHighlights, getLeaderboard, getOverlayState, getTournaments } from "@/lib/queries";
 import { LiveBanner } from "@/components/domain/live-banner";
+import { HighlightsWall } from "@/components/domain/highlights-wall";
 import { LeaderboardTable } from "@/components/domain/leaderboard-table";
 import { TournamentRow } from "@/components/domain/tournament-row";
 import { SectionHead } from "@/components/ui/section-head";
@@ -11,7 +12,9 @@ import {
   PlayIcon,
   ScrollIcon,
   TrophyIcon,
+  TwitchIcon,
 } from "@/components/icons";
+import { STREAM_URL } from "@/lib/links";
 import type { Tournament } from "@/lib/types";
 
 function byStartAsc(a: Tournament, b: Tournament): number {
@@ -28,10 +31,11 @@ const QUICK = [
 ];
 
 export default async function HomePage() {
-  const [live, top, upcoming] = await Promise.all([
+  const [live, top, upcoming, hl] = await Promise.all([
     getOverlayState(),
     getLeaderboard("1x1"),
     getTournaments("upcoming"),
+    getHighlights({ random: true, limit: 3 }),
   ]);
   const nextMatches = [...upcoming].sort(byStartAsc).slice(0, 3);
 
@@ -52,14 +56,16 @@ export default async function HomePage() {
           <Link href="/register" className="btn btn-primary">
             <span>Записаться</span>
           </Link>
-          <Link href="/overlay" className="btn btn-cyan">
-            <PlayIcon />
+          <a href={STREAM_URL} target="_blank" rel="noreferrer" className="btn btn-twitch">
+            <TwitchIcon />
             <span>Смотреть эфир</span>
-          </Link>
+          </a>
         </div>
       </section>
 
       {live && <LiveBanner state={live} />}
+
+      {hl.items.length > 0 && <HighlightsWall items={hl.items} />}
 
       {/* Топ лидеров */}
       <section>

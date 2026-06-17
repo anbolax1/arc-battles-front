@@ -100,13 +100,14 @@ export function getUsers(): Promise<User[]> {
 
 /** Публичные (одобренные) хайлайты с пагинацией и фильтрами по турниру/игроку. */
 export function getHighlights(
-  params: { tournamentId?: string; userId?: string; limit?: number; offset?: number } = {},
+  params: { tournamentId?: string; userId?: string; limit?: number; offset?: number; random?: boolean } = {},
 ): Promise<{ items: Highlight[]; total: number }> {
   const qs = new URLSearchParams();
   if (params.tournamentId) qs.set("tournamentId", params.tournamentId);
   if (params.userId) qs.set("userId", params.userId);
   if (params.limit != null) qs.set("limit", String(params.limit));
   if (params.offset != null) qs.set("offset", String(params.offset));
+  if (params.random) qs.set("random", "1");
   const suffix = qs.toString() ? `?${qs}` : "";
   return safe(
     "highlights",
