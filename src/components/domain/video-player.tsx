@@ -153,7 +153,7 @@ export function VideoPlayer({
         ref={videoRef}
         src={src}
         poster={poster}
-        preload="metadata"
+        preload="none"
         playsInline
         className="h-full w-full object-contain"
         onClick={onVideoClick}

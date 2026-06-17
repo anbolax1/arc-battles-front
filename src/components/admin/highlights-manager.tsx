@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { api, apiHref, ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Avatar } from "@/components/ui/avatar";
 import { VideoPlayer } from "@/components/domain/video-player";
 import { SectionHead } from "@/components/ui/section-head";
@@ -135,8 +135,8 @@ export function HighlightsManager() {
                 {h.videoUrl ? (
                   <VideoPlayer
                     className="h-full w-full"
-                    src={apiHref(h.videoUrl)}
-                    poster={h.thumbUrl ? apiHref(h.thumbUrl) : undefined}
+                    src={h.videoUrl}
+                    poster={h.thumbUrl || undefined}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-muted">

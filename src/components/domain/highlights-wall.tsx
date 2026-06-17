@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { apiHref } from "@/lib/api";
 import { VideoPlayer } from "@/components/domain/video-player";
 import { CloseIcon } from "@/components/icons";
 import type { Highlight } from "@/lib/types";
@@ -81,8 +80,8 @@ function Tile({ h, autoplay, onOpen }: { h: Highlight; autoplay: boolean; onOpen
         {useVideo ? (
           <video
             ref={ref}
-            src={apiHref(h.previewUrl as string)}
-            poster={h.thumbUrl ? apiHref(h.thumbUrl) : undefined}
+            src={h.previewUrl}
+            poster={h.thumbUrl || undefined}
             muted
             loop
             playsInline
@@ -94,7 +93,7 @@ function Tile({ h, autoplay, onOpen }: { h: Highlight; autoplay: boolean; onOpen
             {h.thumbUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={apiHref(h.thumbUrl)}
+                src={h.thumbUrl}
                 alt={h.title}
                 loading="lazy"
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -176,8 +175,8 @@ export function HighlightsWall({ items }: { items: Highlight[] }) {
             {active.videoUrl && (
               <VideoPlayer
                 className="aspect-video w-full"
-                src={apiHref(active.videoUrl)}
-                poster={active.thumbUrl ? apiHref(active.thumbUrl) : undefined}
+                src={active.videoUrl}
+                poster={active.thumbUrl || undefined}
               />
             )}
           </div>

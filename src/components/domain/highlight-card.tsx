@@ -1,4 +1,3 @@
-import { apiHref } from "@/lib/api";
 import { Avatar } from "@/components/ui/avatar";
 import { VideoPlayer } from "@/components/domain/video-player";
 import { fmtDate } from "@/lib/format";
@@ -6,7 +5,7 @@ import { TwitchIcon } from "@/components/icons";
 import type { Highlight } from "@/lib/types";
 
 /* Карточка хайлайта: инлайн-плеер (наш файл, range-стрим), автор, турнир, ссылка на оригинал.
-   videoUrl/thumbUrl — api-относительные пути, оборачиваем через apiHref. */
+   videoUrl/thumbUrl — same-origin пути (/media/…), используем как есть (см. nginx /media). */
 export function HighlightCard({ h }: { h: Highlight }) {
   return (
     <article className="panel flex flex-col overflow-hidden">
@@ -14,8 +13,8 @@ export function HighlightCard({ h }: { h: Highlight }) {
         {h.videoUrl ? (
           <VideoPlayer
             className="h-full w-full"
-            src={apiHref(h.videoUrl)}
-            poster={h.thumbUrl ? apiHref(h.thumbUrl) : undefined}
+            src={h.videoUrl}
+            poster={h.thumbUrl || undefined}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-muted">видео недоступно</div>
