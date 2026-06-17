@@ -7,9 +7,11 @@ import { VideoPlayer } from "@/components/domain/video-player";
 import { CloseIcon } from "@/components/icons";
 import type { Highlight } from "@/lib/types";
 
-/* «Лучшие моменты» на главной. Плитки показывают ЛЁГКИЕ превью-картинки (не видео):
-   полные клипы весят десятки МБ, автоплеить 3 разом — убивало мобильный канал. Видео
-   грузится только по клику — в лайтбоксе с полным плеером (звук, перемотка, фуллскрин). */
+/* «Лучшие моменты» на главной. Плитки автоплеят ЛЁГКОЕ превью-видео (~0.5–1 МБ, 5 сек,
+   без звука, низкое разрешение — генерится на бэке рядом с клипом) как гифки; играют
+   только в зоне видимости (IntersectionObserver). Полный клип (десятки МБ) грузится
+   только по клику — в лайтбоксе с полным плеером (звук, перемотка, фуллскрин).
+   Если превью ещё нет (старый хайлайт) — показываем статичный постер. */
 
 const PlayGlyph = () => (
   <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
@@ -17,7 +19,23 @@ const PlayGlyph = () => (
   </svg>
 );
 
-function PosterTile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
+function Tile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
+  const ref = React.useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) void v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <button
       type="button"
@@ -25,23 +43,38 @@ function PosterTile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => voi
       className="group panel relative block overflow-hidden text-left transition hover:-translate-y-1"
     >
       <div className="relative aspect-video bg-black">
-        {h.thumbUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={apiHref(h.thumbUrl)}
-            alt={h.title}
-            loading="lazy"
+        {h.previewUrl ? (
+          <video
+            ref={ref}
+            src={apiHref(h.previewUrl)}
+            poster={h.thumbUrl ? apiHref(h.thumbUrl) : undefined}
+            muted
+            loop
+            playsInline
+            preload="metadata"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
+        ) : (
+          <>
+            {h.thumbUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={apiHref(h.thumbUrl)}
+                alt={h.title}
+                loading="lazy"
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/15 transition group-hover:bg-black/5">
+              <span
+                className="flex h-12 w-12 items-center justify-center rounded-full pl-0.5 text-[#1a0c02] ring-1 ring-white/30 transition group-hover:scale-110"
+                style={{ background: "var(--grad-warm)", boxShadow: "0 8px 24px -6px rgba(255,106,26,0.7)" }}
+              >
+                <PlayGlyph />
+              </span>
+            </div>
+          </>
         )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/15 transition group-hover:bg-black/5">
-          <span
-            className="flex h-12 w-12 items-center justify-center rounded-full pl-0.5 text-[#1a0c02] ring-1 ring-white/30 transition group-hover:scale-110"
-            style={{ background: "var(--grad-warm)", boxShadow: "0 8px 24px -6px rgba(255,106,26,0.7)" }}
-          >
-            <PlayGlyph />
-          </span>
-        </div>
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3">
         <div className="truncate font-display text-sm uppercase">{h.title}</div>
@@ -79,7 +112,7 @@ export function HighlightsWall({ items }: { items: Highlight[] }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((h) => (
-          <PosterTile key={h.id} h={h} onOpen={setActive} />
+          <Tile key={h.id} h={h} onOpen={setActive} />
         ))}
       </div>
 

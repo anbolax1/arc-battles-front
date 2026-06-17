@@ -236,6 +236,7 @@ export interface Highlight {
   sourceUrl?: string;
   videoUrl?: string; // путь относительно API-базы (api-relative), оборачивать через apiHref
   thumbUrl?: string;
+  previewUrl?: string; // лёгкое превью-видео для автоплея в «стене»
   duration: number;
   status: HighlightStatus;
   rejectReason?: string;
