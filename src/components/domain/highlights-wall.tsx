@@ -7,55 +7,46 @@ import { VideoPlayer } from "@/components/domain/video-player";
 import { CloseIcon } from "@/components/icons";
 import type { Highlight } from "@/lib/types";
 
-/* «Стена моментов» на главной: случайные хайлайты автоплеем без звука и зациклены
-   (как гифки), играют только когда блок в зоне видимости (IntersectionObserver) —
-   чтобы не грузить трафик. Клик по плитке открывает лайтбокс с полным плеером (звук,
-   перемотка, фуллскрин). */
+/* «Лучшие моменты» на главной. Плитки показывают ЛЁГКИЕ превью-картинки (не видео):
+   полные клипы весят десятки МБ, автоплеить 3 разом — убивало мобильный канал. Видео
+   грузится только по клику — в лайтбоксе с полным плеером (звук, перемотка, фуллскрин). */
 
-function AutoTile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
-  const ref = React.useRef<HTMLVideoElement>(null);
+const PlayGlyph = () => (
+  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+    <path d="M8 5v14l11-7z" />
+  </svg>
+);
 
-  React.useEffect(() => {
-    const v = ref.current;
-    if (!v) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) void v.play().catch(() => {});
-        else v.pause();
-      },
-      { threshold: 0.4 },
-    );
-    io.observe(v);
-    return () => io.disconnect();
-  }, []);
-
+function PosterTile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
   return (
     <button
       type="button"
       onClick={() => onOpen(h)}
       className="group panel relative block overflow-hidden text-left transition hover:-translate-y-1"
     >
-      <div className="aspect-video bg-black">
-        {h.videoUrl && (
-          <video
-            ref={ref}
-            src={apiHref(h.videoUrl)}
-            poster={h.thumbUrl ? apiHref(h.thumbUrl) : undefined}
-            muted
-            loop
-            playsInline
-            preload="metadata"
+      <div className="relative aspect-video bg-black">
+        {h.thumbUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={apiHref(h.thumbUrl)}
+            alt={h.title}
+            loading="lazy"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/15 transition group-hover:bg-black/5">
+          <span
+            className="flex h-12 w-12 items-center justify-center rounded-full pl-0.5 text-[#1a0c02] ring-1 ring-white/30 transition group-hover:scale-110"
+            style={{ background: "var(--grad-warm)", boxShadow: "0 8px 24px -6px rgba(255,106,26,0.7)" }}
+          >
+            <PlayGlyph />
+          </span>
+        </div>
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3">
         <div className="truncate font-display text-sm uppercase">{h.title}</div>
         <div className="truncate text-xs text-white/70">{h.userName || h.userLogin}</div>
       </div>
-      <span className="absolute right-2 top-2 rounded bg-black/55 px-2 py-1 text-[0.6rem] uppercase tracking-wide text-white/80">
-        без звука · клик
-      </span>
     </button>
   );
 }
@@ -88,7 +79,7 @@ export function HighlightsWall({ items }: { items: Highlight[] }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((h) => (
-          <AutoTile key={h.id} h={h} onOpen={setActive} />
+          <PosterTile key={h.id} h={h} onOpen={setActive} />
         ))}
       </div>
 
