@@ -20,11 +20,27 @@ const MQ = "(min-width: 1024px) and (pointer: fine)";
 function useDesktop(): boolean {
   return React.useSyncExternalStore(
     (cb) => {
-      const m = window.matchMedia(MQ);
-      m.addEventListener("change", cb);
-      return () => m.removeEventListener("change", cb);
+      let m: MediaQueryList;
+      try {
+        m = window.matchMedia(MQ);
+      } catch {
+        return () => {};
+      }
+      // addEventListener — современный API; addListener — фолбэк для старых Safari.
+      if (m.addEventListener) {
+        m.addEventListener("change", cb);
+        return () => m.removeEventListener("change", cb);
+      }
+      m.addListener?.(cb);
+      return () => m.removeListener?.(cb);
     },
-    () => window.matchMedia(MQ).matches,
+    () => {
+      try {
+        return window.matchMedia(MQ).matches;
+      } catch {
+        return false;
+      }
+    },
     () => false,
   );
 }
