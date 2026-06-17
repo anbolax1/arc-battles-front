@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Russo_One, Chakra_Petch } from "next/font/google";
 import "./globals.css";
+import { ErrorReporter } from "@/components/error-reporter";
 
 // Display — Russo One (включает кириллицу).
 const russo = Russo_One({
@@ -29,7 +30,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" className={`${russo.variable} ${chakra.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ErrorReporter />
+        {children}
+      </body>
     </html>
   );
 }
