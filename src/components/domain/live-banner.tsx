@@ -1,16 +1,53 @@
 import Link from "next/link";
-import type { LiveState } from "@/lib/types";
+import type { LiveStanding, LiveState } from "@/lib/types";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
 import { TwitchIcon } from "@/components/icons";
 import { pointsLabel } from "@/lib/format";
 import { STREAM_URL } from "@/lib/links";
 
-/** Полоса «сейчас в эфире» из текущего состояния оверлея (LiveState). */
-export function LiveBanner({ state }: { state: LiveState }) {
+/* Полоса «сейчас в эфире». Матчап показываем VS-блоком из standings: две стороны
+   разными цветами, состав 2×2 — в столбик, очки и отметка «ходит» у активной. */
+
+function Side({ s, tone, current }: { s: LiveStanding; tone: "primary" | "cyan"; current: boolean }) {
+  const members = s.name.split(/\s*&\s*/).filter(Boolean);
+  const nameColor = tone === "primary" ? "text-primary-2" : "text-accent";
+  const edge =
+    tone === "primary"
+      ? "shadow-[inset_0_0_0_1px_rgba(255,106,26,0.4)]"
+      : "shadow-[inset_0_0_0_1px_rgba(34,211,238,0.4)]";
   return (
-    <Panel glow className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
-      <div className="space-y-2">
+    <div className={`min-w-0 flex-1 rounded-md bg-surface-2 p-3 ${edge}`}>
+      <div className="space-y-0.5">
+        {members.map((m, i) => (
+          <div key={i} className={`truncate font-display uppercase leading-tight ${nameColor}`}>
+            {m}
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-sm text-muted tnum">{pointsLabel(s.points)}</span>
+        {current && (
+          <span className="pill pill-live">
+            <span className="live-dot" />
+            <span>Ходит</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function LiveBanner({ state }: { state: LiveState }) {
+  const standings = (state.standings ?? []).slice(0, 2);
+  const hasMatchup = standings.length >= 2;
+  const matchup = hasMatchup ? standings.map((s) => s.name).join(" vs ") : "";
+  // Название турнира показываем как заголовок, только если оно НЕ дублирует матчап.
+  const title = state.tournamentName && state.tournamentName !== matchup ? state.tournamentName : "";
+
+  return (
+    <Panel glow className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <StatusPill status="live">В эфире</StatusPill>
           {state.mode && (
@@ -23,23 +60,36 @@ export function LiveBanner({ state }: { state: LiveState }) {
             {state.totalRounds ? ` / ${state.totalRounds}` : ""}
           </span>
         </div>
-        {state.tournamentId ? (
-          <Link
-            href={`/tournament/${state.tournamentId}`}
-            className="inline-block transition hover:text-primary-2"
-          >
-            <h2 className="text-2xl sm:text-3xl">{state.tournamentName || "Матч в эфире"}</h2>
-          </Link>
+
+        {title &&
+          (state.tournamentId ? (
+            <Link href={`/tournament/${state.tournamentId}`} className="inline-block transition hover:text-primary-2">
+              <h2 className="text-xl sm:text-2xl">{title}</h2>
+            </Link>
+          ) : (
+            <h2 className="text-xl sm:text-2xl">{title}</h2>
+          ))}
+
+        {hasMatchup ? (
+          <div className="flex items-stretch gap-3">
+            <Side
+              s={standings[0]}
+              tone="primary"
+              current={state.currentParticipantId === standings[0].participantId}
+            />
+            <div className="flex items-center">
+              <span className="vs-glyph">
+                <span>VS</span>
+              </span>
+            </div>
+            <Side
+              s={standings[1]}
+              tone="cyan"
+              current={state.currentParticipantId === standings[1].participantId}
+            />
+          </div>
         ) : (
           <h2 className="text-2xl sm:text-3xl">{state.tournamentName || "Матч в эфире"}</h2>
-        )}
-        {state.currentName && (
-          <p className="text-sm text-muted">
-            Сейчас ходит{" "}
-            <span className="font-display uppercase text-fg">{state.currentName}</span>
-            {" — "}
-            <span className="tnum text-primary-2">{pointsLabel(state.currentPoints)}</span>
-          </p>
         )}
       </div>
 
