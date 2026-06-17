@@ -113,13 +113,25 @@ export function VideoPlayer({
     else void containerRef.current?.requestFullscreen?.();
   }
 
-  // Клик по видео = play/pause (с задержкой), двойной клик = фуллскрин (отменяет одиночный).
+  // Клик по видео = play/pause, двойной клик = фуллскрин.
+  // play() вызываем СИНХРОННО в обработчике жеста — иначе iOS блокирует воспроизведение.
+  // pause() можно отложить, чтобы двойной тап (фуллскрин) успел его отменить.
   function onVideoClick() {
-    if (clickTimer.current) clearTimeout(clickTimer.current);
-    clickTimer.current = window.setTimeout(() => {
-      toggle();
-      clickTimer.current = null;
-    }, 220);
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
+        clickTimer.current = null;
+      }
+      void v.play();
+    } else {
+      if (clickTimer.current) clearTimeout(clickTimer.current);
+      clickTimer.current = window.setTimeout(() => {
+        v.pause();
+        clickTimer.current = null;
+      }, 220);
+    }
   }
   function onVideoDoubleClick() {
     if (clickTimer.current) {
@@ -141,7 +153,7 @@ export function VideoPlayer({
         ref={videoRef}
         src={src}
         poster={poster}
-        preload="none"
+        preload="metadata"
         playsInline
         className="h-full w-full object-contain"
         onClick={onVideoClick}
