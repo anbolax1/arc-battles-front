@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 export default function OverlayLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <style>{`html,body{background:transparent !important}`}</style>
+      <style>{`html,body{background:transparent !important}html{scrollbar-gutter:auto !important}`}</style>
       {children}
     </>
   );

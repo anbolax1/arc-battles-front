@@ -17,7 +17,25 @@ export function StarterTaskBoard({ tournamentId, rounds }: { tournamentId: strin
   const [over, setOver] = React.useState<string | null>(null); // id раунда или "pool" для подсветки
   const [msg, setMsg] = React.useState("");
 
+  // Подсказка прокрутки пула: затемнение снизу — пока есть что листать вниз,
+  // сверху — когда список прокручен от начала.
+  const poolScrollRef = React.useRef<HTMLDivElement>(null);
+  const [poolMore, setPoolMore] = React.useState(false);
+  const [poolUp, setPoolUp] = React.useState(false);
+  const updatePoolMore = React.useCallback(() => {
+    const el = poolScrollRef.current;
+    setPoolMore(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+    setPoolUp(!!el && el.scrollTop > 4);
+  }, []);
+
   const sortedRounds = React.useMemo(() => [...rounds].sort((a, b) => a.number - b.number), [rounds]);
+
+  // Пересчитываем подсказку при изменении состава пула и при ресайзе окна.
+  React.useEffect(() => {
+    updatePoolMore();
+    window.addEventListener("resize", updatePoolMore);
+    return () => window.removeEventListener("resize", updatePoolMore);
+  }, [pool, assigned, loading, updatePoolMore]);
 
   React.useEffect(() => {
     let active = true;
@@ -143,7 +161,7 @@ export function StarterTaskBoard({ tournamentId, rounds }: { tournamentId: strin
         {msg && <p className="text-sm text-danger">{msg}</p>}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         {/* Пул нераспределённых */}
         <div
           onDragOver={(e) => {
@@ -152,33 +170,46 @@ export function StarterTaskBoard({ tournamentId, rounds }: { tournamentId: strin
           }}
           onDragLeave={() => setOver((o) => (o === "pool" ? null : o))}
           onDrop={dropOnPool}
-          className={`panel space-y-2 p-3 transition ${over === "pool" ? "glow-edge" : ""}`}
+          className={`panel flex flex-col gap-2 p-3 transition lg:sticky lg:top-4 lg:self-start ${over === "pool" ? "glow-edge" : ""}`}
         >
           <div className="text-xs uppercase tracking-wide text-muted">Пул · {available.length}</div>
           {available.length ? (
-            available.map((t) => (
-              <article
-                key={t.id}
-                draggable
-                onDragStart={(e) => dragStart(e, { kind: "pool", taskId: t.id })}
-                className="group flex cursor-grab items-start justify-between gap-2 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] active:cursor-grabbing"
+            <div className="relative">
+              {poolUp && (
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-[var(--surface)] to-transparent" />
+              )}
+              <div
+                ref={poolScrollRef}
+                onScroll={updatePoolMore}
+                className="flex max-h-[440px] flex-col gap-2 overflow-y-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                <span className="text-sm">{t.text}</span>
-                <span className="pts pts-cyan flex-none">
-                  <span>+{t.points}</span>
-                </span>
-              </article>
-            ))
+                {available.map((t) => (
+                <article
+                  key={t.id}
+                  draggable
+                  onDragStart={(e) => dragStart(e, { kind: "pool", taskId: t.id })}
+                  className="group flex cursor-grab items-center gap-2.5 rounded-md bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] transition hover:shadow-[inset_0_0_0_1px_var(--border-strong)] active:cursor-grabbing"
+                >
+                  <span className="min-w-0 flex-1 text-sm leading-snug break-words">{t.text}</span>
+                  <span className="pts pts-cyan flex-none">
+                    <span>+{t.points}</span>
+                  </span>
+                </article>
+                ))}
+              </div>
+              {poolMore && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[var(--surface)] to-transparent" />
+              )}
+            </div>
           ) : (
             <p className="px-1 py-3 text-xs text-muted">Все задания распределены.</p>
           )}
         </div>
 
-        {/* Колонки раундов */}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {/* Раунды — строго друг под другом */}
+        <div className="space-y-3">
           {sortedRounds.map((r) => {
             const items = assigned.filter((a) => a.roundId === r.id);
-            const sum = items.reduce((s, x) => s + x.points, 0);
             return (
               <div
                 key={r.id}
@@ -188,41 +219,38 @@ export function StarterTaskBoard({ tournamentId, rounds }: { tournamentId: strin
                 }}
                 onDragLeave={() => setOver((o) => (o === r.id ? null : o))}
                 onDrop={(e) => dropOnRound(e, r.id)}
-                className={`panel flex min-h-32 flex-col gap-2 p-3 transition ${over === r.id ? "glow-edge" : ""}`}
+                className={`panel flex min-h-24 flex-col gap-2.5 p-3 transition ${over === r.id ? "glow-edge" : ""}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-display text-sm uppercase">Раунд {r.number}</span>
-                  <span className="text-xs text-muted tnum">{items.length ? `+${sum}` : "—"}</span>
+                  <span className="text-xs text-muted tnum">{items.length || ""}</span>
                 </div>
                 {items.length ? (
-                  items.map((a) => (
-                    <article
-                      key={a.id}
-                      draggable
-                      onDragStart={(e) => dragStart(e, { kind: "asg", asgId: a.id, taskId: a.starterTaskId, from: r.id })}
-                      className="flex cursor-grab items-start justify-between gap-2 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] active:cursor-grabbing"
-                    >
-                      <span className="text-sm">
-                        {a.text}
-                        {a.times > 0 && <span className="ml-1 text-xs text-ok">✓×{a.times}</span>}
-                      </span>
-                      <span className="flex flex-none items-center gap-1.5">
-                        <span className="pts pts-cyan">
+                  <div className="flex flex-col gap-2">
+                    {items.map((a) => (
+                      <article
+                        key={a.id}
+                        draggable
+                        onDragStart={(e) => dragStart(e, { kind: "asg", asgId: a.id, taskId: a.starterTaskId, from: r.id })}
+                        className="group flex cursor-grab items-center gap-2.5 rounded-md bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] transition hover:shadow-[inset_0_0_0_1px_var(--border-strong)] active:cursor-grabbing"
+                      >
+                        <span className="min-w-0 flex-1 text-sm leading-snug break-words">{a.text}</span>
+                        <span className="pts pts-cyan flex-none">
                           <span>+{a.points}</span>
                         </span>
                         <button
                           type="button"
-                          className="text-muted transition hover:text-danger"
+                          className="flex-none text-muted transition hover:text-danger"
                           title="Убрать из раунда"
                           onClick={() => unassign(a.id)}
                         >
                           ✕
                         </button>
-                      </span>
-                    </article>
-                  ))
+                      </article>
+                    ))}
+                  </div>
                 ) : (
-                  <p className="flex-1 select-none place-self-center self-center text-xs text-muted">
+                  <p className="flex flex-1 select-none items-center justify-center py-4 text-xs text-muted">
                     Перетащи задание сюда
                   </p>
                 )}

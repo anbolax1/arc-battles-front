@@ -253,12 +253,16 @@ export function LiveManager({
 
   const roundStarterTasks = starterTasks.filter((t) => t.roundId === roundId);
   const roundPenalties = penalties.filter((p) => p.roundId === roundId && p.participantId === participantId);
-  const myBonus = bonusTasks
-    .filter((b) => b.participantId === participantId)
-    .sort((a, b) => (a.times > 0 ? 1 : 0) - (b.times > 0 ? 1 : 0) || a.roundNumber - b.roundNumber);
-  const myBonusIds = new Set(myBonus.map((b) => b.taskId));
+  // Все бонусные этой стороны — для дедупа в селекте «добавить» (бонусные не повторяются за турнир).
+  const myBonusAll = bonusTasks.filter((b) => b.participantId === participantId);
+  const myBonusIds = new Set(myBonusAll.map((b) => b.taskId));
   const availableBonus = bonusCatalog.filter((t) => !myBonusIds.has(t.id));
-  const activeBonusCount = myBonus.filter((b) => b.times === 0 && b.roundNumber <= roundNum).length;
+  // В раунде показываем: добавленные в этот раунд (любые) + невыполненные из прошлых раундов (перенос).
+  // Зачтённое хотя бы раз в любом раунде дальше не переносится — в следующих раундах его не показываем.
+  const myBonus = myBonusAll
+    .filter((b) => b.roundNumber === roundNum || (b.times === 0 && b.roundNumber < roundNum))
+    .sort((a, b) => (a.times > 0 ? 1 : 0) - (b.times > 0 ? 1 : 0) || a.roundNumber - b.roundNumber);
+  const activeBonusCount = myBonus.filter((b) => b.times === 0).length;
   const dirty = roundPoints !== roundEntryNet;
   const locked = detail?.status === "finished"; // завершённый турнир — правки закрыты
 
@@ -429,7 +433,9 @@ export function LiveManager({
     setBusy(true);
     setMsg("");
     try {
-      await api.post(`/round-bonus-tasks/${id}/count`, { delta });
+      // roundId — чтобы зачёт «приземлился» на текущий раунд: перенесённое задание
+      // засчитывается там, где его фактически зачли, а не где добавили.
+      await api.post(`/round-bonus-tasks/${id}/count`, { delta, roundId });
       await reloadCounters();
     } catch (e) {
       setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось изменить зачёт.");

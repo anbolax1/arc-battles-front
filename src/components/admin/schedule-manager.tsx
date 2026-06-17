@@ -83,34 +83,85 @@ export function ScheduleManager({
     }
   }
 
-  // Общий пул заявок (кто подал раньше — выше; сортировка с бэка).
+  // Пул заявок грузится постранично (бесконечная подгрузка по скроллу), чтобы не тянуть
+  // все заявки сразу. pool — уже загруженные, poolTotal — сколько всего pending на бэке.
+  const POOL_PAGE = 30;
   const [pool, setPool] = React.useState<Registration[]>([]);
-  const reloadPool = React.useCallback(async () => {
+  const [poolTotal, setPoolTotal] = React.useState(0);
+  const [poolLoading, setPoolLoading] = React.useState(false);
+  const poolBusyRef = React.useRef(false);
+  const poolCountRef = React.useRef(0);
+  React.useEffect(() => {
+    poolCountRef.current = pool.length;
+  }, [pool.length]);
+
+  const loadPoolPage = React.useCallback(async (reset: boolean) => {
+    if (poolBusyRef.current) return;
+    poolBusyRef.current = true;
+    setPoolLoading(true);
     try {
-      setPool(await api.get<Registration[]>("/registrations/pool"));
+      const offset = reset ? 0 : poolCountRef.current;
+      const res = await api.get<{ items: Registration[]; total: number }>(
+        `/registrations/pool/page?limit=${POOL_PAGE}&offset=${offset}`,
+      );
+      setPoolTotal(res.total);
+      setPool((prev) => {
+        if (reset) return res.items;
+        const seen = new Set(prev.map((r) => r.id));
+        return [...prev, ...res.items.filter((r) => !seen.has(r.id))];
+      });
     } catch {
       /* ignore */
+    } finally {
+      poolBusyRef.current = false;
+      setPoolLoading(false);
     }
   }, []);
-  React.useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const p = await api.get<Registration[]>("/registrations/pool");
-        if (active) setPool(p);
-      } catch {
-        /* ignore */
-      }
-    })();
-    return () => {
-      active = false;
-    };
+
+  // Перезагрузка после действий (поставили/отклонили): тянем с начала примерно столько же,
+  // сколько уже было загружено, чтобы список не «схлопывался» к первой странице.
+  const reloadPool = React.useCallback(async () => {
+    if (poolBusyRef.current) return;
+    poolBusyRef.current = true;
+    setPoolLoading(true);
+    try {
+      const want = Math.max(POOL_PAGE, poolCountRef.current);
+      const res = await api.get<{ items: Registration[]; total: number }>(
+        `/registrations/pool/page?limit=${want}&offset=0`,
+      );
+      setPoolTotal(res.total);
+      setPool(res.items);
+    } catch {
+      /* ignore */
+    } finally {
+      poolBusyRef.current = false;
+      setPoolLoading(false);
+    }
   }, []);
 
+  React.useEffect(() => {
+    loadPoolPage(true);
+  }, [loadPoolPage]);
+
+  // Скролл-контейнер пула: затемнения-подсказки + догрузка при приближении к концу.
+  const poolScrollRef = React.useRef<HTMLDivElement>(null);
+  const [poolMore, setPoolMore] = React.useState(false);
+  const [poolUp, setPoolUp] = React.useState(false);
+  const updatePoolEdges = React.useCallback(() => {
+    const el = poolScrollRef.current;
+    setPoolMore(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+    setPoolUp(!!el && el.scrollTop > 4);
+  }, []);
+  const onPoolScroll = React.useCallback(() => {
+    updatePoolEdges();
+    const el = poolScrollRef.current;
+    if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 120) {
+      if (poolCountRef.current < poolTotal && !poolBusyRef.current) loadPoolPage(false);
+    }
+  }, [updatePoolEdges, poolTotal, loadPoolPage]);
+
   const [poolQuery, setPoolQuery] = React.useState(""); // поиск в панели пула
-  const [poolShowAll, setPoolShowAll] = React.useState(false);
   const [pickQuery, setPickQuery] = React.useState(""); // поиск в чипах модалки
-  const POOL_PREVIEW = 30;
 
   function select(id: string) {
     if (id === selId) return;
@@ -258,6 +309,20 @@ export function ScheduleManager({
     availablePool.forEach((r, i) => m.set(r.id, i + 1));
     return m;
   }, [availablePool]);
+
+  // Во время поиска (в панели или модалке) дозагружаем остаток пула, чтобы искать по всем.
+  React.useEffect(() => {
+    if ((poolQuery.trim() || pickQuery.trim()) && pool.length < poolTotal && !poolLoading) {
+      loadPoolPage(false);
+    }
+  }, [poolQuery, pickQuery, pool.length, poolTotal, poolLoading, loadPoolPage]);
+
+  // Пересчёт затемнений-подсказок при изменении видимого списка и ресайзе окна.
+  React.useEffect(() => {
+    updatePoolEdges();
+    window.addEventListener("resize", updatePoolEdges);
+    return () => window.removeEventListener("resize", updatePoolEdges);
+  }, [availablePool.length, poolQuery, updatePoolEdges]);
 
   function poolName(r: Registration) {
     return r.userDisplayName || r.userLogin || "Игрок";
@@ -571,92 +636,6 @@ export function ScheduleManager({
               </Panel>
 
               <Panel className="overflow-hidden">
-                <div className="space-y-3 border-b border-[var(--border)] px-5 py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-display text-lg uppercase">Заявки (пул)</h3>
-                    <span className="text-xs text-muted">Доступно: {availablePool.length}</span>
-                  </div>
-                  <p className="text-xs text-muted">
-                    Общий список желающих, кто подал раньше — выше. Поставь в турнир — заявка уйдёт из пула.
-                  </p>
-                  {availablePool.length > 0 && (
-                    <input
-                      className="input"
-                      placeholder="Поиск по нику или Embark ID…"
-                      value={poolQuery}
-                      onChange={(e) => setPoolQuery(e.target.value)}
-                    />
-                  )}
-                </div>
-                {availablePool.length ? (
-                  (() => {
-                    const filtered = availablePool.filter((r) => registrationMatches(r, poolQuery));
-                    if (!filtered.length) {
-                      return <div className="px-5 py-8 text-center text-sm text-muted">Ничего не найдено.</div>;
-                    }
-                    const visible = poolShowAll ? filtered : filtered.slice(0, POOL_PREVIEW);
-                    const hidden = filtered.length - visible.length;
-                    return (
-                      <>
-                        <ul className="divide-y divide-[var(--border)]">
-                          {visible.map((r) => (
-                            <li key={r.id} className="flex items-center gap-3 px-5 py-3">
-                              <span className="w-5 flex-none text-center font-display text-sm text-muted tnum">{poolPos.get(r.id)}</span>
-                              <Avatar name={poolName(r)} src={r.userAvatarUrl} size="sm" />
-                              <div className="min-w-0 flex-1">
-                                <div className="truncate font-display text-sm uppercase">{poolName(r)}</div>
-                                <div className="truncate text-xs text-muted">
-                                  {r.embarkId && <span className="tnum">{r.embarkId}</span>}
-                                  {r.embarkId && r.note && " · "}
-                                  {r.note}
-                                </div>
-                              </div>
-                              <div className="flex flex-none gap-2">
-                                {detail.mode === "2x2" ? (
-                                  <button type="button" className="btn btn-cyan btn-sm" disabled={busy} onClick={() => teamFromPool(r)}>
-                                    <span>В команду</span>
-                                  </button>
-                                ) : (
-                                  <button type="button" className="btn btn-cyan btn-sm" disabled={busy} onClick={() => addSoloFromPool(r)}>
-                                    <span>В турнир</span>
-                                  </button>
-                                )}
-                                <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => declinePool(r)}>
-                                  <span>Отклонить</span>
-                                </button>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                        {hidden > 0 && (
-                          <button
-                            type="button"
-                            className="w-full border-t border-[var(--border)] px-5 py-3 text-center text-xs uppercase tracking-wide text-muted hover:text-fg"
-                            onClick={() => setPoolShowAll(true)}
-                          >
-                            Показать ещё {hidden}
-                          </button>
-                        )}
-                        {poolShowAll && filtered.length > POOL_PREVIEW && (
-                          <button
-                            type="button"
-                            className="w-full border-t border-[var(--border)] px-5 py-3 text-center text-xs uppercase tracking-wide text-muted hover:text-fg"
-                            onClick={() => setPoolShowAll(false)}
-                          >
-                            Свернуть
-                          </button>
-                        )}
-                      </>
-                    );
-                  })()
-                ) : (
-                  <div className="px-5 py-8 text-center text-sm text-muted">
-                    {pool.length ? "Все из пула уже в этом турнире." : "Заявок в пуле пока нет."}
-                  </div>
-                )}
-              </Panel>
-
-              <Panel className="overflow-hidden">
                 <div className="border-b border-[var(--border)] px-5 py-4">
                   <h3 className="font-display text-lg uppercase">Стартовые задания по раундам</h3>
                   <p className="mt-1 text-xs text-muted">
@@ -666,6 +645,98 @@ export function ScheduleManager({
                 <div className="p-5">
                   <StarterTaskBoard tournamentId={detail.id} rounds={detail.rounds ?? []} />
                 </div>
+              </Panel>
+
+              <Panel className="overflow-hidden">
+                <div className="space-y-3 border-b border-[var(--border)] px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-display text-lg uppercase">Заявки (пул)</h3>
+                    <span className="text-xs text-muted">
+                      Доступно: {availablePool.length}
+                      {poolTotal > pool.length ? ` · загружено ${pool.length}/${poolTotal}` : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted">
+                    Общий список желающих, кто подал раньше — выше. Поставь в турнир — заявка уйдёт из пула.
+                  </p>
+                  {poolTotal > 0 && (
+                    <input
+                      className="input"
+                      placeholder="Поиск по нику или Embark ID…"
+                      value={poolQuery}
+                      onChange={(e) => setPoolQuery(e.target.value)}
+                    />
+                  )}
+                </div>
+                {poolTotal === 0 && !poolLoading ? (
+                  <div className="px-5 py-8 text-center text-sm text-muted">Заявок в пуле пока нет.</div>
+                ) : (
+                  <div className="relative">
+                    {poolUp && (
+                      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-gradient-to-b from-[var(--surface)] to-transparent" />
+                    )}
+                    <div
+                      ref={poolScrollRef}
+                      onScroll={onPoolScroll}
+                      className="max-h-[460px] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    >
+                      {(() => {
+                        const filtered = availablePool.filter((r) => registrationMatches(r, poolQuery));
+                        if (!filtered.length) {
+                          return (
+                            <div className="px-5 py-8 text-center text-sm text-muted">
+                              {poolLoading
+                                ? "Загрузка…"
+                                : poolQuery.trim()
+                                  ? "Ничего не найдено."
+                                  : "Все из пула уже в этом турнире."}
+                            </div>
+                          );
+                        }
+                        return (
+                          <ul className="divide-y divide-[var(--border)]">
+                            {filtered.map((r) => (
+                              <li key={r.id} className="flex items-center gap-3 px-5 py-3">
+                                <span className="w-5 flex-none text-center font-display text-sm text-muted tnum">{poolPos.get(r.id)}</span>
+                                <Avatar name={poolName(r)} src={r.userAvatarUrl} size="sm" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate font-display text-sm uppercase">{poolName(r)}</div>
+                                  <div className="truncate text-xs text-muted">
+                                    {r.embarkId && <span className="tnum">{r.embarkId}</span>}
+                                    {r.embarkId && r.note && " · "}
+                                    {r.note}
+                                  </div>
+                                </div>
+                                <div className="flex flex-none gap-2">
+                                  {detail.mode === "2x2" ? (
+                                    <button type="button" className="btn btn-cyan btn-sm" disabled={busy} onClick={() => teamFromPool(r)}>
+                                      <span>В команду</span>
+                                    </button>
+                                  ) : (
+                                    <button type="button" className="btn btn-cyan btn-sm" disabled={busy} onClick={() => addSoloFromPool(r)}>
+                                      <span>В турнир</span>
+                                    </button>
+                                  )}
+                                  <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => declinePool(r)}>
+                                    <span>Отклонить</span>
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        );
+                      })()}
+                      {pool.length < poolTotal && (
+                        <div className="px-5 py-3 text-center text-xs uppercase tracking-wide text-muted">
+                          {poolLoading ? "Загрузка…" : "Прокрутите вниз — загрузится ещё"}
+                        </div>
+                      )}
+                    </div>
+                    {poolMore && (
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--surface)] to-transparent" />
+                    )}
+                  </div>
+                )}
               </Panel>
             </>
           )}
