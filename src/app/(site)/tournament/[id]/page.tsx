@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTournament } from "@/lib/queries";
+import { getHighlights, getTournament } from "@/lib/queries";
 import { tournamentName } from "@/lib/display";
+import { HighlightsGrid } from "@/components/domain/highlights-grid";
 import { TournamentStatusPill } from "@/components/domain/tournament-status-pill";
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { Panel } from "@/components/ui/card";
@@ -21,6 +22,8 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const t = await getTournament(id);
   if (!t) notFound();
+
+  const { items: highlights } = await getHighlights({ tournamentId: id, limit: 6 });
 
   const participants = t.participants ?? [];
   const rounds = [...(t.rounds ?? [])].sort((a, b) => a.number - b.number);
@@ -163,6 +166,18 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           ))}
         </div>
       </div>
+
+      {highlights.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl">Хайлайты турнира</h2>
+            <Link href="/highlights" className="text-sm text-accent transition hover:underline">
+              Все хайлайты →
+            </Link>
+          </div>
+          <HighlightsGrid items={highlights} />
+        </section>
+      )}
     </div>
   );
 }

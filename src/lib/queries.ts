@@ -19,6 +19,7 @@ import type {
   TournamentStatus,
   User,
   UserOverview,
+  Highlight,
 } from "@/lib/types";
 
 async function safe<T>(label: string, p: Promise<T>, fallback: T): Promise<T> {
@@ -95,6 +96,23 @@ export function getMe(): Promise<User | null> {
 /** Список пользователей для кабинета (выбор участников). Organizer-only. */
 export function getUsers(): Promise<User[]> {
   return safe("users", serverFetch<User[]>("/users", { auth: true }), []);
+}
+
+/** Публичные (одобренные) хайлайты с пагинацией и фильтрами по турниру/игроку. */
+export function getHighlights(
+  params: { tournamentId?: string; userId?: string; limit?: number; offset?: number } = {},
+): Promise<{ items: Highlight[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params.tournamentId) qs.set("tournamentId", params.tournamentId);
+  if (params.userId) qs.set("userId", params.userId);
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  if (params.offset != null) qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return safe(
+    "highlights",
+    serverFetch<{ items: Highlight[]; total: number }>(`/highlights${suffix}`),
+    { items: [], total: 0 },
+  );
 }
 
 /** Страница пользователей с агрегатами участия (раздел «Пользователи»). Organizer-only. */

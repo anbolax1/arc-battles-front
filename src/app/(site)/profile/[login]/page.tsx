@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getPlayer } from "@/lib/queries";
+import { getHighlights, getPlayer } from "@/lib/queries";
+import { HighlightsGrid } from "@/components/domain/highlights-grid";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/card";
@@ -33,6 +34,7 @@ export default async function PlayerProfilePage({
 
   const { user, points, wins, tournaments, history } = profile;
   const role = roleBadge(user.role);
+  const { items: highlights } = await getHighlights({ userId: user.id, limit: 6 });
   const stats = [
     { label: "Очки сезона", value: points },
     { label: "Побед", value: wins },
@@ -103,6 +105,13 @@ export default async function PlayerProfilePage({
           <EmptyState title="Пока нет участий" hint="Здесь появятся турниры игрока." />
         )}
       </section>
+
+      {highlights.length > 0 && (
+        <section className="space-y-4">
+          <h3 className="text-xl">Хайлайты игрока</h3>
+          <HighlightsGrid items={highlights} />
+        </section>
+      )}
     </div>
   );
 }

@@ -220,6 +220,28 @@ export interface UserOverview extends User {
   participations: number; // всего участий (включая текущие/анонсы)
 }
 
+export type HighlightStatus = "processing" | "pending" | "approved" | "rejected" | "failed";
+
+/** Хайлайт — пользовательский клип (твич-клип у нас или загруженный файл). GET /api/highlights. */
+export interface Highlight {
+  id: string;
+  userId: string;
+  userLogin: string;
+  userName: string;
+  userAvatarUrl: string;
+  tournamentId?: string | null;
+  tournamentTitle?: string;
+  title: string;
+  source: "twitch_clip" | "upload";
+  sourceUrl?: string;
+  videoUrl?: string; // путь относительно API-базы (api-relative), оборачивать через apiHref
+  thumbUrl?: string;
+  duration: number;
+  status: HighlightStatus;
+  rejectReason?: string;
+  createdAt: string;
+}
+
 /** Ответ GET /api/leaderboard — ОБЁРНУТ в { mode, rows }. */
 export interface LeaderboardResponse {
   mode: TournamentMode;

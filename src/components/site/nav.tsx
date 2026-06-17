@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/schedule", label: "Расписание" },
   { href: "/rating", label: "Рейтинг" },
   { href: "/archive", label: "Архив" },
+  { href: "/highlights", label: "Хайлайты" },
   { href: "/rules", label: "Правила" },
 ];
 
