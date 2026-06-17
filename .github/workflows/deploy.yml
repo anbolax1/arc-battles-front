@@ -1,0 +1,75 @@
+name: Deploy frontend
+
+# Автодеплой: сборка Next (standalone) на раннере → заливка бандла на VPS → swap + рестарт.
+# NEXT_PUBLIC_API_BASE вшивается из .env.production (в репо). Требуются секреты репозитория:
+#   SSH_HOST  — IP/домен VPS (напр. 155.212.133.147)
+#   SSH_USER  — admin2
+#   SSH_KEY   — приватный deploy-ключ (целиком, включая BEGIN/END строки)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Assemble standalone bundle
+        run: |
+          rm -rf .deploybuild && mkdir .deploybuild
+          cp -r .next/standalone/. .deploybuild/
+          mkdir -p .deploybuild/frontend/.next
+          cp -r .next/static .deploybuild/frontend/.next/static
+          cp -r public .deploybuild/frontend/public
+          test -f .deploybuild/frontend/server.js
+
+      - name: Prepare staging dir
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: rm -rf ~/front_new && mkdir -p ~/front_new
+
+      - name: Upload bundle
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: ".deploybuild/frontend,.deploybuild/node_modules"
+          target: front_new
+          strip_components: 1
+
+      - name: Swap & restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            export XDG_RUNTIME_DIR=/run/user/$(id -u)
+            test -f ~/front_new/frontend/server.js
+            rm -rf ~/front_old
+            mv ~/front ~/front_old
+            mv ~/front_new ~/front
+            systemctl --user restart respect-front
+            sleep 2
+            curl -fsS -o /dev/null -w "front %{http_code}\n" localhost:3000
