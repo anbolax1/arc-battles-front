@@ -7,11 +7,27 @@ import { VideoPlayer } from "@/components/domain/video-player";
 import { CloseIcon } from "@/components/icons";
 import type { Highlight } from "@/lib/types";
 
-/* «Лучшие моменты» на главной. Плитки автоплеят ЛЁГКОЕ превью-видео (~0.5–1 МБ, 5 сек,
-   без звука, низкое разрешение — генерится на бэке рядом с клипом) как гифки; играют
-   только в зоне видимости (IntersectionObserver). Полный клип (десятки МБ) грузится
-   только по клику — в лайтбоксе с полным плеером (звук, перемотка, фуллскрин).
-   Если превью ещё нет (старый хайлайт) — показываем статичный постер. */
+/* «Лучшие моменты» на главной.
+   - Десктоп (мышь, широкий экран): автоплей лёгкого превью-видео (~0.5 МБ, без звука, луп),
+     играет только в зоне видимости (IntersectionObserver) — «гифка».
+   - Мобайл/тач: статичный постер (картинка) с кнопкой play. Автоплей видео на мобиле НЕ делаем:
+     на iOS он уводит видео в полноэкранный чёрный режим / ломает рендер. SSR отдаёт постер
+     (серверный снапшот = не-десктоп), поэтому мобайл сразу видит картинку, без <video>.
+   В обоих случаях клик открывает лайтбокс с полным клипом (звук, перемотка, фуллскрин). */
+
+const MQ = "(min-width: 1024px) and (pointer: fine)";
+
+function useDesktop(): boolean {
+  return React.useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(MQ);
+      m.addEventListener("change", cb);
+      return () => m.removeEventListener("change", cb);
+    },
+    () => window.matchMedia(MQ).matches,
+    () => false,
+  );
+}
 
 const PlayGlyph = () => (
   <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
@@ -19,10 +35,11 @@ const PlayGlyph = () => (
   </svg>
 );
 
-function Tile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
+function Tile({ h, autoplay, onOpen }: { h: Highlight; autoplay: boolean; onOpen: (h: Highlight) => void }) {
   const ref = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
+    if (!autoplay) return;
     const v = ref.current;
     if (!v) return;
     const io = new IntersectionObserver(
@@ -34,7 +51,9 @@ function Tile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
     );
     io.observe(v);
     return () => io.disconnect();
-  }, []);
+  }, [autoplay]);
+
+  const useVideo = autoplay && !!h.previewUrl;
 
   return (
     <button
@@ -43,10 +62,10 @@ function Tile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
       className="group panel relative block overflow-hidden text-left transition hover:-translate-y-1"
     >
       <div className="relative aspect-video bg-black">
-        {h.previewUrl ? (
+        {useVideo ? (
           <video
             ref={ref}
-            src={apiHref(h.previewUrl)}
+            src={apiHref(h.previewUrl as string)}
             poster={h.thumbUrl ? apiHref(h.thumbUrl) : undefined}
             muted
             loop
@@ -85,6 +104,7 @@ function Tile({ h, onOpen }: { h: Highlight; onOpen: (h: Highlight) => void }) {
 }
 
 export function HighlightsWall({ items }: { items: Highlight[] }) {
+  const desktop = useDesktop();
   const [active, setActive] = React.useState<Highlight | null>(null);
 
   React.useEffect(() => {
@@ -112,7 +132,7 @@ export function HighlightsWall({ items }: { items: Highlight[] }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((h) => (
-          <Tile key={h.id} h={h} onOpen={setActive} />
+          <Tile key={h.id} h={h} autoplay={desktop} onOpen={setActive} />
         ))}
       </div>
 
