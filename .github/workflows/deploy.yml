@@ -1,10 +1,10 @@
 name: Deploy frontend
 
 # Автодеплой: сборка Next (standalone) на раннере → заливка бандла на VPS → swap + рестарт.
-# NEXT_PUBLIC_API_BASE вшивается из .env.production (в репо). Требуются секреты репозитория:
+# NEXT_PUBLIC_API_BASE вшивается из .env.production (в репо). Секреты репозитория:
 #   SSH_HOST  — IP/домен VPS (напр. 155.212.133.147)
 #   SSH_USER  — admin2
-#   SSH_KEY   — приватный deploy-ключ (целиком, включая BEGIN/END строки)
+#   SSH_KEY   — приватный deploy-ключ (целиком, с BEGIN/END)
 
 on:
   push:
@@ -27,43 +27,36 @@ jobs:
           cache: npm
 
       - run: npm ci
-
       - run: npm run build
 
-      - name: Assemble standalone bundle
+      # Standalone репо (без родительского monorepo) даёт ПЛОСКИЙ standalone:
+      # server.js в корне .next/standalone. Заворачиваем его в frontend/, чтобы
+      # совпало с прод-юнитом (WorkingDir ~/front, ExecStart node frontend/server.js).
+      - name: Assemble bundle (-> frontend/)
         run: |
-          rm -rf .deploybuild && mkdir .deploybuild
-          cp -r .next/standalone/. .deploybuild/
+          rm -rf .deploybuild && mkdir -p .deploybuild/frontend
+          cp -r .next/standalone/. .deploybuild/frontend/
           mkdir -p .deploybuild/frontend/.next
           cp -r .next/static .deploybuild/frontend/.next/static
-          cp -r public .deploybuild/frontend/public
+          cp -r public        .deploybuild/frontend/public
           test -f .deploybuild/frontend/server.js
 
-      - name: Prepare staging dir
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: rm -rf ~/front_new && mkdir -p ~/front_new
-
-      - name: Upload bundle
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          source: ".deploybuild/frontend,.deploybuild/node_modules"
-          target: front_new
-          strip_components: 1
-
-      - name: Swap & restart
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id
+          chmod 600 ~/.ssh/id
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "deploy key fingerprint: $(ssh-keygen -yf ~/.ssh/id | awk '{print $1" "substr($2,1,24)"..."}')"
+          SSH="ssh -i ~/.ssh/id -o StrictHostKeyChecking=accept-new"
+          $SSH "$SSH_USER@$SSH_HOST" 'rm -rf ~/front_new && mkdir -p ~/front_new'
+          tar -C .deploybuild -czf - . | $SSH "$SSH_USER@$SSH_HOST" 'tar -C ~/front_new -xzf -'
+          $SSH "$SSH_USER@$SSH_HOST" '
             set -e
             export XDG_RUNTIME_DIR=/run/user/$(id -u)
             test -f ~/front_new/frontend/server.js
@@ -73,3 +66,4 @@ jobs:
             systemctl --user restart respect-front
             sleep 2
             curl -fsS -o /dev/null -w "front %{http_code}\n" localhost:3000
+          '

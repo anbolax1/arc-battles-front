@@ -22,9 +22,10 @@ rm -rf .next .deploybuild
 npm run build           # NEXT_PUBLIC_API_BASE берётся из .env.production (вшивается!)
 
 # 2. Собрать standalone-комплект (Next НЕ копирует static/public сам).
-#    Раскладка ДОЛЖНA совпадать с прод: ~/front/frontend/server.js + node_modules сверху.
-mkdir .deploybuild
-cp -r .next/standalone/. .deploybuild/
+#    Репо одиночный → standalone ПЛОСКИЙ (server.js в корне .next/standalone).
+#    Заворачиваем в frontend/, чтобы совпало с прод-юнитом (ExecStart node frontend/server.js).
+mkdir -p .deploybuild/frontend
+cp -r .next/standalone/. .deploybuild/frontend/
 mkdir -p .deploybuild/frontend/.next
 cp -r .next/static  .deploybuild/frontend/.next/static
 cp -r public        .deploybuild/frontend/public
@@ -32,7 +33,7 @@ test -f .deploybuild/frontend/server.js && echo "server.js OK" || echo "!!! serv
 
 # 3. Залить в staging-каталог (не поверх работающего)
 ssh admin2@$VPS 'rm -rf ~/front_new && mkdir -p ~/front_new'
-scp -r .deploybuild/frontend .deploybuild/node_modules admin2@$VPS:~/front_new/
+scp -r .deploybuild/frontend admin2@$VPS:~/front_new/
 
 # 4. Атомарная подмена + перезапуск (старую версию держим как откат)
 ssh admin2@$VPS '
@@ -105,7 +106,7 @@ PSCP="/c/Program Files/PuTTY/pscp.exe"; PLINK="/c/Program Files/PuTTY/plink.exe"
 HK="SHA256:QiiRhzn951tFxzGizQDfEYI8SfXyqNIBfOi3pmkCgAM"
 "$PLINK" -batch -hostkey "$HK" -pw '<root-пароль>' root@155.212.133.147 'rm -rf /home/admin2/front_new && mkdir -p /home/admin2/front_new'
 cd .deploybuild
-"$PSCP" -batch -r -hostkey "$HK" -pw '<root-пароль>' frontend node_modules root@155.212.133.147:/home/admin2/front_new/
+"$PSCP" -batch -r -hostkey "$HK" -pw '<root-пароль>' frontend root@155.212.133.147:/home/admin2/front_new/
 "$PLINK" -batch -hostkey "$HK" -pw '<root-пароль>' root@155.212.133.147 '
   chown -R admin2:admin2 /home/admin2/front_new
   rm -rf /home/admin2/front_old
