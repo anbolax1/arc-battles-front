@@ -7,7 +7,6 @@ import { TournamentStatusPill } from "./tournament-status-pill";
 /** Строка турнира в списке (расписание, «ближайшие»). Ведёт на деталку. */
 export function TournamentRow({ t }: { t: Tournament }) {
   const name = tournamentName(t);
-  const maps = t.maps?.length ? t.maps.join(" · ") : "Карты объявим позже";
 
   return (
     <Link
@@ -24,7 +23,7 @@ export function TournamentRow({ t }: { t: Tournament }) {
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-display text-base uppercase sm:text-lg">{name}</h3>
         <div className="mt-1 truncate text-sm text-muted">
-          <span className="text-fg">{t.mode}</span> · {t.totalRounds} раунда · {maps}
+          <span className="text-fg">{t.mode}</span> · {t.totalRounds} раунда
           {t.startsAt && (
             <>
               {" · "}

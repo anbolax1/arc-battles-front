@@ -61,11 +61,6 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           <span>
             Режим: <span className="text-fg">{t.mode}</span>
           </span>
-          {t.maps?.length ? (
-            <span>
-              Карты: <span className="text-fg">{t.maps.join(" · ")}</span>
-            </span>
-          ) : null}
         </div>
         {t.status === "upcoming" && (
           <div className="pt-1">
@@ -144,9 +139,8 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           )}
         </Panel>
 
-        {/* Раунды и карты */}
+        {/* Раунды (карту раунда показываем только когда он идёт или завершён) */}
         <div className="space-y-3">
-          <div className="text-xs uppercase tracking-wide text-muted">Раунды и карты</div>
           {(rounds.length
             ? rounds.map((r) => ({ key: r.id, number: r.number, map: r.map, status: r.status }))
             : Array.from({ length: t.totalRounds || 3 }, (_, i) => ({
@@ -159,7 +153,9 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
             <Panel key={r.key} className="flex items-center justify-between gap-3 p-4">
               <div>
                 <div className="font-display uppercase">Раунд {r.number}</div>
-                {r.map && <div className="text-sm text-muted">{r.map}</div>}
+                {(r.status === "live" || r.status === "finished") && r.map && (
+                  <div className="text-sm text-muted">{r.map}</div>
+                )}
               </div>
               <span className="text-xs uppercase text-muted">
                 {r.status ? (ROUND_STATUS[r.status] ?? r.status) : "—"}

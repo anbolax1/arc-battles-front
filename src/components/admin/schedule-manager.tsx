@@ -4,6 +4,7 @@ import * as React from "react";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TournamentStatusPill } from "@/components/domain/tournament-status-pill";
@@ -68,6 +69,21 @@ export function ScheduleManager({
   const [editTourOpen, setEditTourOpen] = React.useState(false);
   const [eTitle, setETitle] = React.useState("");
   const [eStart, setEStart] = React.useState("");
+
+  // Стилизованное подтверждение удаления (вместо window.confirm).
+  const [confirmAction, setConfirmAction] = React.useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    run: () => Promise<boolean>;
+  } | null>(null);
+  const [confirmErr, setConfirmErr] = React.useState("");
+
+  async function runConfirm() {
+    if (!confirmAction) return;
+    const ok = await confirmAction.run();
+    if (ok) setConfirmAction(null);
+  }
 
   // детали выбранного турнира (setState только после await — без set-state-in-effect)
   React.useEffect(() => {
@@ -265,20 +281,31 @@ export function ScheduleManager({
     }
   }
 
-  async function deleteTournament() {
+  function deleteTournament() {
     if (!detail) return;
-    if (!window.confirm(`Удалить турнир «${tournamentName(detail)}» вместе с раундами, участниками и начислениями? Действие необратимо.`)) {
-      return;
-    }
+    setConfirmErr("");
+    setConfirmAction({
+      title: "Удалить турнир?",
+      message: `Турнир «${tournamentName(detail)}» удалится вместе с раундами, участниками и начислениями. Действие необратимо.`,
+      confirmLabel: "Удалить турнир",
+      run: doDeleteTournament,
+    });
+  }
+
+  async function doDeleteTournament(): Promise<boolean> {
+    if (!detail) return true;
     setBusy(true);
+    setConfirmErr("");
     try {
       await api.del(`/tournaments/${detail.id}`);
       const rest = list.filter((x) => x.id !== detail.id);
       setList(rest);
       setDetail(null);
       setSelId(rest[0]?.id ?? "");
+      return true;
     } catch (err) {
-      window.alert(err instanceof ApiError ? err.body || err.message : "Не удалось удалить турнир.");
+      setConfirmErr(err instanceof ApiError ? err.body || err.message : "Не удалось удалить турнир.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -519,14 +546,26 @@ export function ScheduleManager({
     }
   }
 
-  async function deleteRound(id: string) {
-    if (!window.confirm("Удалить раунд вместе с его начислениями и заданиями?")) return;
+  function deleteRound(id: string) {
+    setConfirmErr("");
+    setConfirmAction({
+      title: "Удалить раунд?",
+      message: "Раунд удалится вместе с его начислениями и заданиями.",
+      confirmLabel: "Удалить раунд",
+      run: () => doDeleteRound(id),
+    });
+  }
+
+  async function doDeleteRound(id: string): Promise<boolean> {
     setBusy(true);
+    setConfirmErr("");
     try {
       await api.del(`/rounds/${id}`);
       await reloadDetail();
+      return true;
     } catch (err) {
-      window.alert(err instanceof ApiError ? err.body || err.message : "Не удалось удалить раунд.");
+      setConfirmErr(err instanceof ApiError ? err.body || err.message : "Не удалось удалить раунд.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -1080,6 +1119,20 @@ export function ScheduleManager({
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.title ?? ""}
+        message={confirmAction?.message ?? ""}
+        confirmLabel={confirmAction?.confirmLabel}
+        busy={busy}
+        error={confirmErr}
+        onConfirm={runConfirm}
+        onCancel={() => {
+          setConfirmAction(null);
+          setConfirmErr("");
+        }}
+      />
     </div>
   );
 }
