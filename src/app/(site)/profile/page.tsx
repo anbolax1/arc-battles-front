@@ -6,8 +6,7 @@ import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import { EmbarkIdEditor } from "@/components/domain/embark-id-editor";
-import { TwitchIcon } from "@/components/icons";
-import { apiHref } from "@/lib/api";
+import Link from "next/link";
 import { registrationPill, roleBadge } from "@/lib/display";
 import { fmtDate } from "@/lib/format";
 
@@ -25,12 +24,16 @@ export default async function ProfilePage() {
         <Panel glow className="flex max-w-xl flex-col items-start gap-4 p-6">
           <h3 className="font-display text-lg uppercase">Нужно войти</h3>
           <p className="text-sm text-muted">
-            Профиль, заявки и Embark ID доступны после входа через Twitch.
+            Профиль, заявки и Embark ID доступны после входа по логину и паролю.
           </p>
-          <a href={apiHref("/auth/twitch/login")} className="btn btn-twitch">
-            <TwitchIcon />
-            <span>Войти через Twitch</span>
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/login?redirect=/profile" className="btn btn-primary">
+              <span>Войти</span>
+            </Link>
+            <Link href="/register" className="btn btn-ghost">
+              <span>Регистрация</span>
+            </Link>
+          </div>
         </Panel>
       </div>
     );

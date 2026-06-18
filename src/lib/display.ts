@@ -65,11 +65,9 @@ export function roleBadge(
   role: Role | string,
 ): { kind: "champ" | "glad" | "org" | "boosty" | "official"; label: string } {
   switch (role) {
-    case "organizer":
+    case "superadmin":
       return { kind: "org", label: "Организатор" };
-    case "participant":
-      return { kind: "glad", label: "Участник" };
     default:
-      return { kind: "official", label: "Зритель" };
+      return { kind: "official", label: "Игрок" };
   }
 }

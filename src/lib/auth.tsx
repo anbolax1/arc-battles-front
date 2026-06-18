@@ -7,12 +7,14 @@
 
 import * as React from "react";
 import { api, ApiError } from "@/lib/api";
+import { roleAtLeast } from "@/lib/roles";
 import type { User } from "@/lib/types";
 
 interface AuthValue {
   user: User | null;
   loading: boolean;
-  isOrganizer: boolean;
+  /** Доступ к кабинету организатора (роль superadmin или выше). */
+  isSuperadmin: boolean;
   refresh: () => Promise<void>;
 }
 
@@ -43,7 +45,7 @@ export function AuthProvider({
   const value: AuthValue = {
     user,
     loading,
-    isOrganizer: user?.role === "organizer",
+    isSuperadmin: roleAtLeast(user?.role, "superadmin"),
     refresh,
   };
 

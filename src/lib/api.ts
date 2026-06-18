@@ -45,6 +45,20 @@ export function apiHref(path: string): string {
   return `${BASE}${path}`;
 }
 
+/** Достаёт человекочитаемый текст ошибки из ApiError (бэк отдаёт {"error": "…"}). */
+export function errorText(err: unknown, fallback = "Что-то пошло не так. Попробуйте ещё раз."): string {
+  if (err instanceof ApiError) {
+    try {
+      const j = JSON.parse(err.body) as { error?: unknown };
+      if (j && typeof j.error === "string" && j.error.trim()) return j.error;
+    } catch {
+      /* тело не JSON — отдаём как есть */
+    }
+    return err.body || fallback;
+  }
+  return fallback;
+}
+
 export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   post: <T>(path: string, body?: unknown) =>

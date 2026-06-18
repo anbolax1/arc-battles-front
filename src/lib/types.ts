@@ -1,7 +1,7 @@
 /* TS-типы, зеркалящие модели Go-бэкенда (backend/internal/models).
    Это копия контракта, НЕ импорт из бэкенда — проекты независимы. */
 
-export type Role = "viewer" | "participant" | "organizer";
+export type Role = "user" | "superadmin";
 export type TournamentMode = "1x1" | "2x2";
 export type TournamentStatus = "draft" | "upcoming" | "live" | "finished";
 export type ParticipantKind = "player" | "team";
@@ -12,7 +12,6 @@ export type TaskKind = "pve" | "pvp" | "mixed";
 
 export interface User {
   id: string;
-  twitchId: string;
   login: string;
   displayName: string;
   avatarUrl: string;

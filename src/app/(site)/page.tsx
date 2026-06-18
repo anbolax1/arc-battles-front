@@ -53,7 +53,7 @@ export default async function HomePage() {
           забирай звание Чемпиона.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
-          <Link href="/register" className="btn btn-primary">
+          <Link href="/join" className="btn btn-primary">
             <span>Записаться</span>
           </Link>
           <a href={STREAM_URL} target="_blank" rel="noreferrer" className="btn btn-twitch">
@@ -136,10 +136,10 @@ export default async function HomePage() {
         <div className="space-y-2">
           <h2 className="text-2xl sm:text-3xl">Готов выйти на арену?</h2>
           <p className="max-w-xl text-muted">
-            Войди через Twitch, укажи Embark ID в профиле и подай заявку на ближайший турнир.
+            Войди, укажи Embark ID в профиле и подай заявку на ближайший турнир.
           </p>
         </div>
-        <Link href="/register" className="btn btn-primary flex-none">
+        <Link href="/join" className="btn btn-primary flex-none">
           <span>Подать заявку</span>
         </Link>
       </section>

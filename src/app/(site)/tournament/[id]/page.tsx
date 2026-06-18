@@ -69,7 +69,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
         </div>
         {t.status === "upcoming" && (
           <div className="pt-1">
-            <Link href="/register" className="btn btn-primary">
+            <Link href="/join" className="btn btn-primary">
               <span>Записаться на турнир</span>
             </Link>
           </div>

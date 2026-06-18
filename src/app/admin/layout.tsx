@@ -2,10 +2,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { AuthProvider } from "@/lib/auth";
 import { getMe } from "@/lib/queries";
-import { apiHref } from "@/lib/api";
+import { roleAtLeast } from "@/lib/roles";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
-import { TwitchIcon } from "@/components/icons";
 
 export const metadata = { title: "Кабинет — Битва за Респект" };
 
@@ -14,7 +13,7 @@ export const metadata = { title: "Кабинет — Битва за Респе�
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getMe();
 
-  if (!user || user.role !== "organizer") {
+  if (!user || !roleAtLeast(user.role, "superadmin")) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
         <h1 className="text-2xl">Доступно только организатору</h1>
@@ -23,10 +22,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </p>
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           {!user && (
-            <a href={apiHref("/auth/twitch/login")} className="btn btn-twitch">
-              <TwitchIcon />
-              <span>Войти через Twitch</span>
-            </a>
+            <Link href="/login?redirect=/admin" className="btn btn-primary">
+              <span>Войти</span>
+            </Link>
           )}
           <Link href="/" className="btn btn-ghost">
             <span>На главную</span>

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
-import { api, apiHref } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar } from "@/components/ui/avatar";
-import { BoltIcon, CloseIcon, LogoutIcon, MenuIcon, TwitchIcon } from "@/components/icons";
+import { BoltIcon, CloseIcon, LogoutIcon, MenuIcon } from "@/components/icons";
 
 const LINKS = [
   { href: "/", label: "Главная" },
@@ -22,12 +22,12 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 export function SiteNav() {
-  const { user, isOrganizer, refresh } = useAuth();
+  const { user, isSuperadmin, refresh } = useAuth();
   const pathname = usePathname() || "/";
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
 
-  const links = isOrganizer ? [...LINKS, { href: "/admin", label: "Кабинет" }] : LINKS;
+  const links = isSuperadmin ? [...LINKS, { href: "/admin", label: "Кабинет" }] : LINKS;
 
   async function logout() {
     try {
@@ -67,13 +67,12 @@ export function SiteNav() {
     </>
   ) : (
     <>
-      <Link href="/register" className="btn btn-primary btn-sm">
-        <span>Записаться</span>
+      <Link href="/login" className="btn btn-ghost btn-sm">
+        <span>Войти</span>
       </Link>
-      <a href={apiHref("/auth/twitch/login")} className="btn btn-twitch btn-sm">
-        <TwitchIcon />
-        <span>Войти через Twitch</span>
-      </a>
+      <Link href="/register" className="btn btn-primary btn-sm">
+        <span>Регистрация</span>
+      </Link>
     </>
   );
 

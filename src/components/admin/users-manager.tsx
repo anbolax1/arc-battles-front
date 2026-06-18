@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { api } from "@/lib/api";
+import { api, errorText } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/pill";
@@ -9,7 +10,7 @@ import { SectionHead } from "@/components/ui/section-head";
 import { EmptyState } from "@/components/ui/empty-state";
 import { roleBadge } from "@/lib/display";
 import { fmtDate } from "@/lib/format";
-import type { PlayerProfile, UserOverview } from "@/lib/types";
+import type { PlayerProfile, Role, User, UserOverview } from "@/lib/types";
 
 /* Раздел «Пользователи» кабинета. Пагинация (по pageSize), поиск и сортировка —
    серверные (через /users/overview), чтобы не тянуть всех сразу. Клик по строке
@@ -62,6 +63,24 @@ export function UsersManager({
   // Кеш истории участия по userId: грузим лениво при раскрытии строки.
   const [profiles, setProfiles] = React.useState<Record<string, PlayerProfile | "loading" | "error">>({});
   const firstRun = React.useRef(true);
+
+  // Назначение ролей (organizer-only). currentUser — чтобы не дать сменить роль самому себе.
+  const { user: currentUser } = useAuth();
+  const [roleBusyId, setRoleBusyId] = React.useState<string | null>(null);
+  const [roleError, setRoleError] = React.useState<Record<string, string>>({});
+
+  async function changeRole(u: UserOverview, role: Role) {
+    setRoleBusyId(u.id);
+    setRoleError((m) => ({ ...m, [u.id]: "" }));
+    try {
+      const updated = await api.patch<User>(`/users/${u.id}/role`, { role });
+      setItems((list) => list.map((it) => (it.id === u.id ? { ...it, role: updated.role } : it)));
+    } catch (e) {
+      setRoleError((m) => ({ ...m, [u.id]: errorText(e, "Не удалось изменить роль.") }));
+    } finally {
+      setRoleBusyId(null);
+    }
+  }
 
   // Дебаунс поиска → сброс на первую страницу.
   React.useEffect(() => {
@@ -202,6 +221,32 @@ export function UsersManager({
                       {open && (
                         <tr className="border-b border-[var(--border)] last:border-0">
                           <td colSpan={7} className="bg-surface-2 px-4 py-4">
+                            <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-4">
+                              <span className="text-xs uppercase tracking-wide text-muted">Роль</span>
+                              <Badge kind={role.kind}>{role.label}</Badge>
+                              {currentUser?.id === u.id ? (
+                                <span className="text-xs text-muted">это вы — вашу роль меняет другой организатор</span>
+                              ) : u.role === "superadmin" ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm"
+                                  disabled={roleBusyId === u.id}
+                                  onClick={() => changeRole(u, "user")}
+                                >
+                                  <span>{roleBusyId === u.id ? "Меняем…" : "Снять права организатора"}</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn btn-cyan btn-sm"
+                                  disabled={roleBusyId === u.id}
+                                  onClick={() => changeRole(u, "superadmin")}
+                                >
+                                  <span>{roleBusyId === u.id ? "Меняем…" : "Назначить организатором"}</span>
+                                </button>
+                              )}
+                              {roleError[u.id] && <span className="text-sm text-danger">{roleError[u.id]}</span>}
+                            </div>
                             {prof === undefined || prof === "loading" ? (
                               <p className="text-sm text-muted">Загрузка истории участия…</p>
                             ) : prof === "error" ? (
