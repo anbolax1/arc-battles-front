@@ -321,10 +321,21 @@ export interface Highlight {
   createdAt: string;
 }
 
-/** Ответ GET /api/leaderboard — ОБЁРНУТ в { mode, rows }. */
+/** Ответ GET /api/leaderboard — ОБЁРНУТ в { mode, seasonId, rows }. */
 export interface LeaderboardResponse {
   mode: TournamentMode;
+  seasonId?: string;
   rows: LeaderboardRow[];
+}
+
+/** Сезон рейтинга (GET /api/seasons). */
+export interface Season {
+  id: string;
+  name: string;
+  status: "active" | "finished";
+  startedAt: string;
+  endedAt?: string | null;
+  createdAt: string;
 }
 
 /** Ответ GET /api/rules — ОБЁРНУТ в { tasks, complications }. */

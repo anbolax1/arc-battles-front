@@ -1,4 +1,4 @@
-import { getLeaderboard } from "@/lib/queries";
+import { getLeaderboard, getSeasons } from "@/lib/queries";
 import { RatingTabs } from "@/components/domain/rating-tabs";
 import { SectionHead } from "@/components/ui/section-head";
 
@@ -8,16 +8,17 @@ export const metadata = {
 };
 
 export default async function RatingPage() {
-  const [solo, duo] = await Promise.all([getLeaderboard("1x1"), getLeaderboard("2x2")]);
+  // По умолчанию (без season) — активный сезон.
+  const [seasons, solo, duo] = await Promise.all([getSeasons(), getLeaderboard("1x1"), getLeaderboard("2x2")]);
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-6 py-12 sm:py-16">
       <SectionHead eyebrow="Сезон" title="Таблица лидеров" />
       <p className="max-w-2xl text-sm text-muted">
-        Очки начисляются по итогам завершённых турниров сезона. Пока турниры не
-        сыграны, рейтинг может быть пустым.
+        Очки начисляются по итогам завершённых турниров сезона. Переключай сезон справа;
+        «Все сезоны» — суммарный рейтинг за всё время.
       </p>
-      <RatingTabs solo={solo} duo={duo} />
+      <RatingTabs seasons={seasons} initialSolo={solo} initialDuo={duo} />
     </div>
   );
 }

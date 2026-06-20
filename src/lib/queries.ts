@@ -13,6 +13,7 @@ import type {
   PlayerProfile,
   Registration,
   RulesResponse,
+  Season,
   StarterTask,
   Tournament,
   TournamentMode,
@@ -49,14 +50,20 @@ export async function getTournament(id: string): Promise<Tournament | null> {
   }
 }
 
-/** Сезонный рейтинг 1×1/2×2. Ответ обёрнут в {mode,rows} — разворачиваем в rows[]. */
-export async function getLeaderboard(mode: TournamentMode): Promise<LeaderboardRow[]> {
+/** Сезонный рейтинг 1×1/2×2. season: пусто — активный сезон, "all" — за всё время, иначе id. */
+export async function getLeaderboard(mode: TournamentMode, season?: string): Promise<LeaderboardRow[]> {
+  const q = season ? `&season=${encodeURIComponent(season)}` : "";
   const res = await safe(
     `leaderboard(${mode})`,
-    serverFetch<LeaderboardResponse>(`/leaderboard?mode=${mode}`),
+    serverFetch<LeaderboardResponse>(`/leaderboard?mode=${mode}${q}`),
     { mode, rows: [] },
   );
   return res.rows ?? [];
+}
+
+/** Список сезонов (новые сверху). */
+export function getSeasons(): Promise<Season[]> {
+  return safe("seasons", serverFetch<Season[]>(`/seasons`), []);
 }
 
 /** Каталог правил: задания + усложнения (ответ обёрнут в {tasks,complications}). */
