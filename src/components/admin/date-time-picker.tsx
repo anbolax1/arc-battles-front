@@ -202,7 +202,7 @@ export function DateTimePicker({
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
+            <div className={`flex items-center justify-between gap-2${dateOnly ? " border-t border-[var(--border)] pt-3" : ""}`}>
               {clearable && parsed ? (
                 <button type="button" className="btn btn-ghost btn-sm text-muted" onClick={clear}>
                   <span>Убрать дату</span>
