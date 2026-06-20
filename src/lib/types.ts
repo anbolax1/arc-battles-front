@@ -187,6 +187,81 @@ export interface LiveState {
   /** Все стороны матча с суммарными очками (для VS-табло в оверлее). */
   standings?: LiveStanding[];
   showStandings?: boolean;
+  /** Богатые данные для модульных виджетов (Фаза 3). */
+  roundTasks?: LiveTask[]; // стартовые задания текущего раунда
+  bonusTasks?: LiveBonus[]; // бонусные фокусной стороны
+  complications?: LiveComplication[]; // усложнения обеих сторон
+  /** Кастомизируемая раскладка модульного оверлея. Если нет — рендерится DEFAULT_LAYOUT. */
+  layout?: OverlayLayout | null;
+}
+
+/** Бонусное задание стороны в оверлее (виджет «Бонусные»). */
+export interface LiveBonus {
+  text: string;
+  points: number;
+  valueType: ValueType;
+  times: number;
+  who?: string;
+}
+
+/** Типы виджетов модульного оверлея. */
+export type WidgetType =
+  | "scoreboard"
+  | "round"
+  | "complications"
+  | "standings"
+  | "roundTasks"
+  | "bonusTasks"
+  | "text"
+  | "logo";
+
+/** Фон (вкл/выкл + прозрачность 0..1) — для виджета и для сцены целиком. */
+export interface OverlayBg {
+  on: boolean;
+  opacity: number;
+}
+
+/** Один экземпляр виджета на сцене. Позиция/размер — ДОЛЯМИ от 1920×1080. */
+export interface WidgetInstance {
+  id: string;
+  type: WidgetType;
+  x: number; // 0..1 — левый край
+  y: number; // 0..1 — верхний край
+  w?: number; // 0..1 — ширина (пусто = по контенту)
+  h?: number; // 0..1 — высота (пусто = по контенту)
+  scale: number; // множитель размера 0.5..2
+  z: number;
+  visible: boolean;
+  locked?: boolean;
+  /** Скрыть заголовок/подпись виджета (напр. «Усложнение:», шапку списка). */
+  hideTitle?: boolean;
+  /** Усложнения: не показывать плашку «ШТРАФ» при нарушении (показывать как обычное усложнение). */
+  hidePenalty?: boolean;
+  /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
+  anchor?: string;
+  bg: OverlayBg;
+  accent?: string;
+  /** Пер-типовые доп.поля (текст, url логотипа и т.п.). */
+  props?: Record<string, unknown>;
+}
+
+/** Документ раскладки оверлея: виджеты + глобальные настройки сцены. */
+export interface OverlayLayout {
+  version: number;
+  accent?: string;
+  stageBg: OverlayBg;
+  /** Отступ от края (px сцены) при выравнивании по краю; пусто = дефолт. */
+  pad?: number;
+  widgets: WidgetInstance[];
+}
+
+/** Общий (глобальный) сохранённый пресет раскладки оверлея. */
+export interface OverlayPreset {
+  id: string;
+  name: string;
+  layout: OverlayLayout;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Одно участие игрока в турнире (профиль, B6). */

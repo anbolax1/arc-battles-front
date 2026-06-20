@@ -34,6 +34,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
   const valueKey = isTask ? "points" : "penalty";
 
   const [items, setItems] = React.useState<CatalogItem[]>(initial);
+  const [query, setQuery] = React.useState("");
   const [editing, setEditing] = React.useState<CatalogItem | null>(null);
   const [formOpen, setFormOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState<CatalogItem | null>(null);
@@ -119,13 +120,33 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
     setDeleting(null);
   }
 
+  // Номер = позиция в общем списке (тот же порядок, что в правилах и эфире).
+  const numbered = items.map((it, i) => ({ it, num: i + 1 }));
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? numbered.filter(({ it, num }) => String(num) === q || String(num).startsWith(q) || it.text.toLowerCase().includes(q))
+    : numbered;
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl">{isTask ? "Бонусные задания" : "Усложнения"}</h2>
-        <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
-          <span>+ Добавить</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Поиск по № или тексту…"
+              className="input pl-9"
+              aria-label="Поиск"
+            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">⌕</span>
+          </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
+            <span>+ Добавить</span>
+          </button>
+        </div>
       </div>
 
       {items.length ? (
@@ -133,6 +154,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-3 text-right">№</th>
                 <th className="px-4 py-3">{isTask ? "Задание" : "Усложнение"}</th>
                 {isTask && <th className="px-4 py-3">Вид</th>}
                 <th className="px-4 py-3">Источник</th>
@@ -141,8 +163,9 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
               </tr>
             </thead>
             <tbody>
-              {items.map((it) => (
+              {shown.map(({ it, num }) => (
                 <tr key={it.id} className="border-b border-[var(--border)] align-top last:border-0">
+                  <td className="px-4 py-3 text-right font-display text-muted tnum">{num}</td>
                   <td className="px-4 py-3">
                     <div className="max-w-md">{it.text}</div>
                     {it.source === "boosty" && (it.title || it.author) && (
@@ -184,6 +207,13 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
                   </td>
                 </tr>
               ))}
+              {!shown.length && (
+                <tr>
+                  <td colSpan={isTask ? 6 : 5} className="px-4 py-6 text-center text-sm text-muted">
+                    Ничего не найдено по запросу «{query}»
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

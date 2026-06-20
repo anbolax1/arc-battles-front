@@ -427,6 +427,39 @@
     z-index: 1;
   }
 
+  /* ── Оверлей: модульные виджеты ─────────────────────────────────────── */
+  /* Панель виджета с управляемой прозрачностью фона. --ov-bg-alpha (0..1) —
+     плотность заливки; при выключенном фоне (alpha 0) видны только контент и
+     кромка, поэтому текст дополнительно получает тень (.ov-legible). */
+  .ov-panel {
+    position: relative;
+    border-radius: var(--r-lg);
+    background-color: color-mix(in srgb, var(--surface) calc(var(--ov-bg-alpha, 1) * 100%), transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-strong) calc(var(--ov-bg-alpha, 1) * 100%), transparent);
+    overflow: hidden;
+  }
+  .ov-panel.glow-edge::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--grad-energy);
+    z-index: 1;
+  }
+  /* Вторичная заливка внутри виджета (центр табло, строки) — тоже на alpha. */
+  .ov-fill-2 {
+    background-color: color-mix(in srgb, var(--surface-2) calc(var(--ov-bg-alpha, 1) * 100%), transparent);
+  }
+  /* Когда фон выключен — текст читается поверх захвата игры. */
+  .ov-legible,
+  .ov-legible * {
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.9),
+      0 0 2px rgba(0, 0, 0, 0.95);
+  }
+
   /* лого-значок (молния) — скошенный параллелограмм с тёплым градиентом */
   .logo-mark {
     display: inline-flex;

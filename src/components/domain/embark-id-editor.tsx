@@ -7,20 +7,30 @@ import type { User } from "@/lib/types";
 const fieldCls =
   "w-full bg-surface-2 px-3.5 py-2.5 text-sm text-fg shadow-[inset_0_0_0_1px_var(--border)] outline-none transition focus:shadow-[inset_0_0_0_1px_var(--primary)]";
 
+// Формат Embark ID: ник, решётка, ровно 4 цифры — напр. «Istwood#1234».
+const EMBARK_RE = /^[^#]+#\d{4}$/;
+
 /** Редактор Embark ID текущего пользователя (PATCH /api/me). */
 export function EmbarkIdEditor({ initial }: { initial: string }) {
   const [value, setValue] = React.useState(initial);
   const [saved, setSaved] = React.useState(initial);
   const [status, setStatus] = React.useState<"idle" | "saving" | "ok" | "error">("idle");
   const [error, setError] = React.useState("");
-  const dirty = value.trim() !== saved.trim();
+  const trimmed = value.trim();
+  const dirty = trimmed !== saved.trim();
+  const invalid = trimmed.length > 0 && !EMBARK_RE.test(trimmed);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (invalid) {
+      setStatus("error");
+      setError("Формат: Ник#1234 — ник, решётка и ровно 4 цифры.");
+      return;
+    }
     setStatus("saving");
     setError("");
     try {
-      const u = await api.patch<User>("/me", { embarkId: value.trim() });
+      const u = await api.patch<User>("/me", { embarkId: trimmed });
       setSaved(u.embarkId ?? "");
       setValue(u.embarkId ?? "");
       setStatus("ok");
@@ -39,15 +49,19 @@ export function EmbarkIdEditor({ initial }: { initial: string }) {
         <input
           id="eid"
           className={fieldCls}
-          placeholder="ник#0000"
+          placeholder="Istwood#1234"
+          aria-invalid={invalid}
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
             if (status !== "idle") setStatus("idle");
           }}
         />
+        <p className={`text-xs ${invalid ? "text-danger" : "text-muted"}`}>
+          Формат: <span className="tnum">Ник#1234</span> — ник, решётка и ровно 4 цифры.
+        </p>
       </div>
-      <button type="submit" className="btn btn-primary btn-sm" disabled={!dirty || status === "saving"}>
+      <button type="submit" className="btn btn-primary btn-sm" disabled={!dirty || status === "saving" || invalid}>
         <span>{status === "saving" ? "Сохраняем…" : "Сохранить"}</span>
       </button>
       {status === "ok" && !dirty && <span className="pb-2 text-sm text-ok">Сохранено</span>}

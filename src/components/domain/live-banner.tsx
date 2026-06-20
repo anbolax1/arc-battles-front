@@ -7,7 +7,7 @@ import { pointsLabel } from "@/lib/format";
 import { STREAM_URL } from "@/lib/links";
 
 /* Полоса «сейчас в эфире». Матчап показываем VS-блоком из standings: две стороны
-   разными цветами, состав 2×2 — в столбик, очки и отметка «ходит» у активной. */
+   разными цветами, состав 2×2 — в столбик, очки и отметка «в рейде» у активной. */
 
 function Side({ s, tone, current }: { s: LiveStanding; tone: "primary" | "cyan"; current: boolean }) {
   const members = s.name.split(/\s*&\s*/).filter(Boolean);
@@ -30,7 +30,7 @@ function Side({ s, tone, current }: { s: LiveStanding; tone: "primary" | "cyan";
         {current && (
           <span className="pill pill-live">
             <span className="live-dot" />
-            <span>Ходит</span>
+            <span>В рейде</span>
           </span>
         )}
       </div>
