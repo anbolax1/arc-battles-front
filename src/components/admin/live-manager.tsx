@@ -254,24 +254,25 @@ export function LiveManager({
   const activeBonusCount = myBonus.filter((b) => b.times === 0).length;
   const locked = detail?.status === "finished"; // завершённый турнир — правки закрыты
 
-  // Очки фокусной стороны. «Всего» — total_points (бэк, по всем раундам). «За раунд» —
-  // компоненты текущего раунда (старт.задания + бонусы − штрафы); база убрана. Percent
-  // считается от заработанного (старт + fixed-бонусы), как в бэкенд-пересчёте.
-  const earnedBase =
-    starterTasks.filter((t) => t.completedBy === participantId).reduce((s, t) => s + t.times * t.points, 0) +
-    myBonusAll.filter((b) => b.valueType === "fixed").reduce((s, b) => s + b.times * b.points, 0);
-  const pctOf = (p: number) => Math.round((earnedBase * p) / 100);
-  const roundStarterEarned = roundStarterTasks
-    .filter((t) => t.completedBy === participantId)
-    .reduce((s, t) => s + t.times * t.points, 0);
-  const roundBonusEarned = myBonusAll
-    .filter((b) => b.roundNumber === roundNum)
-    .reduce((s, b) => s + (b.valueType === "percent" ? b.times * pctOf(b.points) : b.times * b.points), 0);
-  const roundPenaltyTaken = roundPenalties.reduce(
-    (s, p) => s + (p.valueType === "percent" ? p.times * pctOf(p.penalty) : p.times * p.penalty),
-    0,
-  );
-  const roundEarned = roundStarterEarned + roundBonusEarned - roundPenaltyTaken;
+  // Очки за текущий раунд для стороны pid: старт.задания + бонусы − штрафы этого раунда.
+  // База убрана; percent считается от заработанного (старт + fixed-бонусы), как в бэкенд-пересчёте.
+  function roundEarnedFor(pid: string): number {
+    const eb =
+      starterTasks.filter((t) => t.completedBy === pid).reduce((s, t) => s + t.times * t.points, 0) +
+      bonusTasks.filter((b) => b.participantId === pid && b.valueType === "fixed").reduce((s, b) => s + b.times * b.points, 0);
+    const pf = (p: number) => Math.round((eb * p) / 100);
+    const st = starterTasks
+      .filter((t) => t.roundId === roundId && t.completedBy === pid)
+      .reduce((s, t) => s + t.times * t.points, 0);
+    const bn = bonusTasks
+      .filter((b) => b.participantId === pid && b.roundNumber === roundNum)
+      .reduce((s, b) => s + (b.valueType === "percent" ? b.times * pf(b.points) : b.times * b.points), 0);
+    const pn = penalties
+      .filter((p) => p.roundId === roundId && p.participantId === pid)
+      .reduce((s, p) => s + (p.valueType === "percent" ? p.times * pf(p.penalty) : p.times * p.penalty), 0);
+    return st + bn - pn;
+  }
+  const roundEarned = participantId ? roundEarnedFor(participantId) : 0; // фокусная сторона (мини-блок «Очки»)
 
   const penaltyRows: Array<{ id: string; text: string; penalty: number; valueType: "fixed" | "percent"; times: number }> =
     roundPenalties.map((p) => ({ id: p.complicationId, text: p.text, penalty: p.penalty, valueType: p.valueType, times: p.times }));
@@ -308,7 +309,7 @@ export function LiveManager({
   // иначе команды прыгают местами при изменении счёта. (participants с бэка идут по очкам.)
   const standings = [...participants]
     .sort((a, b) => a.seed - b.seed)
-    .map((p) => ({ participantId: p.id, name: p.name, points: p.totalPoints }));
+    .map((p) => ({ participantId: p.id, name: p.name, points: p.totalPoints, roundPoints: roundEarnedFor(p.id) }));
   const state: LiveState = {
     tournamentId: detail?.id ?? null,
     tournamentName: detail ? tournamentName(detail) : "",

@@ -740,6 +740,13 @@ export function OverlayEditor({
             </SettingRow>
           )}
 
+          {sel.type === "scoreboard" && (
+            <SettingRow label="Счёт за раунд">
+              <Switch on={!!sel.showRoundScore} onChange={(v) => patch(sel.id, { showRoundScore: v })} title="показывать очки за текущий раунд в скобках у счёта" />
+              <span className="text-xs text-muted">{sel.showRoundScore ? "в скобках" : "скрыт"}</span>
+            </SettingRow>
+          )}
+
           <SettingRow label="Размер">
             <input
               type="range"

@@ -168,6 +168,8 @@ export interface LiveStanding {
   participantId?: string;
   name: string;
   points: number;
+  /** Очки за текущий раунд (для опции «счёт за раунд» в табло). */
+  roundPoints?: number;
 }
 
 /** Полезная нагрузка оверлея (live_state). Усложнение (B3) — опциональное поле. */
@@ -237,6 +239,8 @@ export interface WidgetInstance {
   hideTitle?: boolean;
   /** Усложнения: не показывать плашку «ШТРАФ» при нарушении (показывать как обычное усложнение). */
   hidePenalty?: boolean;
+  /** Табло: показывать очки за текущий раунд в скобках рядом с основным счётом. */
+  showRoundScore?: boolean;
   /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
   anchor?: string;
   bg: OverlayBg;

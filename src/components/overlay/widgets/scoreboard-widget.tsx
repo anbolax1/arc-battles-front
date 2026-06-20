@@ -2,9 +2,10 @@ import type { LiveStanding } from "@/lib/types";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
-function Side({ s, focused, align }: { s: LiveStanding; focused: boolean; align: "left" | "right" }) {
+function Side({ s, focused, align, showRound }: { s: LiveStanding; focused: boolean; align: "left" | "right"; showRound: boolean }) {
   // 2×2: имя команды «Ник1 & Ник2» — в две строки; длинные ники обрезаются.
   const parts = (s.name || "—").split(/\s*&\s*/);
+  const rp = s.roundPoints ?? 0;
   return (
     <div
       className={[
@@ -13,7 +14,10 @@ function Side({ s, focused, align }: { s: LiveStanding; focused: boolean; align:
         focused ? "shadow-[inset_0_-3px_0_var(--primary)]" : "",
       ].join(" ")}
     >
-      <div className={`font-display text-4xl leading-none tnum sm:text-5xl ${focused ? "text-primary-2" : "text-fg"}`}>{s.points}</div>
+      <div className={`flex items-baseline gap-1.5 font-display leading-none ${focused ? "text-primary-2" : "text-fg"}`}>
+        <span className="text-4xl tnum sm:text-5xl">{s.points}</span>
+        {showRound && <span className="text-base tnum text-muted sm:text-lg">({rp >= 0 ? `+${rp}` : rp})</span>}
+      </div>
       <div className="min-w-0">
         {parts.map((n, i) => (
           <div key={i} className={`truncate font-display text-base uppercase leading-tight sm:text-lg ${focused ? "" : "opacity-80"}`}>
@@ -31,6 +35,7 @@ function Side({ s, focused, align }: { s: LiveStanding; focused: boolean; align:
 export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const standings = state.standings ?? [];
   const focusedId = state.currentParticipantId ?? undefined;
+  const showRound = !!instance.showRoundScore;
   const a = standings[0];
   const b = standings[1];
 
@@ -38,7 +43,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
     <WidgetFrame instance={instance}>
       <div className="flex items-stretch">
         {a ? (
-          <Side s={a} focused={a.participantId === focusedId} align="left" />
+          <Side s={a} focused={a.participantId === focusedId} align="left" showRound={showRound} />
         ) : (
           <div className="flex-1 px-4 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
         )}
@@ -49,7 +54,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
             {state.totalRounds ? <span className="text-muted">/{state.totalRounds}</span> : null}
           </span>
         </div>
-        {b ? <Side s={b} focused={b.participantId === focusedId} align="right" /> : <div className="flex-1" />}
+        {b ? <Side s={b} focused={b.participantId === focusedId} align="right" showRound={showRound} /> : <div className="flex-1" />}
       </div>
     </WidgetFrame>
   );
