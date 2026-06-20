@@ -92,12 +92,8 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
   async function saveEdit() {
     if (!editing || !eName.trim() || !eStart) return;
     const startedAt = fromDateInput(eStart);
-    // Дата окончания только у завершённого сезона; активный идёт (ended_at = null).
-    const endedAt = editing.status === "active" ? null : fromDateInput(eEnd);
-    if (editing.status !== "active" && !endedAt) {
-      setError("У завершённого сезона укажите дату окончания.");
-      return;
-    }
+    // Дата окончания необязательна для любого сезона (пусто = не задана).
+    const endedAt = fromDateInput(eEnd);
     if (endedAt && startedAt && endedAt < startedAt) {
       setError("Дата окончания раньше даты начала.");
       return;
@@ -245,7 +241,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={busy || !eName.trim() || !eStart || (editing?.status !== "active" && !eEnd)}
+              disabled={busy || !eName.trim() || !eStart}
               onClick={saveEdit}
             >
               <span>{busy ? "Сохраняем…" : "Сохранить"}</span>
@@ -258,23 +254,17 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <span className="text-muted">Название</span>
             <input className="input mt-1 w-full" value={eName} onChange={(e) => setEName(e.target.value)} />
           </label>
-          <div className={editing?.status === "active" ? "" : "grid grid-cols-2 gap-3"}>
+          <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm">
               <span className="text-muted">Дата начала</span>
               <input type="date" className="input mt-1 w-full" value={eStart} onChange={(e) => setEStart(e.target.value)} />
             </label>
-            {editing?.status !== "active" && (
-              <label className="block text-sm">
-                <span className="text-muted">Дата окончания</span>
-                <input type="date" className="input mt-1 w-full" value={eEnd} onChange={(e) => setEEnd(e.target.value)} />
-              </label>
-            )}
+            <label className="block text-sm">
+              <span className="text-muted">Дата окончания</span>
+              <input type="date" className="input mt-1 w-full" value={eEnd} onChange={(e) => setEEnd(e.target.value)} />
+            </label>
           </div>
-          <p className="text-xs text-muted">
-            {editing?.status === "active"
-              ? "Активный сезон идёт — дата окончания появится, когда вы начнёте следующий."
-              : "У завершённого сезона укажите дату окончания."}
-          </p>
+          <p className="text-xs text-muted">Дату окончания можно оставить пустой.</p>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </Modal>
