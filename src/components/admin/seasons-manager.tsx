@@ -12,6 +12,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
   const [seasons, setSeasons] = React.useState<Season[]>(initial);
   const [name, setName] = React.useState("");
   const [confirm, setConfirm] = React.useState(false);
+  const [toDelete, setToDelete] = React.useState<Season | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -31,6 +32,21 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
       setConfirm(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.body || e.message : "Не удалось создать сезон.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doDelete() {
+    if (!toDelete) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.del<void>(`/seasons/${toDelete.id}`);
+      setSeasons((prev) => prev.filter((s) => s.id !== toDelete.id));
+      setToDelete(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.body || e.message : "Не удалось удалить сезон.");
     } finally {
       setBusy(false);
     }
@@ -68,6 +84,15 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
                 {fmtDate(s.startedAt)}
                 {s.endedAt ? ` — ${fmtDate(s.endedAt)}` : " — …"}
               </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm text-danger"
+                disabled={busy}
+                onClick={() => setToDelete(s)}
+                aria-label={`Удалить сезон ${s.name}`}
+              >
+                <span>Удалить</span>
+              </button>
             </li>
           ))}
           {!seasons.length && <li className="px-4 py-6 text-center text-sm text-muted">Сезонов пока нет.</li>}
@@ -92,6 +117,28 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
         <p className="text-sm text-muted">
           Текущий сезон{active ? ` «${active.name}»` : ""} будет завершён (рейтинг заморозится), и откроется новый сезон «{name.trim()}».
           Новые турниры пойдут в него. Прошлые сезоны и их таблицы остаются доступны на /rating.
+        </p>
+      </Modal>
+
+      <Modal
+        open={toDelete !== null}
+        onClose={() => setToDelete(null)}
+        title="Удалить сезон?"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setToDelete(null)}>
+              <span>Отмена</span>
+            </button>
+            <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={doDelete}>
+              <span>{busy ? "Удаляем…" : "Удалить"}</span>
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          Сезон{toDelete ? ` «${toDelete.name}»` : ""} будет удалён. Его турниры <b>не удаляются</b> — они просто
+          отвяжутся от сезона и останутся в истории; в другие сезоны автоматически не попадут.
+          {toDelete?.status === "active" && " Это активный сезон — после удаления активного не останется, пока вы не начнёте новый."}
         </p>
       </Modal>
     </div>

@@ -19,7 +19,8 @@ export function RatingTabs({
   const active = seasons.find((s) => s.status === "active");
   const [tab, setTab] = React.useState<TournamentMode>("1x1");
   // "" — активный сезон (как пришло initial с сервера); "all" — за всё время; иначе id.
-  const [seasonSel, setSeasonSel] = React.useState<string>("");
+  // Если активного сезона нет, бэк отдаёт initial за всё время — дефолт «Все сезоны».
+  const [seasonSel, setSeasonSel] = React.useState<string>(active ? "" : "all");
   const [solo, setSolo] = React.useState(initialSolo);
   const [duo, setDuo] = React.useState(initialDuo);
   const [loading, setLoading] = React.useState(false);
