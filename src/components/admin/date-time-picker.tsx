@@ -3,9 +3,11 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 
-/* Кастомный выбор даты и времени (МСК). value/onChange в формате datetime-local:
-   "YYYY-MM-DDTHH:mm". Поповер рендерится в портал (document.body) с fixed-позицией —
-   чтобы не обрезался границей модалки. */
+/* Кастомный выбор даты (и времени) в МСК. Поповер рендерится в портал (document.body)
+   с fixed-позицией — чтобы не обрезался границей модалки.
+   - по умолчанию: дата+время, value/onChange в формате "YYYY-MM-DDTHH:mm";
+   - dateOnly: только дата, формат "YYYY-MM-DD", выбор дня сразу закрывает поповер;
+   - clearable: кнопка «Убрать дату» (onChange("")), для необязательных полей. */
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
@@ -15,21 +17,37 @@ const POP_H = 380;
 
 type Parts = { y: number; mo: number; d: number; hh: number; mm: number };
 
-function parse(value: string): Parts | null {
+function parse(value: string, dateOnly: boolean): Parts | null {
+  if (dateOnly) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!m) return null;
+    return { y: +m[1], mo: +m[2], d: +m[3], hh: 0, mm: 0 };
+  }
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (!m) return null;
   return { y: +m[1], mo: +m[2], d: +m[3], hh: +m[4], mm: +m[5] };
 }
-function compose(p: Parts): string {
+function compose(p: Parts, dateOnly: boolean): string {
+  if (dateOnly) return `${p.y}-${pad(p.mo)}-${pad(p.d)}`;
   return `${p.y}-${pad(p.mo)}-${pad(p.d)}T${pad(p.hh)}:${pad(p.mm)}`;
 }
 
-export function DateTimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function DateTimePicker({
+  value,
+  onChange,
+  dateOnly = false,
+  clearable = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  dateOnly?: boolean;
+  clearable?: boolean;
+}) {
   const [open, setOpen] = React.useState(false);
   const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const popRef = React.useRef<HTMLDivElement>(null);
-  const parsed = parse(value);
+  const parsed = parse(value, dateOnly);
 
   const today = new Date();
   const [view, setView] = React.useState(() =>
@@ -69,11 +87,16 @@ export function DateTimePicker({ value, onChange }: { value: string; onChange: (
   const mm = parsed?.mm ?? 0;
 
   function pickDay(d: number) {
-    onChange(compose({ y: view.y, mo: view.mo, d, hh, mm }));
+    onChange(compose({ y: view.y, mo: view.mo, d, hh, mm }, dateOnly));
+    if (dateOnly) setOpen(false);
   }
   function setTime(nh: number, nm: number) {
     const base = parsed ?? { y: view.y, mo: view.mo, d: today.getDate(), hh: 12, mm: 0 };
-    onChange(compose({ ...base, hh: nh, mm: nm }));
+    onChange(compose({ ...base, hh: nh, mm: nm }, dateOnly));
+  }
+  function clear() {
+    onChange("");
+    setOpen(false);
   }
   function shiftMonth(delta: number) {
     let y = view.y;
@@ -94,7 +117,9 @@ export function DateTimePicker({ value, onChange }: { value: string; onChange: (
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  const label = parsed ? `${pad(parsed.d)}.${pad(parsed.mo)}.${parsed.y} · ${pad(parsed.hh)}:${pad(parsed.mm)}` : "Выберите дату и время";
+  const dateLabel = parsed ? `${pad(parsed.d)}.${pad(parsed.mo)}.${parsed.y}` : "";
+  const placeholder = dateOnly ? "Выберите дату" : "Выберите дату и время";
+  const label = parsed ? (dateOnly ? dateLabel : `${dateLabel} · ${pad(parsed.hh)}:${pad(parsed.mm)}`) : placeholder;
   const isToday = (d: number) => view.y === today.getFullYear() && view.mo === today.getMonth() + 1 && d === today.getDate();
   const isSel = (d: number) => parsed && parsed.y === view.y && parsed.mo === view.mo && parsed.d === d;
 
@@ -156,26 +181,35 @@ export function DateTimePicker({ value, onChange }: { value: string; onChange: (
               )}
             </div>
 
-            <div className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
-              <span className="field-label flex-none">Время</span>
-              <select className="select flex-1" value={hh} onChange={(e) => setTime(Number(e.target.value), mm)}>
-                {Array.from({ length: 24 }, (_, i) => i).map((x) => (
-                  <option key={x} value={x}>
-                    {pad(x)}
-                  </option>
-                ))}
-              </select>
-              <span className="text-muted">:</span>
-              <select className="select flex-1" value={mm} onChange={(e) => setTime(hh, Number(e.target.value))}>
-                {Array.from({ length: 12 }, (_, i) => i * 5).map((x) => (
-                  <option key={x} value={x}>
-                    {pad(x)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!dateOnly && (
+              <div className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
+                <span className="field-label flex-none">Время</span>
+                <select className="select flex-1" value={hh} onChange={(e) => setTime(Number(e.target.value), mm)}>
+                  {Array.from({ length: 24 }, (_, i) => i).map((x) => (
+                    <option key={x} value={x}>
+                      {pad(x)}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-muted">:</span>
+                <select className="select flex-1" value={mm} onChange={(e) => setTime(hh, Number(e.target.value))}>
+                  {Array.from({ length: 12 }, (_, i) => i * 5).map((x) => (
+                    <option key={x} value={x}>
+                      {pad(x)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
+              {clearable && parsed ? (
+                <button type="button" className="btn btn-ghost btn-sm text-muted" onClick={clear}>
+                  <span>Убрать дату</span>
+                </button>
+              ) : (
+                <span />
+              )}
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(false)}>
                 <span>Готово</span>
               </button>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { api, ApiError } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
+import { DateTimePicker } from "@/components/admin/date-time-picker";
 import { fmtDate } from "@/lib/format";
 import type { Season } from "@/lib/types";
 
@@ -255,14 +256,18 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <input className="input mt-1 w-full" value={eName} onChange={(e) => setEName(e.target.value)} />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-sm">
+            <div className="text-sm">
               <span className="text-muted">Дата начала</span>
-              <input type="date" className="input mt-1 w-full" value={eStart} onChange={(e) => setEStart(e.target.value)} />
-            </label>
-            <label className="block text-sm">
+              <div className="mt-1">
+                <DateTimePicker dateOnly value={eStart} onChange={setEStart} />
+              </div>
+            </div>
+            <div className="text-sm">
               <span className="text-muted">Дата окончания</span>
-              <input type="date" className="input mt-1 w-full" value={eEnd} onChange={(e) => setEEnd(e.target.value)} />
-            </label>
+              <div className="mt-1">
+                <DateTimePicker dateOnly clearable value={eEnd} onChange={setEEnd} />
+              </div>
+            </div>
           </div>
           <p className="text-xs text-muted">Дату окончания можно оставить пустой.</p>
           {error && <p className="text-sm text-danger">{error}</p>}
