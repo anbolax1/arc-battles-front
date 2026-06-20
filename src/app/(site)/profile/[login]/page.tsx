@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getHighlights, getPlayer } from "@/lib/queries";
 import { HighlightsGrid } from "@/components/domain/highlights-grid";
+import { PlayerStatsBlock } from "@/components/domain/player-stats";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/card";
@@ -32,10 +33,10 @@ export default async function PlayerProfilePage({
     );
   }
 
-  const { user, points, wins, tournaments, history } = profile;
+  const { user, points, wins, tournaments, stats, history } = profile;
   const role = roleBadge(user.role);
   const { items: highlights } = await getHighlights({ userId: user.id, limit: 6 });
-  const stats = [
+  const summary = [
     { label: "Очки сезона", value: points },
     { label: "Побед", value: wins },
     { label: "Турниров", value: tournaments },
@@ -60,13 +61,16 @@ export default async function PlayerProfilePage({
 
       {/* Статистика */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map((s) => (
+        {summary.map((s) => (
           <Panel key={s.label} className="p-5">
             <div className="font-display text-3xl tnum text-primary-2">{s.value}</div>
             <div className="text-sm text-muted">{s.label}</div>
           </Panel>
         ))}
       </div>
+
+      {/* Расширенная статистика — когда есть хотя бы один завершённый турнир */}
+      {tournaments > 0 && <PlayerStatsBlock stats={stats} />}
 
       {/* История */}
       <section className="space-y-4">

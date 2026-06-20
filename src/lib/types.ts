@@ -280,12 +280,29 @@ export interface PlayerHistoryItem {
   win: boolean;
 }
 
+/** Расширенная статистика игрока: винрейт по режимам, источники очков, любимая карта, серия. */
+export interface PlayerStats {
+  soloWins: number;
+  soloPlayed: number;
+  duoWins: number;
+  duoPlayed: number;
+  streakKind: "win" | "loss" | "";
+  streakLen: number;
+  basePoints: number;
+  starterPoints: number;
+  bonusPoints: number;
+  penaltyPoints: number;
+  favoriteMap: string;
+  favoriteMapRounds: number;
+}
+
 /** Публичный профиль игрока: GET /api/players/{login} (B6). */
 export interface PlayerProfile {
   user: User;
   points: number;
   wins: number;
   tournaments: number;
+  stats: PlayerStats;
   history: PlayerHistoryItem[];
 }
 
