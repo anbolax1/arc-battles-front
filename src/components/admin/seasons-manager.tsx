@@ -6,6 +6,31 @@ import { Modal } from "@/components/ui/modal";
 import { fmtDate } from "@/lib/format";
 import type { Season } from "@/lib/types";
 
+// Даты сезона на сайте показываются в МСК (fmtDate → Europe/Moscow), поэтому и инпут
+// якорим к МСК — иначе у админа в другой зоне день в инпуте разойдётся со списком, а
+// сохранение без правок сдвинуло бы дату. Конвенция как в schedule-manager (toMskInput).
+
+/** ISO → значение <input type="date"> (YYYY-MM-DD) в календаре МСК. */
+function toDateInput(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  // sv-SE даёт ISO-формат YYYY-MM-DD
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Moscow",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** YYYY-MM-DD → ISO полуночи МСК (Москва — фиксированный UTC+3); пусто → null. */
+function fromDateInput(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(`${v}T00:00:00+03:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 /** Управление сезонами рейтинга. «Начать новый» завершает текущий активный и открывает новый.
     Турниры авто-привязываются к активному сезону; рейтинг считается в его рамках. */
 export function SeasonsManager({ initial }: { initial: Season[] }) {
@@ -13,6 +38,10 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
   const [name, setName] = React.useState("");
   const [confirm, setConfirm] = React.useState(false);
   const [toDelete, setToDelete] = React.useState<Season | null>(null);
+  const [editing, setEditing] = React.useState<Season | null>(null);
+  const [eName, setEName] = React.useState("");
+  const [eStart, setEStart] = React.useState("");
+  const [eEnd, setEEnd] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -52,13 +81,57 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
     }
   }
 
+  function openEdit(s: Season) {
+    setEditing(s);
+    setEName(s.name);
+    setEStart(toDateInput(s.startedAt));
+    setEEnd(toDateInput(s.endedAt));
+    setError("");
+  }
+
+  async function saveEdit() {
+    if (!editing || !eName.trim() || !eStart) return;
+    const startedAt = fromDateInput(eStart);
+    // Дата окончания только у завершённого сезона; активный идёт (ended_at = null).
+    const endedAt = editing.status === "active" ? null : fromDateInput(eEnd);
+    if (editing.status !== "active" && !endedAt) {
+      setError("У завершённого сезона укажите дату окончания.");
+      return;
+    }
+    if (endedAt && startedAt && endedAt < startedAt) {
+      setError("Дата окончания раньше даты начала.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const upd = await api.patch<Season>(`/seasons/${editing.id}`, { name: eName.trim(), startedAt, endedAt });
+      setSeasons((prev) => prev.map((s) => (s.id === upd.id ? upd : s)));
+      setEditing(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.body || e.message : "Не удалось сохранить сезон.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openConfirm() {
+    setError("");
+    setConfirm(true);
+  }
+
+  function openDelete(s: Season) {
+    setError("");
+    setToDelete(s);
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl">Сезоны</h2>
         <div className="flex items-center gap-2">
           <input className="input max-w-[14rem]" placeholder="Название нового сезона" value={name} onChange={(e) => setName(e.target.value)} />
-          <button type="button" className="btn btn-primary btn-sm" disabled={!name.trim() || busy} onClick={() => setConfirm(true)}>
+          <button type="button" className="btn btn-primary btn-sm" disabled={!name.trim() || busy} onClick={openConfirm}>
             <span>Начать новый сезон</span>
           </button>
         </div>
@@ -68,8 +141,6 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
         Новые турниры автоматически попадают в активный сезон, а рейтинг на сайте считается по его турнирам.
         «Начать новый сезон» завершает текущий (его таблица замораживается, топ-1 становится чемпионом) и открывает следующий.
       </p>
-
-      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="panel overflow-hidden">
         <ul className="divide-y divide-[var(--border)]">
@@ -86,9 +157,18 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
               </span>
               <button
                 type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={busy}
+                onClick={() => openEdit(s)}
+                aria-label={`Изменить сезон ${s.name}`}
+              >
+                <span>Изменить</span>
+              </button>
+              <button
+                type="button"
                 className="btn btn-ghost btn-sm text-danger"
                 disabled={busy}
-                onClick={() => setToDelete(s)}
+                onClick={() => openDelete(s)}
                 aria-label={`Удалить сезон ${s.name}`}
               >
                 <span>Удалить</span>
@@ -101,7 +181,10 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
 
       <Modal
         open={confirm}
-        onClose={() => setConfirm(false)}
+        onClose={() => {
+          setConfirm(false);
+          setError("");
+        }}
         title="Начать новый сезон?"
         footer={
           <>
@@ -118,11 +201,15 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
           Текущий сезон{active ? ` «${active.name}»` : ""} будет завершён (рейтинг заморозится), и откроется новый сезон «{name.trim()}».
           Новые турниры пойдут в него. Прошлые сезоны и их таблицы остаются доступны на /rating.
         </p>
+        {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       </Modal>
 
       <Modal
         open={toDelete !== null}
-        onClose={() => setToDelete(null)}
+        onClose={() => {
+          setToDelete(null);
+          setError("");
+        }}
         title="Удалить сезон?"
         footer={
           <>
@@ -140,6 +227,56 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
           отвяжутся от сезона и останутся в истории; в другие сезоны автоматически не попадут.
           {toDelete?.status === "active" && " Это активный сезон — после удаления активного не останется, пока вы не начнёте новый."}
         </p>
+        {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+      </Modal>
+
+      <Modal
+        open={editing !== null}
+        onClose={() => {
+          setEditing(null);
+          setError("");
+        }}
+        title="Изменить сезон"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
+              <span>Отмена</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={busy || !eName.trim() || !eStart || (editing?.status !== "active" && !eEnd)}
+              onClick={saveEdit}
+            >
+              <span>{busy ? "Сохраняем…" : "Сохранить"}</span>
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <label className="block text-sm">
+            <span className="text-muted">Название</span>
+            <input className="input mt-1 w-full" value={eName} onChange={(e) => setEName(e.target.value)} />
+          </label>
+          <div className={editing?.status === "active" ? "" : "grid grid-cols-2 gap-3"}>
+            <label className="block text-sm">
+              <span className="text-muted">Дата начала</span>
+              <input type="date" className="input mt-1 w-full" value={eStart} onChange={(e) => setEStart(e.target.value)} />
+            </label>
+            {editing?.status !== "active" && (
+              <label className="block text-sm">
+                <span className="text-muted">Дата окончания</span>
+                <input type="date" className="input mt-1 w-full" value={eEnd} onChange={(e) => setEEnd(e.target.value)} />
+              </label>
+            )}
+          </div>
+          <p className="text-xs text-muted">
+            {editing?.status === "active"
+              ? "Активный сезон идёт — дата окончания появится, когда вы начнёте следующий."
+              : "У завершённого сезона укажите дату окончания."}
+          </p>
+          {error && <p className="text-sm text-danger">{error}</p>}
+        </div>
       </Modal>
     </div>
   );
