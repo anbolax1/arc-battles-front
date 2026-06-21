@@ -220,6 +220,9 @@ export function OverlayEditor({
   const sel = byId(selId) ?? null;
   const maxZ = layout.widgets.reduce((m, w) => Math.max(m, w.z), 0);
   const pad = layout.pad ?? DEFAULT_PAD; // текущий отступ края (px сцены)
+  // Какой квадрат «К краю» подсветить у выбранного виджета: жёсткий anchor, если задан,
+  // иначе — ближайший якорь по факту положения (виджет «у этого края», но не закреплён).
+  const selNear = sel && !sel.anchor ? nearestAnchor(sel) : null;
 
   function patch(id: string, p: Partial<WidgetInstance>) {
     onChange({ ...layout, widgets: layout.widgets.map((w) => (w.id === id ? { ...w, ...p } : w)) });
@@ -244,12 +247,32 @@ export function OverlayEditor({
   function raise(id: string, dir: 1 | -1) {
     patch(id, { z: Math.max(0, (byId(id)?.z ?? 0) + dir) });
   }
-  // Позиция (доли x,y) для привязки к краю pos при отступе padPx (px сцены),
-  // с учётом фактического размера виджета. Центр (c/tc/bc/ml/mr) от отступа не зависит.
-  function posForAnchor(w: WidgetInstance, pos: AnchorPos, padPx: number): { x: number; y: number } {
+  // Размер виджета в долях сцены по факту измеренного бокса (с учётом scale).
+  function widgetFrac(w: WidgetInstance): { ww: number; hh: number } {
     const el = targets.current.get(w.id);
     const ww = ((el?.offsetWidth ?? (w.w ? w.w * STAGE_W : 340)) * w.scale) / STAGE_W;
     const hh = ((el?.offsetHeight ?? 130) * w.scale) / STAGE_H;
+    return { ww, hh };
+  }
+  // Ближайший из 9 якорей по положению центра виджета — чтобы подсвечивать «К краю»
+  // даже когда виджет не закреплён (anchor === ""), напр. после перетаскивания. Размер
+  // берём из сохранённых долей (без обращения к DOM — расчёт идёт во время рендера);
+  // для авторазмерных виджетов — те же дефолты, что и в widgetFrac. Точность тут грубая
+  // (трети сцены), поэтому отсутствие точного замера не важно.
+  function nearestAnchor(w: WidgetInstance): AnchorPos {
+    const sc = w.scale || 1;
+    const ww = (w.w ?? 340 / STAGE_W) * sc;
+    const hh = (w.h ?? 130 / STAGE_H) * sc;
+    const cx = w.x + ww / 2;
+    const cy = w.y + hh / 2;
+    const col = cx < 1 / 3 ? 0 : cx < 2 / 3 ? 1 : 2;
+    const row = cy < 1 / 3 ? 0 : cy < 2 / 3 ? 1 : 2;
+    return ANCHOR_GRID[row * 3 + col];
+  }
+  // Позиция (доли x,y) для привязки к краю pos при отступе padPx (px сцены),
+  // с учётом фактического размера виджета. Центр (c/tc/bc/ml/mr) от отступа не зависит.
+  function posForAnchor(w: WidgetInstance, pos: AnchorPos, padPx: number): { x: number; y: number } {
+    const { ww, hh } = widgetFrac(w);
     const px = padPx / STAGE_W;
     const py = padPx / STAGE_H;
     const xs = { l: px, c: (1 - ww) / 2, r: 1 - px - ww };
@@ -829,21 +852,31 @@ export function OverlayEditor({
 
           <SettingRow label="К краю">
             <div className="grid grid-cols-3 gap-1">
-              {ANCHOR_GRID.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  title={ANCHOR_TITLE[a]}
-                  onClick={() => anchor(sel.id, a)}
-                  className={`h-5 w-5 rounded-sm border hover:border-[var(--accent)] ${
-                    sel.anchor === a
-                      ? "border-[var(--primary)] bg-[var(--primary)]"
-                      : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
-                  }`}
-                />
-              ))}
+              {ANCHOR_GRID.map((a) => {
+                const pinned = sel.anchor === a; // жёстко закреплён → залит
+                const near = !sel.anchor && selNear === a; // просто у этого края → обведён
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    title={ANCHOR_TITLE[a]}
+                    onClick={() => anchor(sel.id, a)}
+                    className={`h-5 w-5 rounded-sm border transition-colors hover:border-[var(--accent)] ${
+                      pinned
+                        ? "border-[var(--primary)] bg-[var(--primary)]"
+                        : near
+                          ? "border-[var(--accent)] bg-[var(--surface)] ring-1 ring-inset ring-[var(--accent)]"
+                          : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
+                    }`}
+                  />
+                );
+              })}
             </div>
-            {sel.anchor && <span className="text-[0.7rem] text-muted">следует за отступом</span>}
+            {sel.anchor ? (
+              <span className="text-[0.7rem] text-muted">следует за отступом</span>
+            ) : (
+              selNear && <span className="text-[0.7rem] text-muted">у этого края (не закреплён)</span>
+            )}
           </SettingRow>
 
           <p className="border-t border-[var(--border)] pt-2 text-[0.7rem] leading-snug text-muted">
