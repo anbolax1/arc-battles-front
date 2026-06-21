@@ -122,6 +122,7 @@ export function OverlayEditor({
   onChange,
   onClose,
   bgImage = null,
+  tid,
 }: {
   state: LiveState;
   layout: OverlayLayout;
@@ -129,6 +130,8 @@ export function OverlayEditor({
   onClose: () => void;
   /** Подложка-геймплей (с HUD) под сценой редактора — для оценки читаемости. */
   bgImage?: string | null;
+  /** Id турнира — чтобы запоминать выбранный пресет per-tournament в localStorage. */
+  tid?: string;
 }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
@@ -142,7 +145,18 @@ export function OverlayEditor({
   const [fs, setFs] = React.useState(false); // полноэкранный режим редактора
   // Пресеты (общие шаблоны раскладки, хранятся на сервере).
   const [presets, setPresets] = React.useState<OverlayPreset[]>([]);
-  const [presetSel, setPresetSel] = React.useState("");
+  // Запоминаем выбранный в селекторе пресет (per-tournament) в localStorage и сразу
+  // восстанавливаем его при открытии редактора — иначе после перезахода селектор пуст,
+  // хотя сама раскладка из пресета уже подгружена. tid фиксирован на время монтирования
+  // (родитель ремонтит редактор по key={tid}), поэтому ключ читаем один раз при init.
+  const presetKey = tid ? `rsp_preset_${tid}` : "rsp_preset_global";
+  const [presetSel, setPresetSel] = React.useState<string>(() => {
+    try {
+      return localStorage.getItem(presetKey) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [presetName, setPresetName] = React.useState("");
   const [presetBusy, setPresetBusy] = React.useState(false);
   const [presetMsg, setPresetMsg] = React.useState("");
@@ -151,12 +165,27 @@ export function OverlayEditor({
     let active = true;
     api
       .get<OverlayPreset[]>("/overlay/presets")
-      .then((list) => active && setPresets(list))
+      .then((list) => {
+        if (!active) return;
+        setPresets(list);
+        // Сохранённый выбор мог указывать на удалённый пресет — тогда сбрасываем.
+        setPresetSel((cur) => (cur && !list.some((p) => p.id === cur) ? "" : cur));
+      })
       .catch(() => {});
     return () => {
       active = false;
     };
   }, []);
+
+  // Пишем выбор в localStorage (только внешний эффект, без setState) — переживает перезаход.
+  React.useEffect(() => {
+    try {
+      if (presetSel) localStorage.setItem(presetKey, presetSel);
+      else localStorage.removeItem(presetKey);
+    } catch {
+      /* localStorage недоступен — не критично */
+    }
+  }, [presetSel, presetKey]);
 
   const byId = React.useCallback((id: string) => layout.widgets.find((w) => w.id === id), [layout.widgets]);
 

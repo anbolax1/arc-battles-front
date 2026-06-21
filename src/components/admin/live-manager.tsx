@@ -690,7 +690,7 @@ export function LiveManager({
               </div>
             </div>
             {editing ? (
-              <OverlayEditor state={state} layout={layout} onChange={setLayout} onClose={() => setEditing(false)} bgImage={bgImage} />
+              <OverlayEditor key={detail?.id} state={state} layout={layout} onChange={setLayout} onClose={() => setEditing(false)} bgImage={bgImage} tid={detail?.id} />
             ) : (
               <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
                 <OverlayStage state={state} mode="preview" bgImage={bgImage} />
