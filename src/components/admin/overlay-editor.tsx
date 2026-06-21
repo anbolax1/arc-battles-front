@@ -124,7 +124,6 @@ export function OverlayEditor({
   onChange,
   onClose,
   bgImage = null,
-  tid,
 }: {
   state: LiveState;
   layout: OverlayLayout;
@@ -132,8 +131,6 @@ export function OverlayEditor({
   onClose: () => void;
   /** Подложка-геймплей (с HUD) под сценой редактора — для оценки читаемости. */
   bgImage?: string | null;
-  /** Id турнира — чтобы запоминать выбранный пресет per-tournament в localStorage. */
-  tid?: string;
 }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
@@ -147,18 +144,10 @@ export function OverlayEditor({
   const [fs, setFs] = React.useState(false); // полноэкранный режим редактора
   // Пресеты (общие шаблоны раскладки, хранятся на сервере).
   const [presets, setPresets] = React.useState<OverlayPreset[]>([]);
-  // Запоминаем выбранный в селекторе пресет (per-tournament) в localStorage и сразу
-  // восстанавливаем его при открытии редактора — иначе после перезахода селектор пуст,
-  // хотя сама раскладка из пресета уже подгружена. tid фиксирован на время монтирования
-  // (родитель ремонтит редактор по key={tid}), поэтому ключ читаем один раз при init.
-  const presetKey = tid ? `rsp_preset_${tid}` : "rsp_preset_global";
-  const [presetSel, setPresetSel] = React.useState<string>(() => {
-    try {
-      return localStorage.getItem(presetKey) ?? "";
-    } catch {
-      return "";
-    }
-  });
+  // Выбранный пресет берём из самой раскладки (layout.activePresetId) — она общая и хранится
+  // на сервере, поэтому селектор одинаков на любом устройстве/у любого организатора. Редактор
+  // открывается уже с загруженной раскладкой, так что init из неё корректен.
+  const [presetSel, setPresetSel] = React.useState<string>(layout.activePresetId ?? "");
   const [presetName, setPresetName] = React.useState("");
   const [presetBusy, setPresetBusy] = React.useState(false);
   const [presetMsg, setPresetMsg] = React.useState("");
@@ -170,7 +159,7 @@ export function OverlayEditor({
       .then((list) => {
         if (!active) return;
         setPresets(list);
-        // Сохранённый выбор мог указывать на удалённый пресет — тогда сбрасываем.
+        // Активный пресет могли удалить с другого устройства — тогда сбрасываем выбор в селекторе.
         setPresetSel((cur) => (cur && !list.some((p) => p.id === cur) ? "" : cur));
       })
       .catch(() => {});
@@ -178,16 +167,6 @@ export function OverlayEditor({
       active = false;
     };
   }, []);
-
-  // Пишем выбор в localStorage (только внешний эффект, без setState) — переживает перезаход.
-  React.useEffect(() => {
-    try {
-      if (presetSel) localStorage.setItem(presetKey, presetSel);
-      else localStorage.removeItem(presetKey);
-    } catch {
-      /* localStorage недоступен — не критично */
-    }
-  }, [presetSel, presetKey]);
 
   const byId = React.useCallback((id: string) => layout.widgets.find((w) => w.id === id), [layout.widgets]);
 
@@ -304,13 +283,16 @@ export function OverlayEditor({
   function reset() {
     onChange(JSON.parse(JSON.stringify(DEFAULT_LAYOUT)) as OverlayLayout);
     setSelId(DEFAULT_LAYOUT.widgets[0]?.id ?? "");
+    setPresetSel(""); // дефолтная раскладка ни к какому пресету не привязана
   }
 
   // ── Пресеты (общие шаблоны раскладки) ────────────────────────────────────
+  // activePresetId пишем В САМУ раскладку → уходит на сервер вместе с состоянием и
+  // потом восстанавливает выбор в селекторе на любом устройстве.
   function applyPreset() {
     const p = presets.find((x) => x.id === presetSel);
     if (p && p.layout && Array.isArray(p.layout.widgets)) {
-      onChange(JSON.parse(JSON.stringify(p.layout)) as OverlayLayout);
+      onChange({ ...(JSON.parse(JSON.stringify(p.layout)) as OverlayLayout), activePresetId: p.id });
       setSelId(p.layout.widgets[0]?.id ?? "");
       setPresetMsg(`Загружен «${p.name}»`);
     }
@@ -324,6 +306,7 @@ export function OverlayEditor({
       const p = await api.post<OverlayPreset>("/overlay/presets", { name, layout });
       setPresets((xs) => [...xs, p]);
       setPresetSel(p.id);
+      onChange({ ...layout, activePresetId: p.id }); // новый пресет становится активным
       setPresetName("");
       setPresetMsg(`Сохранён «${p.name}»`);
     } catch {
@@ -340,6 +323,7 @@ export function OverlayEditor({
     try {
       const u = await api.put<OverlayPreset>(`/overlay/presets/${p.id}`, { name: p.name, layout });
       setPresets((xs) => xs.map((x) => (x.id === u.id ? u : x)));
+      onChange({ ...layout, activePresetId: u.id }); // текущая раскладка теперь соответствует пресету u
       setPresetMsg(`Обновлён «${u.name}»`);
     } catch {
       setPresetMsg("Не удалось обновить пресет.");
@@ -356,6 +340,7 @@ export function OverlayEditor({
       await api.del(`/overlay/presets/${p.id}`);
       setPresets((xs) => xs.filter((x) => x.id !== p.id));
       setPresetSel("");
+      if (layout.activePresetId === p.id) onChange({ ...layout, activePresetId: "" }); // активный удалили → сброс
       setPresetMsg(`Удалён «${p.name}»`);
     } catch {
       setPresetMsg("Не удалось удалить пресет.");

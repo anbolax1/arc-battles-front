@@ -256,6 +256,8 @@ export interface OverlayLayout {
   stageBg: OverlayBg;
   /** Отступ от края (px сцены) при выравнивании по краю; пусто = дефолт. */
   pad?: number;
+  /** Выбранный общий пресет — хранится на сервере внутри live_state, чтобы селектор был одинаков на всех устройствах. */
+  activePresetId?: string;
   widgets: WidgetInstance[];
 }
 

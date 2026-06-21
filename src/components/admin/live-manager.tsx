@@ -112,23 +112,6 @@ function saveLive(tid: string, data: { roundNum: number; comp: PerParticipant })
   }
 }
 
-function loadLayout(tid: string): OverlayLayout | null {
-  try {
-    const raw = localStorage.getItem(`rsp_layout_${tid}`);
-    const v = raw ? (JSON.parse(raw) as OverlayLayout) : null;
-    return v && Array.isArray(v.widgets) ? v : null;
-  } catch {
-    return null;
-  }
-}
-function saveLayout(tid: string, layout: OverlayLayout) {
-  try {
-    localStorage.setItem(`rsp_layout_${tid}`, JSON.stringify(layout));
-  } catch {
-    /* ignore */
-  }
-}
-
 export function LiveManager({
   tournaments,
   complications,
@@ -153,6 +136,9 @@ export function LiveManager({
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState("");
   const [layout, setLayout] = React.useState<OverlayLayout>(DEFAULT_LAYOUT);
+  // Раскладка оверлея — ОБЩАЯ (одна на сайт, источник правды — сервер/live_state), не per-tournament.
+  // Пока не загрузили её с сервера, не пушим состояние, чтобы дефолт не затёр реальную раскладку.
+  const [layoutReady, setLayoutReady] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
   // Фон превью (геймплей с HUD) — только для превью/редактора, на /overlay не влияет.
   const [previewBg, setPreviewBg] = React.useState<"day" | "night" | "off">("day");
@@ -180,7 +166,6 @@ export function LiveManager({
         const saved = loadLive(t.id);
         setRoundNum(saved?.roundNum && saved.roundNum >= 1 ? saved.roundNum : 1);
         setCompByPart(saved?.comp ?? {});
-        setLayout(loadLayout(t.id) ?? DEFAULT_LAYOUT);
       } catch {
         if (active) setDetail(null);
       }
@@ -189,6 +174,31 @@ export function LiveManager({
       active = false;
     };
   }, [selId]);
+
+  // Общая раскладка оверлея грузится с сервера один раз (не зависит от турнира/устройства).
+  // Готовность (→ можно пушить состояние) ставим ТОЛЬКО при успешном ответе: при ошибке
+  // держим layoutReady=false и ретраим — иначе дефолт затёр бы реальную раскладку на сервере.
+  React.useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = () => {
+      api
+        .get<OverlayLayout>("/overlay/layout")
+        .then((l) => {
+          if (!active) return;
+          if (l && Array.isArray(l.widgets)) setLayout(l); // пусто {} → оставляем дефолт (первый запуск)
+          setLayoutReady(true);
+        })
+        .catch(() => {
+          if (active) timer = setTimeout(load, 3000); // не узнали раскладку — ждём и пробуем снова, не пушим
+        });
+    };
+    load();
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   const participants = detail?.participants ?? [];
   const current = participants.find((p) => p.id === participantId) ?? null;
@@ -201,11 +211,8 @@ export function LiveManager({
   React.useEffect(() => {
     if (detail?.id) saveLive(detail.id, { roundNum, comp: compByPart });
   }, [detail?.id, roundNum, compByPart]);
-
-  // персист раскладки оверлея (на турнир)
-  React.useEffect(() => {
-    if (detail?.id) saveLayout(detail.id, layout);
-  }, [detail?.id, layout]);
+  // Раскладка персистится на сервер вместе с состоянием эфира (см. авто-отправку ниже),
+  // localStorage для неё больше не используем — оверлей общий для всех устройств.
 
   // счётчики/задания турнира
   React.useEffect(() => {
@@ -340,13 +347,14 @@ export function LiveManager({
   // авто-отправка состояния в оверлей (OBS + сайт), debounce. Кнопки «Обновить» нет.
   const pushSig = detail ? JSON.stringify(state) : "";
   React.useEffect(() => {
-    if (!pushSig) return;
+    // Не пушим, пока не загрузили общую раскладку с сервера — иначе дефолт затрёт реальную.
+    if (!pushSig || !layoutReady) return;
     const body = JSON.parse(pushSig);
     const t = setTimeout(() => {
       void api.put("/overlay/state", body).catch(() => {});
     }, 500);
     return () => clearTimeout(t);
-  }, [pushSig]);
+  }, [pushSig, layoutReady]);
 
   async function reloadCounters() {
     if (!detail?.id) return;
@@ -672,7 +680,13 @@ export function LiveManager({
             <div className="flex items-center justify-between gap-2">
               <span className="field-label">{editing ? "Редактор макета" : "Превью оверлея (обновляется само)"}</span>
               {!editing && (
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={!layoutReady}
+                  title={layoutReady ? undefined : "Загружаем раскладку с сервера…"}
+                  onClick={() => setEditing(true)}
+                >
                   <span>✏️ Редактировать макет</span>
                 </button>
               )}
@@ -690,7 +704,7 @@ export function LiveManager({
               </div>
             </div>
             {editing ? (
-              <OverlayEditor key={detail?.id} state={state} layout={layout} onChange={setLayout} onClose={() => setEditing(false)} bgImage={bgImage} tid={detail?.id} />
+              <OverlayEditor state={state} layout={layout} onChange={setLayout} onClose={() => setEditing(false)} bgImage={bgImage} />
             ) : (
               <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
                 <OverlayStage state={state} mode="preview" bgImage={bgImage} />
