@@ -10,6 +10,7 @@ import { WIDGET_LABELS, WIDGET_ORDER, WIDGET_REGISTRY } from "@/components/overl
 
 const DEFAULT_PAD = 48; // отступ от края при выравнивании, px сцены (по умолчанию)
 const SNAP = 10; // порог прилипания, px сцены
+const CLICK_SLOP = 3; // экранных px: меньше — это клик-выбор (не двигаем и не снимаем привязку), больше — таскание
 
 type AnchorPos = "tl" | "tc" | "tr" | "ml" | "c" | "mr" | "bl" | "bc" | "br";
 const ANCHOR_GRID: AnchorPos[] = ["tl", "tc", "tr", "ml", "c", "mr", "bl", "bc", "br"];
@@ -37,6 +38,7 @@ type DragState = {
   cw: number;
   ch: number;
   cScale: number;
+  moved: boolean; // указатель реально сдвинулся > CLICK_SLOP → это таскание, а не клик-выбор
 };
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -417,6 +419,7 @@ export function OverlayEditor({
       id: w.id, mode, dir, z, ws,
       px, py, sx: w.x * STAGE_W, sy: w.y * STAGE_H, sw, sh,
       cx: w.x * STAGE_W, cy: w.y * STAGE_H, cw: sw, ch: sh, cScale: ws,
+      moved: false,
     };
     dragRef.current = st;
     const move = (ev: PointerEvent) => dragMove(ev, st);
@@ -442,6 +445,10 @@ export function OverlayEditor({
     startDrag(w, "resize", dir, e.clientX, e.clientY);
   }
   function dragMove(ev: PointerEvent, st: DragState) {
+    if (!st.moved) {
+      if (Math.hypot(ev.clientX - st.px, ev.clientY - st.py) < CLICK_SLOP) return; // ещё в пределах клика
+      st.moved = true; // вышли за порог → это таскание, можно двигать/снимать привязку
+    }
     const { z, ws } = st;
     const el = targets.current.get(st.id);
     if (st.mode === "move") {
@@ -500,6 +507,7 @@ export function OverlayEditor({
   function dragEnd(st: DragState) {
     dragRef.current = null;
     setGuides([]);
+    if (!st.moved) return; // чистый клик-выбор: не двигали → не трогаем позицию/размер/привязку
     // Ручное перемещение/ресайз снимает привязку к краю — виджет становится «свободным»
     // (иначе при смене отступа он бы прыгнул обратно к краю).
     if (st.mode === "move") {
