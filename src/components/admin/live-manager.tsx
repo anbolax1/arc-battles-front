@@ -209,6 +209,9 @@ export function LiveManager({
   const roundStarterTasks = starterTasks.filter((t) => t.roundId === roundId);
   // Контракты фокусной стороны (владелец = participantId).
   const myContracts = bonusTasks.filter((b) => b.participantId === participantId);
+  // Противник (другая сторона) и его контракты — фокусная сторона может выполнить их за +1.
+  const opponent = participants.find((p) => p.id !== participantId) ?? null;
+  const oppContracts = opponent ? bonusTasks.filter((b) => b.participantId === opponent.id) : [];
   // Протокол фокусной стороны (1 на игрока за турнир).
   const myPenalty = penalties.find((p) => p.participantId === participantId) ?? null;
   const compId = myPenalty?.complicationId ?? "";
@@ -252,14 +255,26 @@ export function LiveManager({
     points: t.points,
     completed: doneTimes(t, participantId) > 0,
   }));
-  // Контракты фокусной стороны: times>0 → отметка «выполнен» (свой/чужой).
-  const liveBonusTasks = myContracts.map((b) => ({
-    text: b.text,
-    points: contractPoints(b) || (b.completedBy === b.participantId ? CONTRACT_OWN : CONTRACT_OPP),
-    valueType: "fixed" as const,
-    times: b.completedBy ? 1 : 0,
-    who: current?.name ?? "",
-  }));
+  // Контракты для оверлея: свои (фокусной стороны, +2) + контракты противника (+1, опция в виджете).
+  // Подсветка (times>0) — когда ФОКУСНАЯ сторона получила балл: свой выполнен владельцем; чужой украден.
+  const liveBonusTasks = [
+    ...myContracts.map((b) => ({
+      text: b.text,
+      points: CONTRACT_OWN,
+      valueType: "fixed" as const,
+      times: b.completedBy === b.participantId ? 1 : 0,
+      who: current?.name ?? "",
+      opponent: false,
+    })),
+    ...oppContracts.map((b) => ({
+      text: b.text,
+      points: CONTRACT_OPP,
+      valueType: "fixed" as const,
+      times: b.completedBy === participantId ? 1 : 0,
+      who: opponent?.name ?? "",
+      opponent: true,
+    })),
+  ];
   // Протоколы обеих сторон: минуты = число нарушений (на очки не влияют).
   const liveComplications = participants
     .map((p) => {
@@ -595,7 +610,7 @@ export function LiveManager({
                           <button type="button" className="btn btn-sm btn-cyan" aria-pressed={own} disabled={busy || locked} onClick={() => completeContract(b.id, "owner")}>
                             <span>Свой +{CONTRACT_OWN}</span>
                           </button>
-                          <button type="button" className="btn btn-sm btn-ghost" aria-pressed={opp} disabled={busy || locked} onClick={() => completeContract(b.id, "opponent")}>
+                          <button type="button" className="btn btn-sm btn-ghost" aria-pressed={opp} disabled={busy || locked || own} title={own ? "владелец выполнил свой контракт — противнику недоступен" : undefined} onClick={() => completeContract(b.id, "opponent")}>
                             <span>Противник +{CONTRACT_OPP}</span>
                           </button>
                           <button type="button" className="btn btn-sm btn-ghost" disabled={busy || locked || !b.completedBy} onClick={() => completeContract(b.id, "none")}>
@@ -611,6 +626,36 @@ export function LiveManager({
                 </ul>
               ) : (
                 <p className="text-sm text-muted">У этой стороны пока нет контрактов. Раздай случайные кнопкой «Раздать 2» или добавь вручную ниже.</p>
+              )}
+              {opponent && oppContracts.length > 0 && (
+                <div className="space-y-2 border-t border-[var(--border)] pt-3">
+                  <h4 className="font-display text-sm uppercase text-muted">Контракты противника · {opponent.name}</h4>
+                  <ul className="space-y-2">
+                    {oppContracts.map((b) => {
+                      const stolen = b.completedBy === participantId; // фокусная сторона выполнила чужой контракт (+1)
+                      const ownerDid = b.completedBy === b.participantId; // владелец выполнил свой → красть нельзя
+                      return (
+                        <li key={b.id} className={`flex flex-wrap items-center justify-between gap-2 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] ${ownerDid ? "opacity-60" : ""}`}>
+                          <span className="min-w-0 flex-1 text-sm">
+                            <span className="mr-1 text-muted tnum">{contractNum.get(b.taskId)}.</span>
+                            {b.text}
+                            {stolen && <span className="ml-2 text-xs text-accent">✓ {current?.name} +{CONTRACT_OPP}</span>}
+                            {ownerDid && <span className="ml-2 text-xs text-muted">владелец выполнил</span>}
+                          </span>
+                          <span className="flex flex-none items-center gap-1.5">
+                            <button type="button" className="btn btn-sm btn-cyan" aria-pressed={stolen} disabled={busy || locked || ownerDid} title={ownerDid ? "владелец уже выполнил свой контракт" : undefined} onClick={() => completeContract(b.id, "opponent")}>
+                              <span>Зачесть +{CONTRACT_OPP}</span>
+                            </button>
+                            <button type="button" className="btn btn-sm btn-ghost" disabled={busy || locked || !stolen} onClick={() => completeContract(b.id, "none")}>
+                              <span>Сброс</span>
+                            </button>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-[0.7rem] text-muted">Засчитывается за +{CONTRACT_OPP}, только если владелец сам не выполнил свой контракт. Если владелец выполнит — этот балл отменяется.</p>
+                </div>
               )}
               <div className="space-y-1.5 border-t border-[var(--border)] pt-3">
                 <span className="field-label">Добавить контракт вручную</span>

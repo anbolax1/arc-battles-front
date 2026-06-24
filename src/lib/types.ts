@@ -237,13 +237,14 @@ export interface LiveState {
   layout?: OverlayLayout | null;
 }
 
-/** Бонусное задание стороны в оверлее (виджет «Бонусные»). */
+/** Контракт стороны в оверлее (виджет «Контракты»). */
 export interface LiveBonus {
   text: string;
   points: number;
   valueType: ValueType;
-  times: number;
-  who?: string;
+  times: number; // 0 — не зачтён, >0 — зачтён (подсветка)
+  who?: string; // имя стороны-владельца
+  opponent?: boolean; // контракт противника фокусной стороны
 }
 
 /** Типы виджетов модульного оверлея. */
@@ -281,6 +282,8 @@ export interface WidgetInstance {
   hidePenalty?: boolean;
   /** Табло: показывать очки за текущий раунд в скобках рядом с основным счётом. */
   showRoundScore?: boolean;
+  /** Контракты: показывать и контракты противника (что можно «украсть» за +1). */
+  showOpponentContracts?: boolean;
   /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
   anchor?: string;
   bg: OverlayBg;

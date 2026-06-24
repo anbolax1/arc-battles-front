@@ -792,6 +792,13 @@ export function OverlayEditor({
             </SettingRow>
           )}
 
+          {sel.type === "bonusTasks" && (
+            <SettingRow label="Противник">
+              <Switch on={!!sel.showOpponentContracts} onChange={(v) => patch(sel.id, { showOpponentContracts: v })} title="показывать и контракты противника (что фокусная сторона может украсть за +1)" />
+              <span className="text-xs text-muted">{sel.showOpponentContracts ? "контракты противника видны" : "только свои"}</span>
+            </SettingRow>
+          )}
+
           <SettingRow label="Размер">
             <input
               type="range"
