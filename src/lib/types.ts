@@ -8,7 +8,9 @@ export type ParticipantKind = "player" | "team";
 export type RegistrationStatus = "pending" | "accepted" | "declined";
 export type ValueType = "fixed" | "percent";
 export type CatalogSource = "official" | "boosty";
-export type TaskKind = "pve" | "pvp" | "mixed";
+export type TaskKind = "pve" | "pvp" | "pvpve";
+/** Тип игроков турнира — определяет пул основных заданий и контрактов. */
+export type PlayerType = "pve" | "pvp" | "pvpve";
 
 export interface User {
   id: string;
@@ -43,8 +45,9 @@ export interface Tournament {
   id: string;
   title: string;
   mode: TournamentMode;
+  playerType: PlayerType; // pve | pvp | pvpve
   status: TournamentStatus;
-  totalRounds: number;
+  totalRounds: number; // всегда 1 (один раунд = один рейд)
   maps: string[];
   startsAt?: string | null;
   winnerParticipantId?: string | null;
@@ -76,7 +79,8 @@ export interface LeaderboardRow {
   login: string;
   displayName: string;
   avatarUrl: string;
-  points: number;
+  mmr: number; // рейтинг по исходам (старт 1000, сквозной по сезонам)
+  points: number; // сумма набранных баллов за сезон (вторично)
   wins: number;
   tournaments: number;
 }
@@ -102,7 +106,7 @@ export interface CatalogComplication {
   title?: string;
 }
 
-/** Стартовое задание из пула (НЕ бонусное, скрыто от публики/правил). */
+/** Основное задание из пула (скрыто от публики/правил; видит организатор). */
 export interface StarterTask {
   id: string;
   text: string;
@@ -110,31 +114,39 @@ export interface StarterTask {
   kind: TaskKind;
 }
 
-/** Стартовое задание, назначенное на раунд. times — сколько раз зачтено (баллы = times × points). */
+/** Зачёт основного задания конкретной стороной. */
+export interface RoundTaskDone {
+  participantId: string;
+  times: number;
+}
+
+/** Основное задание раунда (одинаково у обеих сторон). Зачёт раздельный по сторонам (done). */
 export interface RoundStarterTask {
   id: string;
   roundId: string;
   starterTaskId: string;
   text: string;
   points: number;
-  completedBy?: string | null;
-  times: number;
+  done: RoundTaskDone[];
 }
 
-/** Бонусное задание участника в раунде. times — сколько раз зачтено (0 → не выполнено, переносится). */
+/** Контракт участника в раунде. participantId — владелец; completedBy — кто выполнил
+    (владелец → +2, противник → +1, пусто → не выполнен). */
 export interface RoundBonusTask {
   id: string;
   roundId: string;
   roundNumber: number;
-  participantId: string;
+  participantId: string; // владелец контракта
   taskId: string;
   text: string;
   points: number;
   valueType: ValueType;
+  kind: TaskKind;
   times: number;
+  completedBy?: string | null;
 }
 
-/** Применённое усложнение участнику в раунде. times — сколько раз (штраф = times × величина). */
+/** Протокол стороны в раунде. times — число нарушений (= минут штрафа в рейде; на очки НЕ влияет). */
 export interface RoundPenalty {
   id: string;
   roundId: string;
@@ -146,6 +158,32 @@ export interface RoundPenalty {
   times: number;
 }
 
+/** Легендарный контракт (глобальный пул, 10 баллов, выполним один раз навсегда). */
+export interface CatalogLegendary {
+  id: string;
+  text: string;
+  points: number;
+  kind: TaskKind;
+  source: CatalogSource;
+  author?: string;
+  title?: string;
+  status: "available" | "done";
+  completion?: LegendaryCompletion | null;
+}
+
+/** Запись о выполнении легендарного контракта (ник/дата/карта). */
+export interface LegendaryCompletion {
+  id: string;
+  legendaryContractId: string;
+  userId?: string | null;
+  participantId?: string | null;
+  nickname: string;
+  tournamentId?: string | null;
+  map?: string;
+  completedAt: string;
+  tournamentTitle?: string;
+}
+
 export interface LiveTask {
   id: string;
   text: string;
@@ -153,14 +191,16 @@ export interface LiveTask {
   completed: boolean;
 }
 
-/** Усложнение текущего раунда в оверлее (B3). Присутствует, только если задано. */
+/** Протокол стороны в оверлее. Штраф — минуты в рейде (на очки не влияет). */
 export interface LiveComplication {
   who?: string;
   text: string;
   penalty: number;
   valueType: ValueType;
-  /** Сколько раз нарушено в текущем раунде (0 — не нарушено). */
+  /** Сколько раз нарушено (= минут штрафа; 0 — не нарушено). */
   times?: number;
+  /** Минуты штрафа (= times). Дублируется для явности в оверлее. */
+  minutes?: number;
 }
 
 /** Сторона матча в оверлее с суммарными очками (по всем раундам). */
@@ -290,10 +330,10 @@ export interface PlayerStats {
   duoPlayed: number;
   streakKind: "win" | "loss" | "";
   streakLen: number;
-  basePoints: number;
-  starterPoints: number;
-  bonusPoints: number;
-  penaltyPoints: number;
+  basePoints: number; // ручная корректировка раунда
+  mainPoints: number; // основные задания раунда
+  contractPoints: number; // контракты (свои 2 + чужие 1)
+  legendaryPoints: number; // легендарные контракты (10 каждый)
   favoriteMap: string;
   favoriteMapRounds: number;
 }
@@ -301,6 +341,8 @@ export interface PlayerStats {
 /** Публичный профиль игрока: GET /api/players/{login} (B6). */
 export interface PlayerProfile {
   user: User;
+  mmrSolo: number; // MMR 1x1 (старт 1000)
+  mmrDuo: number; // MMR 2x2 (старт 1000)
   points: number;
   wins: number;
   tournaments: number;
@@ -357,10 +399,11 @@ export interface Season {
   createdAt: string;
 }
 
-/** Ответ GET /api/rules — ОБЁРНУТ в { tasks, complications }. */
+/** Ответ GET /api/rules — ОБЁРНУТ в { tasks (контракты), complications (протоколы), legendary }. */
 export interface RulesResponse {
   tasks: CatalogTask[];
   complications: CatalogComplication[];
+  legendary?: CatalogLegendary[];
 }
 
 /** GET /api/overlay/state отдаёт «голый» LiveState (или {} если не задан). */

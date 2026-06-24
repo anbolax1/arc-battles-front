@@ -7,6 +7,7 @@
 import { serverFetch, serverGetOptional } from "@/lib/server-api";
 import { ApiError } from "@/lib/api";
 import type {
+  CatalogLegendary,
   LeaderboardResponse,
   LeaderboardRow,
   LiveState,
@@ -66,12 +67,18 @@ export function getSeasons(): Promise<Season[]> {
   return safe("seasons", serverFetch<Season[]>(`/seasons`), []);
 }
 
-/** Каталог правил: задания + усложнения (ответ обёрнут в {tasks,complications}). */
+/** Каталог правил: контракты + протоколы + легендарные (ответ обёрнут в {tasks,complications,legendary}). */
 export function getRules(): Promise<RulesResponse> {
   return safe("rules", serverFetch<RulesResponse>("/rules"), {
     tasks: [],
     complications: [],
+    legendary: [],
   });
+}
+
+/** Легендарные контракты (глобальный пул со статусом и журналом). */
+export function getLegendary(): Promise<CatalogLegendary[]> {
+  return safe("legendary", serverFetch<CatalogLegendary[]>("/legendary"), []);
 }
 
 /** Текущее состояние оверлея. null — если стейт не задан ({}) или бэк недоступен. */

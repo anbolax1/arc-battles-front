@@ -33,6 +33,21 @@ export function pointsLabel(n: number): string {
   return `${n} ${pluralPoints(n)}`;
 }
 
+/** Склонение «минута / минуты / минут» по числу. */
+export function pluralMinutes(n: number): string {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return "минут";
+  if (b === 1) return "минута";
+  if (b >= 2 && b <= 4) return "минуты";
+  return "минут";
+}
+
+/** Штраф протокола в минутах: «1 минута», «3 минуты». */
+export function minutesLabel(n: number): string {
+  return `${n} ${pluralMinutes(n)}`;
+}
+
 /** Подпись штрафа усложнения: фикс «−5 баллов» либо процент «−10%». */
 export function penaltyLabel(c: { valueType: "fixed" | "percent"; value: number }): string {
   return c.valueType === "percent" ? `−${c.value}%` : `−${pointsLabel(c.value)}`;
