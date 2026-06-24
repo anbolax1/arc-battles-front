@@ -299,7 +299,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
           </>
         }
       >
-        <p className="text-sm text-muted">«{deleting?.text}» будет удалено безвозвратно.</p>
+        <p className="text-sm text-muted">{deleting?.text} будет удалено безвозвратно.</p>
       </Modal>
     </div>
   );

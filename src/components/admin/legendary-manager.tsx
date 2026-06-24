@@ -343,7 +343,7 @@ export function LegendaryManager({
         }
       >
         <form id="legendary-complete" className="space-y-4" onSubmit={submitComplete}>
-          {completing && <p className="text-sm text-muted">«{completing.text}»</p>}
+          {completing && <p className="text-sm text-muted">{completing.text}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="field-label" htmlFor="lc-nick">Ник</label>
@@ -406,7 +406,7 @@ export function LegendaryManager({
           </>
         }
       >
-        <p className="text-sm text-muted">«{deleting?.text}» будет удалено безвозвратно.</p>
+        <p className="text-sm text-muted">{deleting?.text} будет удалено безвозвратно.</p>
       </Modal>
     </div>
   );
