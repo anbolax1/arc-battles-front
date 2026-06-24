@@ -603,19 +603,19 @@ export function LiveManager({
                         <span className="min-w-0 flex-1 text-sm">
                           <span className="mr-1 text-muted tnum">{contractNum.get(b.taskId)}.</span>
                           {b.text}
-                          {own && <span className="ml-2 text-xs text-primary-2">✓ свой +{CONTRACT_OWN}</span>}
-                          {opp && <span className="ml-2 text-xs text-accent">✓ противник +{CONTRACT_OPP}</span>}
+                          {own && <span className="ml-2 text-xs text-primary-2">✓ зачтено +{CONTRACT_OWN}</span>}
+                          {opp && <span className="ml-2 text-xs text-accent">противник зачёл +{CONTRACT_OPP}</span>}
                         </span>
                         <span className="flex flex-none items-center gap-1.5">
-                          <button type="button" className="btn btn-sm btn-cyan" aria-pressed={own} disabled={busy || locked} onClick={() => completeContract(b.id, "owner")}>
-                            <span>Свой +{CONTRACT_OWN}</span>
-                          </button>
-                          <button type="button" className="btn btn-sm btn-ghost" aria-pressed={opp} disabled={busy || locked || own} title={own ? "владелец выполнил свой контракт — противнику недоступен" : undefined} onClick={() => completeContract(b.id, "opponent")}>
-                            <span>Противник +{CONTRACT_OPP}</span>
-                          </button>
-                          <button type="button" className="btn btn-sm btn-ghost" disabled={busy || locked || !b.completedBy} onClick={() => completeContract(b.id, "none")}>
-                            <span>Сброс</span>
-                          </button>
+                          {own ? (
+                            <button type="button" className="btn btn-sm btn-cyan" aria-pressed={true} title="нажми, чтобы снять зачёт" disabled={busy || locked} onClick={() => completeContract(b.id, "none")}>
+                              <span>✓ Зачтено +{CONTRACT_OWN}</span>
+                            </button>
+                          ) : (
+                            <button type="button" className="btn btn-sm btn-cyan" title={opp ? "зачесть владельцу — автоматически снимет балл у противника" : undefined} disabled={busy || locked} onClick={() => completeContract(b.id, "owner")}>
+                              <span>{opp ? "Зачесть (снять у против.)" : "Зачесть"}</span>
+                            </button>
+                          )}
                           <button type="button" className="text-muted transition hover:text-danger" disabled={busy} title="Убрать" onClick={() => removeContract(b.id)}>
                             ✕
                           </button>
@@ -643,12 +643,16 @@ export function LiveManager({
                             {ownerDid && <span className="ml-2 text-xs text-muted">владелец выполнил</span>}
                           </span>
                           <span className="flex flex-none items-center gap-1.5">
-                            <button type="button" className="btn btn-sm btn-cyan" aria-pressed={stolen} disabled={busy || locked || ownerDid} title={ownerDid ? "владелец уже выполнил свой контракт" : undefined} onClick={() => completeContract(b.id, "opponent")}>
-                              <span>Зачесть +{CONTRACT_OPP}</span>
-                            </button>
-                            <button type="button" className="btn btn-sm btn-ghost" disabled={busy || locked || !stolen} onClick={() => completeContract(b.id, "none")}>
-                              <span>Сброс</span>
-                            </button>
+                            {!ownerDid &&
+                              (stolen ? (
+                                <button type="button" className="btn btn-sm btn-cyan" aria-pressed={true} title="нажми, чтобы снять зачёт" disabled={busy || locked} onClick={() => completeContract(b.id, "none")}>
+                                  <span>✓ Зачтено +{CONTRACT_OPP}</span>
+                                </button>
+                              ) : (
+                                <button type="button" className="btn btn-sm btn-cyan" disabled={busy || locked} onClick={() => completeContract(b.id, "opponent")}>
+                                  <span>Зачесть +{CONTRACT_OPP}</span>
+                                </button>
+                              ))}
                           </span>
                         </li>
                       );
