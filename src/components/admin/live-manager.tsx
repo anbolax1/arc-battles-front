@@ -239,9 +239,10 @@ export function LiveManager({
   }
   const roundEarned = participantId ? roundEarnedFor(participantId) : 0; // фокусная сторона (мини-блок «Очки»)
 
-  // Каталог для комбобокса добавления контракта: исключаем уже выданные этой стороне.
-  const myContractTaskIds = new Set(myContracts.map((b) => b.taskId));
-  const availableContracts = bonusCatalog.filter((t) => !myContractTaskIds.has(t.id));
+  // Каталог для комбобокса добавления контракта: исключаем уже разыгранные в ТУРНИРЕ (любой
+  // стороной) — контракты в рамках турнира не повторяются.
+  const usedContractTaskIds = new Set(bonusTasks.map((b) => b.taskId));
+  const availableContracts = bonusCatalog.filter((t) => !usedContractTaskIds.has(t.id));
   const contractNum = new Map(bonusCatalog.map((t, i) => [t.id, i + 1]));
   // Номер протокола = позиция в общем каталоге (для поиска по чату «протокол 10»).
   const compItems = complications.map((c, i) => ({ id: c.id, num: i + 1, text: c.text }));
@@ -436,7 +437,7 @@ export function LiveManager({
       setBonusPick("");
       await reloadCounters();
     } catch (e) {
-      setMsg(e instanceof ApiError ? (e.status === 409 ? "Этот контракт у участника уже есть." : e.body || e.message) : "Не удалось добавить.");
+      setMsg(e instanceof ApiError ? (e.status === 409 ? "Этот контракт уже разыгран в турнире." : e.body || e.message) : "Не удалось добавить.");
     } finally {
       setBusy(false);
     }
