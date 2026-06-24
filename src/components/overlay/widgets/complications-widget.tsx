@@ -23,7 +23,7 @@ function Strip({ c, hideTitle, hidePenalty }: { c: LiveComplication; hideTitle: 
       </span>
       {violated ? (
         <span className="pts pts-minus flex-none">
-          <span>−{minutes} мин</span>
+          <span>−{minutesLabel(minutes)}</span>
         </span>
       ) : null}
     </div>

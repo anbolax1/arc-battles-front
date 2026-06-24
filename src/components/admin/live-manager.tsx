@@ -220,21 +220,17 @@ export function LiveManager({
   // Зачёт основного задания стороной pid: times из done[].
   const doneTimes = (t: RoundStarterTask, pid: string) => t.done.find((d) => d.participantId === pid)?.times ?? 0;
 
-  // Очки контракта: свой выполненный (+2), контракт противника (+1), пусто — 0.
-  function contractPoints(b: RoundBonusTask): number {
-    if (!b.completedBy) return 0;
-    return b.completedBy === b.participantId ? CONTRACT_OWN : CONTRACT_OPP;
-  }
-
-  // Очки за раунд для стороны pid: основные (per-side зачёт) + контракты (свой 2 / чужой 1).
-  // Протоколы на очки НЕ влияют. База/percent/штрафы убраны.
+  // Очки за раунд для стороны pid: основные (per-side зачёт) + контракты, ВЫПОЛНЕННЫЕ этой
+  // стороной (completedBy === pid): свой контракт +2, контракт противника +1 — ровно как на бэке
+  // (round_entries.go: WHERE completed_by = pid, CASE participant_id = pid ? 2 : 1).
+  // Протоколы на очки НЕ влияют.
   function roundEarnedFor(pid: string): number {
     const main = starterTasks
       .filter((t) => t.roundId === roundId)
       .reduce((s, t) => s + doneTimes(t, pid) * t.points, 0);
     const contracts = bonusTasks
-      .filter((b) => b.participantId === pid)
-      .reduce((s, b) => s + contractPoints(b), 0);
+      .filter((b) => b.completedBy === pid)
+      .reduce((s, b) => s + (b.participantId === pid ? CONTRACT_OWN : CONTRACT_OPP), 0);
     return main + contracts;
   }
   const roundEarned = participantId ? roundEarnedFor(participantId) : 0; // фокусная сторона (мини-блок «Очки»)
