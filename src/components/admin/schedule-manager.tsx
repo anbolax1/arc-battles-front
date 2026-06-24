@@ -14,13 +14,19 @@ import { UserCombobox, type PickedMember } from "@/components/admin/user-combobo
 import { Avatar } from "@/components/ui/avatar";
 import { registrationMatches, tournamentName } from "@/lib/display";
 import { fmtDate, fmtTime } from "@/lib/format";
-import type { Participant, Registration, Round, Tournament, User } from "@/lib/types";
+import type { Participant, PlayerType, Registration, Tournament, User } from "@/lib/types";
 
 const STATUSES = [
   { value: "draft", label: "Черновик" },
   { value: "upcoming", label: "Скоро" },
   { value: "live", label: "В эфире" },
   { value: "finished", label: "Завершён" },
+];
+
+const PLAYER_TYPES: Array<{ value: PlayerType; label: string }> = [
+  { value: "pve", label: "PvE" },
+  { value: "pvp", label: "PvP" },
+  { value: "pvpve", label: "PvPvE" },
 ];
 
 // ISO-дата → «YYYY-MM-DDTHH:mm» в МСК (формат, который отдаёт/принимает DateTimePicker).
@@ -50,11 +56,11 @@ export function ScheduleManager({
   const [createOpen, setCreateOpen] = React.useState(false);
   const [addPartOpen, setAddPartOpen] = React.useState(false);
   const [pointsFor, setPointsFor] = React.useState<Participant | null>(null);
-  const [addRoundOpen, setAddRoundOpen] = React.useState(false);
 
   const [cTitle, setCTitle] = React.useState("");
   const [cMode, setCMode] = React.useState<"1x1" | "2x2">("1x1");
-  const [cRounds, setCRounds] = React.useState(3);
+  const [cPlayerType, setCPlayerType] = React.useState<PlayerType>("pvpve");
+  const [cMap, setCMap] = React.useState("");
   const [cStart, setCStart] = React.useState("");
 
   const [pTeamName, setPTeamName] = React.useState("");
@@ -62,12 +68,10 @@ export function ScheduleManager({
   const [pM2, setPM2] = React.useState<PickedMember>({ name: "" });
   const [editPartId, setEditPartId] = React.useState<string | null>(null);
   const [pointsVal, setPointsVal] = React.useState(0);
-  const [rNumber, setRNumber] = React.useState(1);
-  const [rMap, setRMap] = React.useState("");
-  const [editRoundId, setEditRoundId] = React.useState<string | null>(null);
 
   const [editTourOpen, setEditTourOpen] = React.useState(false);
   const [eTitle, setETitle] = React.useState("");
+  const [ePlayerType, setEPlayerType] = React.useState<PlayerType>("pvpve");
   const [eStart, setEStart] = React.useState("");
 
   // Стилизованное подтверждение удаления (вместо window.confirm).
@@ -204,7 +208,8 @@ export function ScheduleManager({
   function openCreate() {
     setCTitle("");
     setCMode("1x1");
-    setCRounds(3);
+    setCPlayerType("pvpve");
+    setCMap("");
     setCStart("");
     setError("");
     setCreateOpen(true);
@@ -219,10 +224,12 @@ export function ScheduleManager({
     setBusy(true);
     setError("");
     try {
+      // Ровно один раунд авто-создаётся бэком — totalRounds не шлём.
       const t = await api.post<Tournament>("/tournaments", {
         title: cTitle.trim(),
         mode: cMode,
-        totalRounds: Number(cRounds) || 3,
+        playerType: cPlayerType,
+        maps: cMap.trim() ? [cMap.trim()] : [],
         startsAt: cStart ? `${cStart}:00+03:00` : null,
       });
       setList((xs) => [{ ...t, hasSpace: true }, ...xs]);
@@ -252,6 +259,7 @@ export function ScheduleManager({
   function openEditTour() {
     if (!detail) return;
     setETitle(detail.title);
+    setEPlayerType(detail.playerType);
     setEStart(detail.startsAt ? toMskInput(detail.startsAt) : "");
     setError("");
     setEditTourOpen(true);
@@ -269,6 +277,7 @@ export function ScheduleManager({
     try {
       const t = await api.patch<Tournament>(`/tournaments/${detail.id}`, {
         title: eTitle.trim(),
+        playerType: ePlayerType,
         startsAt: eStart ? `${eStart}:00+03:00` : null,
       });
       setDetail(t);
@@ -286,7 +295,7 @@ export function ScheduleManager({
     setConfirmErr("");
     setConfirmAction({
       title: "Удалить турнир?",
-      message: `Турнир «${tournamentName(detail)}» удалится вместе с раундами, участниками и начислениями. Действие необратимо.`,
+      message: `Турнир «${tournamentName(detail)}» удалится вместе с раундом, участниками и начислениями. Действие необратимо.`,
       confirmLabel: "Удалить турнир",
       run: doDeleteTournament,
     });
@@ -509,71 +518,31 @@ export function ScheduleManager({
     }
   }
 
-  function openAddRound() {
-    setEditRoundId(null);
-    setRNumber((detail?.rounds?.length ?? 0) + 1);
-    setRMap("");
-    setError("");
-    setAddRoundOpen(true);
-  }
-
-  function openEditRound(rd: Round) {
-    setEditRoundId(rd.id);
-    setRNumber(rd.number);
-    setRMap(rd.map ?? "");
-    setError("");
-    setAddRoundOpen(true);
-  }
-
-  async function addRound(e: React.FormEvent) {
-    e.preventDefault();
-    if (!detail) return;
-    setBusy(true);
-    setError("");
-    try {
-      const payload = { number: Number(rNumber) || 1, map: rMap.trim() };
-      if (editRoundId) {
-        await api.patch(`/rounds/${editRoundId}`, payload);
-      } else {
-        await api.post(`/tournaments/${detail.id}/rounds`, payload);
-      }
-      setAddRoundOpen(false);
-      await reloadDetail();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.body || err.message : "Не удалось.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function deleteRound(id: string) {
-    setConfirmErr("");
-    setConfirmAction({
-      title: "Удалить раунд?",
-      message: "Раунд удалится вместе с его начислениями и заданиями.",
-      confirmLabel: "Удалить раунд",
-      run: () => doDeleteRound(id),
-    });
-  }
-
-  async function doDeleteRound(id: string): Promise<boolean> {
-    setBusy(true);
-    setConfirmErr("");
-    try {
-      await api.del(`/rounds/${id}`);
-      await reloadDetail();
-      return true;
-    } catch (err) {
-      setConfirmErr(err instanceof ApiError ? err.body || err.message : "Не удалось удалить раунд.");
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-
   const participants = detail?.participants ?? [];
-  const rounds = [...(detail?.rounds ?? [])].sort((a, b) => a.number - b.number);
+  // Ровно один раунд (один рейд) — берём первый/единственный, который авто-создал бэк.
+  const round = detail?.rounds?.[0] ?? null;
+  // Карта рейда хранится в раунде; редактируется тут же, на единственном раунде.
+  // Драфт сбрасываем при смене раунда/значения по технике «adjust state during render»
+  // (без эффекта-синхронизатора) — храним id+map, под который драфт актуален.
+  const [mapDraft, setMapDraft] = React.useState<{ key: string; value: string }>({ key: "", value: "" });
+  const [mapSaving, setMapSaving] = React.useState(false);
+  const mapKey = `${round?.id ?? ""}:${round?.map ?? ""}`;
+  if (mapDraft.key !== mapKey) setMapDraft({ key: mapKey, value: round?.map ?? "" });
+  const roundMap = mapDraft.value;
+  const setRoundMap = (value: string) => setMapDraft({ key: mapKey, value });
+
+  async function saveRoundMap() {
+    if (!round) return;
+    setMapSaving(true);
+    try {
+      await api.patch(`/rounds/${round.id}`, { map: roundMap.trim() });
+      await reloadDetail();
+    } catch {
+      /* ignore */
+    } finally {
+      setMapSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -640,7 +609,9 @@ export function ScheduleManager({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
                   <span>{detail.mode}</span>
                   <span>·</span>
-                  <span>{detail.totalRounds} раунда</span>
+                  <span>{PLAYER_TYPES.find((p) => p.value === detail.playerType)?.label ?? detail.playerType}</span>
+                  <span>·</span>
+                  <span>1 раунд</span>
                   {detail.startsAt && (
                     <>
                       <span>·</span>
@@ -649,10 +620,10 @@ export function ScheduleManager({
                       </span>
                     </>
                   )}
-                  {detail.maps?.length ? (
+                  {round?.map ? (
                     <>
                       <span>·</span>
-                      <span>{detail.maps.join(" · ")}</span>
+                      <span>{round.map}</span>
                     </>
                   ) : null}
                 </div>
@@ -748,53 +719,51 @@ export function ScheduleManager({
               </Panel>
 
               <Panel className="overflow-hidden">
-                <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
-                  <div>
-                    <h3 className="font-display text-lg uppercase">Раунды и карты</h3>
-                    <p className="mt-1 text-xs text-muted">Статус раундов проставляется автоматически по текущему раунду в «Эфире».</p>
-                  </div>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={openAddRound}>
-                    <span>+ Раунд</span>
-                  </button>
+                <div className="border-b border-[var(--border)] px-5 py-4">
+                  <h3 className="font-display text-lg uppercase">Карта рейда</h3>
+                  <p className="mt-1 text-xs text-muted">Один раунд = один рейд (~30 минут). Карта общая для обеих сторон.</p>
                 </div>
-                {rounds.length ? (
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {rounds.map((r) => (
-                        <tr key={r.id} className="border-b border-[var(--border)] last:border-0">
-                          <td className="px-4 py-3 font-display uppercase">Раунд {r.number}</td>
-                          <td className="px-4 py-3 text-muted">{r.map || "—"}</td>
-                          <td className="px-4 py-3 text-xs uppercase tracking-wide text-muted">
-                            {r.status === "live" ? "Идёт" : r.status === "finished" ? "Завершён" : "Ожидание"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-2">
-                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEditRound(r)}>
-                                <span>Изм.</span>
-                              </button>
-                              <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => deleteRound(r.id)}>
-                                <span>✕</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="px-5 py-8 text-center text-sm text-muted">Раундов нет.</div>
-                )}
+                <div className="flex items-end gap-2 p-5">
+                  {round ? (
+                    <>
+                      <div className="flex-1 space-y-1.5">
+                        <label className="field-label" htmlFor="round-map">Карта</label>
+                        <input
+                          id="round-map"
+                          className="input"
+                          value={roundMap}
+                          onChange={(e) => setRoundMap(e.target.value)}
+                          placeholder="напр. Космопорт"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={mapSaving || roundMap.trim() === (round.map ?? "").trim()}
+                        onClick={saveRoundMap}
+                      >
+                        <span>{mapSaving ? "…" : "Сохранить"}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted">Раунд ещё не создан — обновите страницу.</p>
+                  )}
+                </div>
               </Panel>
 
               <Panel className="overflow-hidden">
                 <div className="border-b border-[var(--border)] px-5 py-4">
-                  <h3 className="font-display text-lg uppercase">Стартовые задания по раундам</h3>
+                  <h3 className="font-display text-lg uppercase">Основные задания раунда</h3>
                   <p className="mt-1 text-xs text-muted">
-                    Скрытый пул — обычные игроки этих заданий не видят. Раскидай по раундам, зачёт — в «Эфире».
+                    Скрытый пул — обычные игроки этих заданий не видят. Назначь на раунд, зачёт (раздельно по сторонам) — в «Эфире».
                   </p>
                 </div>
                 <div className="p-5">
-                  <StarterTaskBoard tournamentId={detail.id} rounds={detail.rounds ?? []} />
+                  {round ? (
+                    <StarterTaskBoard tournamentId={detail.id} round={round} />
+                  ) : (
+                    <p className="text-sm text-muted">Раунд ещё не создан — обновите страницу.</p>
+                  )}
                 </div>
               </Panel>
 
@@ -926,10 +895,20 @@ export function ScheduleManager({
                 </button>
               </div>
             </div>
-            <div className="w-28 space-y-1.5">
-              <label className="field-label" htmlFor="t-rounds">Раундов</label>
-              <input id="t-rounds" type="number" min={1} className="input" value={cRounds} onChange={(e) => setCRounds(Number(e.target.value))} />
+            <div className="space-y-1.5">
+              <span className="field-label">Тип игроков</span>
+              <div className="seg">
+                {PLAYER_TYPES.map((pt) => (
+                  <button key={pt.value} type="button" className="seg-btn" aria-pressed={cPlayerType === pt.value} onClick={() => setCPlayerType(pt.value)}>
+                    <span>{pt.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="field-label" htmlFor="t-map">Карта (необязательно)</label>
+            <input id="t-map" className="input" value={cMap} onChange={(e) => setCMap(e.target.value)} placeholder="напр. Космопорт" />
           </div>
           <div className="space-y-1.5">
             <span className="field-label">Дата и время (МСК)</span>
@@ -958,6 +937,16 @@ export function ScheduleManager({
           <div className="space-y-1.5">
             <label className="field-label" htmlFor="te-title">Название</label>
             <input id="te-title" className="input" value={eTitle} onChange={(e) => setETitle(e.target.value)} placeholder="напр. Istwood vs Vey" />
+          </div>
+          <div className="space-y-1.5">
+            <span className="field-label">Тип игроков</span>
+            <div className="seg">
+              {PLAYER_TYPES.map((pt) => (
+                <button key={pt.value} type="button" className="seg-btn" aria-pressed={ePlayerType === pt.value} onClick={() => setEPlayerType(pt.value)}>
+                  <span>{pt.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-1.5">
             <span className="field-label">Дата и время (МСК)</span>
@@ -1085,38 +1074,8 @@ export function ScheduleManager({
           <label className="field-label" htmlFor="pp">Всего очков в турнире</label>
           <input id="pp" type="number" className="input" value={pointsVal} onChange={(e) => setPointsVal(Number(e.target.value))} />
           <p className="text-xs text-muted">
-            Ручная правка. В «Эфире» (шаг 3) очки считаются по раундам и перезапишут это значение.
+            Ручная правка. В «Эфире» (шаг 3) очки считаются по раунду и перезапишут это значение.
           </p>
-        </form>
-      </Modal>
-
-      <Modal
-        open={addRoundOpen}
-        onClose={() => setAddRoundOpen(false)}
-        title={editRoundId ? "Изменить раунд" : "Добавить раунд"}
-        footer={
-          <>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAddRoundOpen(false)}>
-              <span>Отмена</span>
-            </button>
-            <button form="r-add" type="submit" className="btn btn-primary btn-sm" disabled={busy}>
-              <span>{busy ? "…" : editRoundId ? "Сохранить" : "Добавить"}</span>
-            </button>
-          </>
-        }
-      >
-        <form id="r-add" className="space-y-4" onSubmit={addRound}>
-          <div className="flex gap-4">
-            <div className="w-24 space-y-1.5">
-              <label className="field-label" htmlFor="r-num">Номер</label>
-              <input id="r-num" type="number" min={1} className="input" value={rNumber} onChange={(e) => setRNumber(Number(e.target.value))} />
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <label className="field-label" htmlFor="r-map">Карта</label>
-              <input id="r-map" className="input" value={rMap} onChange={(e) => setRMap(e.target.value)} placeholder="Космопорт" />
-            </div>
-          </div>
-          {error && <p className="text-sm text-danger">{error}</p>}
         </form>
       </Modal>
 

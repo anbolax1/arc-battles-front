@@ -779,8 +779,8 @@ export function OverlayEditor({
           )}
 
           {sel.type === "complications" && (
-            <SettingRow label="Плашка штрафа">
-              <Switch on={!sel.hidePenalty} onChange={(v) => patch(sel.id, { hidePenalty: !v })} title="показывать «ШТРАФ ×N» при засчитанном штрафе" />
+            <SettingRow label="Плашка минут">
+              <Switch on={!sel.hidePenalty} onChange={(v) => patch(sel.id, { hidePenalty: !v })} title="показывать плашку минут штрафа при нарушении протокола" />
               <span className="text-xs text-muted">{sel.hidePenalty ? "скрыта" : "показана"}</span>
             </SettingRow>
           )}

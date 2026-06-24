@@ -5,33 +5,30 @@ import { api, ApiError } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { complicationPenalty, taskReward } from "@/lib/format";
 
 type Kind = "task" | "complication";
 
 export interface CatalogItem {
   id: string;
   text: string;
-  valueType: "fixed" | "percent";
   source: string;
   author?: string;
   title?: string;
-  points?: number;
-  penalty?: number;
   kind?: string;
 }
 
-const KIND_LABEL: Record<string, string> = { pve: "PvE", pvp: "PvP", mixed: "Смешанное" };
+// Вид задания у контракта: pve | pvp | pvpve ('mixed' из старых данных → pvpve).
+const KIND_LABEL: Record<string, string> = { pve: "PvE", pvp: "PvP", pvpve: "PvPvE" };
+const normalizeKind = (k?: string): "pve" | "pvp" | "pvpve" => (k === "pve" || k === "pvp" ? k : "pvpve");
 
-function valueOf(it: CatalogItem, kind: Kind): number {
-  return (kind === "task" ? it.points : it.penalty) ?? 0;
-}
-
-/** CRUD каталога заданий/усложнений. kind задаёт эндпоинт, поле значения и наличие «вида». */
+/** CRUD каталога контрактов/протоколов.
+    Контракты (kind="task"): text + вид (pve|pvp|pvpve), награда фиксирована (2 балла своему / 1 противнику)
+      — поле значения/процента не показываем, бэк проставляет дефолт.
+    Протоколы (kind="complication"): только text + источник/автор/титул — штраф = минуты в рейде,
+      на очки не влияет; бэк проставляет дефолт. */
 export function CatalogManager({ kind, initial }: { kind: Kind; initial: CatalogItem[] }) {
   const isTask = kind === "task";
   const base = isTask ? "/catalog/tasks" : "/catalog/complications";
-  const valueKey = isTask ? "points" : "penalty";
 
   const [items, setItems] = React.useState<CatalogItem[]>(initial);
   const [query, setQuery] = React.useState("");
@@ -40,9 +37,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
   const [deleting, setDeleting] = React.useState<CatalogItem | null>(null);
 
   const [text, setText] = React.useState("");
-  const [value, setValue] = React.useState(1);
-  const [valueType, setValueType] = React.useState<"fixed" | "percent">("fixed");
-  const [taskKind, setTaskKind] = React.useState("mixed");
+  const [taskKind, setTaskKind] = React.useState<"pve" | "pvp" | "pvpve">("pvpve");
   const [source, setSource] = React.useState<"official" | "boosty">("official");
   const [author, setAuthor] = React.useState("");
   const [title, setTitle] = React.useState("");
@@ -52,9 +47,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
   function openCreate() {
     setEditing(null);
     setText("");
-    setValue(1);
-    setValueType("fixed");
-    setTaskKind("mixed");
+    setTaskKind("pvpve");
     setSource("official");
     setAuthor("");
     setTitle("");
@@ -65,9 +58,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
   function openEdit(it: CatalogItem) {
     setEditing(it);
     setText(it.text);
-    setValue(valueOf(it, kind));
-    setValueType(it.valueType);
-    setTaskKind(it.kind ?? "mixed");
+    setTaskKind(normalizeKind(it.kind));
     setSource(it.source === "boosty" ? "boosty" : "official");
     setAuthor(it.author ?? "");
     setTitle(it.title ?? "");
@@ -85,8 +76,6 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
     setError("");
     const body: Record<string, unknown> = {
       text: text.trim(),
-      [valueKey]: Number(value) || 0,
-      valueType,
       source,
       author: source === "boosty" ? author.trim() : "",
       title: source === "boosty" ? title.trim() : "",
@@ -130,7 +119,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl">{isTask ? "Бонусные задания" : "Усложнения"}</h2>
+        <h2 className="text-2xl">{isTask ? "Контракты" : "Протоколы"}</h2>
         <div className="flex items-center gap-3">
           <div className="relative">
             <input
@@ -149,16 +138,27 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
         </div>
       </div>
 
+      {isTask ? (
+        <p className="text-sm text-muted">
+          Награда за контракт фиксирована: <span className="text-fg">+2 балла</span> за свой выполненный и
+          <span className="text-fg"> +1 балл</span> за выполненный контракт противника.
+        </p>
+      ) : (
+        <p className="text-sm text-muted">
+          Штраф за нарушение протокола — <span className="text-fg">минуты в рейде</span> (число нарушений = минут).
+          На очки не влияет. 1 протокол на игрока за турнир.
+        </p>
+      )}
+
       {items.length ? (
         <div className="panel overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 text-right">№</th>
-                <th className="px-4 py-3">{isTask ? "Задание" : "Усложнение"}</th>
+                <th className="px-4 py-3">{isTask ? "Контракт" : "Протокол"}</th>
                 {isTask && <th className="px-4 py-3">Вид</th>}
                 <th className="px-4 py-3">Источник</th>
-                <th className="px-4 py-3 text-right">{isTask ? "Награда" : "Штраф"}</th>
                 <th className="px-4 py-3 text-right">Действия</th>
               </tr>
             </thead>
@@ -179,21 +179,12 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
                   {isTask && (
                     <td className="px-4 py-3">
                       <span className="chip">
-                        <span>{KIND_LABEL[it.kind ?? "mixed"] ?? it.kind}</span>
+                        <span>{KIND_LABEL[normalizeKind(it.kind)]}</span>
                       </span>
                     </td>
                   )}
                   <td className="px-4 py-3">
                     {it.source === "boosty" ? <Badge kind="boosty">Boosty</Badge> : <Badge kind="official">official</Badge>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`pts ${isTask ? (it.valueType === "percent" ? "pts-orange" : "pts-cyan") : "pts-minus"}`}>
-                      <span>
-                        {isTask
-                          ? taskReward({ points: valueOf(it, kind), valueType: it.valueType })
-                          : complicationPenalty({ penalty: valueOf(it, kind), valueType: it.valueType })}
-                      </span>
-                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
@@ -209,7 +200,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
               ))}
               {!shown.length && (
                 <tr>
-                  <td colSpan={isTask ? 6 : 5} className="px-4 py-6 text-center text-sm text-muted">
+                  <td colSpan={isTask ? 5 : 4} className="px-4 py-6 text-center text-sm text-muted">
                     Ничего не найдено по запросу «{query}»
                   </td>
                 </tr>
@@ -219,7 +210,7 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
         </div>
       ) : (
         <EmptyState
-          title={isTask ? "Бонусных заданий нет" : "Усложнений нет"}
+          title={isTask ? "Контрактов нет" : "Протоколов нет"}
           hint="Добавьте первую запись кнопкой выше."
         />
       )}
@@ -242,46 +233,18 @@ export function CatalogManager({ kind, initial }: { kind: Kind; initial: Catalog
         <form id="catalog-form" className="space-y-4" onSubmit={submit}>
           <div className="space-y-1.5">
             <label className="field-label" htmlFor="cf-text">
-              {isTask ? "Задание" : "Усложнение"}
+              {isTask ? "Контракт" : "Протокол"}
             </label>
             <textarea id="cf-text" className="textarea" value={text} onChange={(e) => setText(e.target.value)} />
-          </div>
-
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1.5">
-              <span className="field-label">Тип значения</span>
-              <div className="seg">
-                <button type="button" className="seg-btn" aria-pressed={valueType === "fixed"} onClick={() => setValueType("fixed")}>
-                  <span>Баллы</span>
-                </button>
-                <button type="button" className="seg-btn" aria-pressed={valueType === "percent"} onClick={() => setValueType("percent")}>
-                  <span>Процент</span>
-                </button>
-              </div>
-            </div>
-            <div className="w-28 space-y-1.5">
-              <label className="field-label" htmlFor="cf-value">
-                {isTask ? "Награда" : "Штраф"}
-                {valueType === "percent" ? ", %" : ""}
-              </label>
-              <input
-                id="cf-value"
-                type="number"
-                min={0}
-                className="input"
-                value={value}
-                onChange={(e) => setValue(Number(e.target.value))}
-              />
-            </div>
           </div>
 
           {isTask && (
             <div className="space-y-1.5">
               <label className="field-label" htmlFor="cf-kind">Вид</label>
-              <select id="cf-kind" className="select" value={taskKind} onChange={(e) => setTaskKind(e.target.value)}>
+              <select id="cf-kind" className="select" value={taskKind} onChange={(e) => setTaskKind(e.target.value as "pve" | "pvp" | "pvpve")}>
                 <option value="pve">PvE</option>
                 <option value="pvp">PvP</option>
-                <option value="mixed">Смешанное</option>
+                <option value="pvpve">PvPvE</option>
               </select>
             </div>
           )}

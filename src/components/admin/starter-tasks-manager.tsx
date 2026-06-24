@@ -6,10 +6,10 @@ import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { StarterTask, TaskKind } from "@/lib/types";
 
-const KIND_LABEL: Record<TaskKind, string> = { pve: "PvE", pvp: "PvP", mixed: "Смешанное" };
+const KIND_LABEL: Record<TaskKind, string> = { pve: "PvE", pvp: "PvP", pvpve: "PvPvE" };
 
-/** CRUD пула стартовых заданий. Скрыты от публики — раскидываются по раундам в «Расписании»
-    и отмечаются выполненными в «Эфире». */
+/** CRUD пула основных заданий. Скрыты от публики — назначаются на раунд в «Расписании»
+    и отмечаются выполненными в «Эфире» (зачёт раздельный по сторонам). */
 export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
   const [items, setItems] = React.useState<StarterTask[]>(initial);
   const [editing, setEditing] = React.useState<StarterTask | null>(null);
@@ -18,7 +18,7 @@ export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
 
   const [text, setText] = React.useState("");
   const [points, setPoints] = React.useState(1);
-  const [kind, setKind] = React.useState<TaskKind>("mixed");
+  const [kind, setKind] = React.useState<TaskKind>("pvpve");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -26,7 +26,7 @@ export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
     setEditing(null);
     setText("");
     setPoints(1);
-    setKind("mixed");
+    setKind("pvpve");
     setError("");
     setFormOpen(true);
   }
@@ -35,7 +35,8 @@ export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
     setEditing(it);
     setText(it.text);
     setPoints(it.points);
-    setKind(it.kind ?? "mixed");
+    // 'mixed' из старых данных трактуем как pvpve.
+    setKind((it.kind as string) === "mixed" ? "pvpve" : it.kind);
     setError("");
     setFormOpen(true);
   }
@@ -81,10 +82,10 @@ export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl">Стартовые задания</h2>
+          <h2 className="text-2xl">Основные задания</h2>
           <p className="mt-1 max-w-xl text-sm text-muted">
-            Скрытый пул заданий. Обычные игроки их не видят (нет в правилах). Раскидываются
-            по раундам турнира в «Расписании» и засчитываются в «Эфире».
+            Скрытый пул заданий. Обычные игроки их не видят (нет в правилах). Назначаются
+            на раунд турнира в «Расписании» и засчитываются в «Эфире» — раздельно по сторонам.
           </p>
         </div>
         <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
@@ -135,13 +136,13 @@ export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
           </table>
         </div>
       ) : (
-        <EmptyState title="Пул пуст" hint="Добавьте первое стартовое задание кнопкой выше." />
+        <EmptyState title="Пул пуст" hint="Добавьте первое основное задание кнопкой выше." />
       )}
 
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editing ? "Изменить задание" : "Новое стартовое задание"}
+        title={editing ? "Изменить задание" : "Новое основное задание"}
         footer={
           <>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFormOpen(false)}>
@@ -175,7 +176,7 @@ export function StarterTasksManager({ initial }: { initial: StarterTask[] }) {
               <select id="sf-kind" className="select" value={kind} onChange={(e) => setKind(e.target.value as TaskKind)}>
                 <option value="pve">PvE</option>
                 <option value="pvp">PvP</option>
-                <option value="mixed">Смешанное</option>
+                <option value="pvpve">PvPvE</option>
               </select>
             </div>
           </div>

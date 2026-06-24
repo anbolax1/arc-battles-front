@@ -1,24 +1,30 @@
 import Link from "next/link";
-import { getRules, getTournaments } from "@/lib/queries";
+import { getRules, getTournaments, getLegendary } from "@/lib/queries";
 import { SectionHead } from "@/components/ui/section-head";
 import { Panel } from "@/components/ui/card";
 import { ArrowRightIcon } from "@/components/icons";
 
 export default async function AdminOverview() {
-  const [{ tasks, complications }, tournaments] = await Promise.all([getRules(), getTournaments()]);
+  const [{ tasks, complications }, tournaments, legendary] = await Promise.all([
+    getRules(),
+    getTournaments(),
+    getLegendary(),
+  ]);
   const finished = tournaments.filter((t) => t.status === "finished").length;
 
   const stats = [
     { label: "Турниров", value: tournaments.length },
-    { label: "Заданий", value: tasks.length },
-    { label: "Усложнений", value: complications.length },
+    { label: "Контрактов", value: tasks.length },
+    { label: "Протоколов", value: complications.length },
   ];
   const cards = [
-    { href: "/admin/schedule", title: "Расписание", desc: "Турниры, участники, раунды, результат" },
-    { href: "/admin/live", title: "Эфир", desc: "Очки раунда, усложнение, оверлей" },
+    { href: "/admin/schedule", title: "Расписание", desc: "Турниры, участники, рейд, результат" },
+    { href: "/admin/live", title: "Эфир", desc: "MMR, контракты, протоколы, оверлей" },
     { href: "/admin/registrations", title: "Заявки", desc: "Принять или отклонить заявки участников" },
-    { href: "/admin/tasks", title: "Задания", desc: `Каталог бонусных заданий (${tasks.length})` },
-    { href: "/admin/complications", title: "Усложнения", desc: `Каталог усложнений (${complications.length})` },
+    { href: "/admin/starter-tasks", title: "Основные задания", desc: "Скрытый пул заданий раунда" },
+    { href: "/admin/tasks", title: "Контракты", desc: `Каталог контрактов (${tasks.length})` },
+    { href: "/admin/complications", title: "Протоколы", desc: `Каталог протоколов (${complications.length})` },
+    { href: "/admin/legendary", title: "Легендарные контракты", desc: `Глобальный пул, 10 баллов (${legendary.length})` },
   ];
 
   return (

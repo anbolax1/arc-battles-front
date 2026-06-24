@@ -1,7 +1,7 @@
 import { getStarterTasks } from "@/lib/queries";
 import { StarterTasksManager } from "@/components/admin/starter-tasks-manager";
 
-export const metadata = { title: "Стартовые задания — Кабинет" };
+export const metadata = { title: "Основные задания — Кабинет" };
 
 export default async function AdminStarterTasksPage() {
   const tasks = await getStarterTasks();

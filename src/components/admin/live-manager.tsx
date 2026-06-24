@@ -10,7 +10,7 @@ import { CatalogCombobox } from "@/components/admin/catalog-combobox";
 import { DEFAULT_LAYOUT } from "@/components/overlay/default-layout";
 import { CheckIcon, CopyIcon } from "@/components/icons";
 import { tournamentName } from "@/lib/display";
-import { complicationPenalty, taskReward } from "@/lib/format";
+import { minutesLabel } from "@/lib/format";
 import type {
   CatalogComplication,
   CatalogTask,
@@ -21,6 +21,10 @@ import type {
   RoundStarterTask,
   Tournament,
 } from "@/lib/types";
+
+/** Награда контракта фиксирована: свой выполненный — +2, контракт противника — +1. */
+const CONTRACT_OWN = 2;
+const CONTRACT_OPP = 1;
 
 /** Счётчик «−  N  +». */
 function Stepper({ value, onDelta, busy }: { value: number; onDelta: (d: number) => void; busy: boolean }) {
@@ -94,24 +98,6 @@ function OverlayLink() {
   );
 }
 
-type PerParticipant = Record<string, string>; // participantId -> complicationId
-
-function loadLive(tid: string): { roundNum?: number; comp?: PerParticipant } | null {
-  try {
-    const raw = localStorage.getItem(`rsp_live_${tid}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-function saveLive(tid: string, data: { roundNum: number; comp: PerParticipant }) {
-  try {
-    localStorage.setItem(`rsp_live_${tid}`, JSON.stringify(data));
-  } catch {
-    /* ignore */
-  }
-}
-
 export function LiveManager({
   tournaments,
   complications,
@@ -126,9 +112,7 @@ export function LiveManager({
   const initialSel = tournaments.find((t) => t.status === "live")?.id ?? tournaments[0]?.id ?? "";
   const [selId, setSelId] = React.useState(initialSel);
   const [detail, setDetail] = React.useState<Tournament | null>(null);
-  const [roundNum, setRoundNum] = React.useState(1);
   const [participantId, setParticipantId] = React.useState("");
-  const [compByPart, setCompByPart] = React.useState<PerParticipant>({});
   const [starterTasks, setStarterTasks] = React.useState<RoundStarterTask[]>([]);
   const [penalties, setPenalties] = React.useState<RoundPenalty[]>([]);
   const [bonusTasks, setBonusTasks] = React.useState<RoundBonusTask[]>([]);
@@ -144,28 +128,16 @@ export function LiveManager({
   const [previewBg, setPreviewBg] = React.useState<"day" | "night" | "off">("day");
   const bgImage = previewBg === "off" ? null : previewBg === "night" ? "/preview-bg-night.jpg" : "/preview-bg.jpg";
 
-  // детали турнира + восстановление сохранённого состояния (раунд, усложнения по участникам)
+  // детали турнира. Ровно один раунд — авто-создан бэком при создании турнира.
   React.useEffect(() => {
     if (!selId) return;
     let active = true;
     (async () => {
       try {
-        let t = await api.get<Tournament>(`/tournaments/${selId}`);
-        // Авто-создание недостающих раундов (1..totalRounds), чтобы в эфире можно было
-        // работать с любым раундом — иначе зачёт/задания на «несозданный» раунд молча не идут.
-        const have = new Set((t.rounds ?? []).map((r) => r.number));
-        const missing: number[] = [];
-        for (let n = 1; n <= (t.totalRounds || 0); n++) if (!have.has(n)) missing.push(n);
-        if (missing.length) {
-          await Promise.all(missing.map((n) => api.post(`/tournaments/${t.id}/rounds`, { number: n, status: "pending" }).catch(() => {})));
-          t = await api.get<Tournament>(`/tournaments/${selId}`);
-        }
+        const t = await api.get<Tournament>(`/tournaments/${selId}`);
         if (!active) return;
         setDetail(t);
         setParticipantId(t.participants?.[0]?.id ?? "");
-        const saved = loadLive(t.id);
-        setRoundNum(saved?.roundNum && saved.roundNum >= 1 ? saved.roundNum : 1);
-        setCompByPart(saved?.comp ?? {});
       } catch {
         if (active) setDetail(null);
       }
@@ -202,17 +174,9 @@ export function LiveManager({
 
   const participants = detail?.participants ?? [];
   const current = participants.find((p) => p.id === participantId) ?? null;
-  const compId = participantId ? compByPart[participantId] ?? "" : "";
-  const comp = complications.find((c) => c.id === compId) ?? null;
-  const totalRounds = detail?.totalRounds ?? 0;
-  const roundId = detail?.rounds?.find((r) => r.number === roundNum)?.id ?? null;
-
-  // персист раунда + усложнений по участникам
-  React.useEffect(() => {
-    if (detail?.id) saveLive(detail.id, { roundNum, comp: compByPart });
-  }, [detail?.id, roundNum, compByPart]);
-  // Раскладка персистится на сервер вместе с состоянием эфира (см. авто-отправку ниже),
-  // localStorage для неё больше не используем — оверлей общий для всех устройств.
+  // Единственный раунд турнира (один рейд).
+  const round = detail?.rounds?.[0] ?? null;
+  const roundId = round?.id ?? null;
 
   // счётчики/задания турнира
   React.useEffect(() => {
@@ -243,72 +207,69 @@ export function LiveManager({
   }, [detail?.id]);
 
   const roundStarterTasks = starterTasks.filter((t) => t.roundId === roundId);
-  const roundPenalties = penalties.filter((p) => p.roundId === roundId && p.participantId === participantId);
-  // Все бонусные этой стороны — для дедупа в селекте «добавить» (бонусные не повторяются за турнир).
-  const myBonusAll = bonusTasks.filter((b) => b.participantId === participantId);
-  const myBonusIds = new Set(myBonusAll.map((b) => b.taskId));
-  const availableBonus = bonusCatalog.filter((t) => !myBonusIds.has(t.id));
-  // Номер = позиция в общем каталоге (как в правилах/эфире), чтобы по чату «усложнение 10»
-  // организатор быстро находил нужное в комбобоксе (поиск по номеру или тексту).
-  const bonusNum = new Map(bonusCatalog.map((t, i) => [t.id, i + 1]));
-  const compItems = complications.map((c, i) => ({ id: c.id, num: i + 1, text: c.text, meta: complicationPenalty(c) }));
-  const bonusItems = availableBonus.map((t) => ({ id: t.id, num: bonusNum.get(t.id) ?? 0, text: t.text, meta: taskReward(t) }));
-  // В раунде показываем: добавленные в этот раунд (любые) + невыполненные из прошлых раундов (перенос).
-  // Зачтённое хотя бы раз в любом раунде дальше не переносится — в следующих раундах его не показываем.
-  const myBonus = myBonusAll
-    .filter((b) => b.roundNumber === roundNum || (b.times === 0 && b.roundNumber < roundNum))
-    .sort((a, b) => (a.times > 0 ? 1 : 0) - (b.times > 0 ? 1 : 0) || a.roundNumber - b.roundNumber);
-  const activeBonusCount = myBonus.filter((b) => b.times === 0).length;
+  // Контракты фокусной стороны (владелец = participantId).
+  const myContracts = bonusTasks.filter((b) => b.participantId === participantId);
+  // Протокол фокусной стороны (1 на игрока за турнир).
+  const myPenalty = penalties.find((p) => p.participantId === participantId) ?? null;
+  const compId = myPenalty?.complicationId ?? "";
   const locked = detail?.status === "finished"; // завершённый турнир — правки закрыты
 
-  // Очки за текущий раунд для стороны pid: старт.задания + бонусы − штрафы этого раунда.
-  // База убрана; percent считается от заработанного (старт + fixed-бонусы), как в бэкенд-пересчёте.
+  // Зачёт основного задания стороной pid: times из done[].
+  const doneTimes = (t: RoundStarterTask, pid: string) => t.done.find((d) => d.participantId === pid)?.times ?? 0;
+
+  // Очки контракта: свой выполненный (+2), контракт противника (+1), пусто — 0.
+  function contractPoints(b: RoundBonusTask): number {
+    if (!b.completedBy) return 0;
+    return b.completedBy === b.participantId ? CONTRACT_OWN : CONTRACT_OPP;
+  }
+
+  // Очки за раунд для стороны pid: основные (per-side зачёт) + контракты (свой 2 / чужой 1).
+  // Протоколы на очки НЕ влияют. База/percent/штрафы убраны.
   function roundEarnedFor(pid: string): number {
-    const eb =
-      starterTasks.filter((t) => t.completedBy === pid).reduce((s, t) => s + t.times * t.points, 0) +
-      bonusTasks.filter((b) => b.participantId === pid && b.valueType === "fixed").reduce((s, b) => s + b.times * b.points, 0);
-    const pf = (p: number) => Math.round((eb * p) / 100);
-    const st = starterTasks
-      .filter((t) => t.roundId === roundId && t.completedBy === pid)
-      .reduce((s, t) => s + t.times * t.points, 0);
-    const bn = bonusTasks
-      .filter((b) => b.participantId === pid && b.roundNumber === roundNum)
-      .reduce((s, b) => s + (b.valueType === "percent" ? b.times * pf(b.points) : b.times * b.points), 0);
-    const pn = penalties
-      .filter((p) => p.roundId === roundId && p.participantId === pid)
-      .reduce((s, p) => s + (p.valueType === "percent" ? p.times * pf(p.penalty) : p.times * p.penalty), 0);
-    return st + bn - pn;
+    const main = starterTasks
+      .filter((t) => t.roundId === roundId)
+      .reduce((s, t) => s + doneTimes(t, pid) * t.points, 0);
+    const contracts = bonusTasks
+      .filter((b) => b.participantId === pid)
+      .reduce((s, b) => s + contractPoints(b), 0);
+    return main + contracts;
   }
   const roundEarned = participantId ? roundEarnedFor(participantId) : 0; // фокусная сторона (мини-блок «Очки»)
 
-  const penaltyRows: Array<{ id: string; text: string; penalty: number; valueType: "fixed" | "percent"; times: number }> =
-    roundPenalties.map((p) => ({ id: p.complicationId, text: p.text, penalty: p.penalty, valueType: p.valueType, times: p.times }));
-  if (comp && !penaltyRows.some((r) => r.id === comp.id)) {
-    penaltyRows.push({ id: comp.id, text: comp.text, penalty: comp.penalty, valueType: comp.valueType, times: 0 });
-  }
+  // Каталог для комбобокса добавления контракта: исключаем уже выданные этой стороне.
+  const myContractTaskIds = new Set(myContracts.map((b) => b.taskId));
+  const availableContracts = bonusCatalog.filter((t) => !myContractTaskIds.has(t.id));
+  const contractNum = new Map(bonusCatalog.map((t, i) => [t.id, i + 1]));
+  // Номер протокола = позиция в общем каталоге (для поиска по чату «протокол 10»).
+  const compItems = complications.map((c, i) => ({ id: c.id, num: i + 1, text: c.text }));
+  const contractItems = availableContracts.map((t) => ({ id: t.id, num: contractNum.get(t.id) ?? 0, text: t.text }));
 
-  // Богатые данные для модульных виджетов (Фаза 3): задания/бонусы фокусной стороны
-  // + усложнения ОБЕИХ сторон. Источник — те же данные, что уже грузит «Эфир».
+  // ── Богатые данные для модульных виджетов оверлея ──
+  // Основные задания: completed = у фокусной стороны зачтено хотя бы раз.
   const liveRoundTasks = roundStarterTasks.map((t) => ({
     id: t.id,
     text: t.text,
     points: t.points,
-    completed: t.completedBy === participantId && t.times > 0,
+    completed: doneTimes(t, participantId) > 0,
   }));
-  const liveBonusTasks = myBonus.map((b) => ({
+  // Контракты фокусной стороны: times>0 → отметка «выполнен» (свой/чужой).
+  const liveBonusTasks = myContracts.map((b) => ({
     text: b.text,
-    points: b.points,
-    valueType: b.valueType,
-    times: b.times,
+    points: contractPoints(b) || (b.completedBy === b.participantId ? CONTRACT_OWN : CONTRACT_OPP),
+    valueType: "fixed" as const,
+    times: b.completedBy ? 1 : 0,
     who: current?.name ?? "",
   }));
+  // Протоколы обеих сторон: минуты = число нарушений (на очки не влияют).
   const liveComplications = participants
     .map((p) => {
-      const c = complications.find((x) => x.id === compByPart[p.id]);
+      const pen = penalties.find((x) => x.participantId === p.id);
+      if (!pen) return null;
+      const c = complications.find((x) => x.id === pen.complicationId);
       if (!c) return null;
-      const times =
-        penalties.find((pen) => pen.roundId === roundId && pen.participantId === p.id && pen.complicationId === c.id)?.times ?? 0;
-      return { who: p.name, text: c.text, penalty: c.penalty, valueType: c.valueType, times };
+      const t = pen.times;
+      // penalty несёт минуты (= нарушения) — виджет показывает плашку «×N»; valueType fixed.
+      return { who: p.name, text: c.text, penalty: t, valueType: "fixed" as const, times: t, minutes: t };
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
 
@@ -317,24 +278,28 @@ export function LiveManager({
   const standings = [...participants]
     .sort((a, b) => a.seed - b.seed)
     .map((p) => ({ participantId: p.id, name: p.name, points: p.totalPoints, roundPoints: roundEarnedFor(p.id) }));
+
+  // Протокол фокусной стороны в оверлее (одиночное поле complication).
+  const focusComp = myPenalty ? complications.find((c) => c.id === myPenalty.complicationId) ?? null : null;
   const state: LiveState = {
     tournamentId: detail?.id ?? null,
     tournamentName: detail ? tournamentName(detail) : "",
     status: detail?.status ?? "",
     mode: detail?.mode ?? "",
-    currentRound: roundNum,
-    totalRounds,
+    currentRound: 1,
+    totalRounds: 1,
     currentParticipantId: participantId || null,
     currentName: current?.name ?? "",
     currentPoints: current?.totalPoints ?? 0,
     tasks: [],
-    complication: comp
+    complication: focusComp && myPenalty
       ? {
           who: current?.name ?? "",
-          text: comp.text,
-          penalty: comp.penalty,
-          valueType: comp.valueType,
-          times: roundPenalties.find((p) => p.complicationId === comp.id)?.times ?? 0,
+          text: focusComp.text,
+          penalty: myPenalty.times,
+          valueType: "fixed",
+          times: myPenalty.times,
+          minutes: myPenalty.times,
         }
       : null,
     standings,
@@ -378,7 +343,6 @@ export function LiveManager({
       await api.patch(`/tournaments/${detail.id}`, { status: "live" });
       setDetail({ ...detail, status: "live" });
       setTours((xs) => xs.map((x) => (x.id === detail.id ? { ...x, status: "live" } : x.status === "live" ? { ...x, status: "upcoming" } : x)));
-      await syncRounds(roundNum);
       setMsg("Турнир выведен в эфир. Прошлые эфиры переведены в «Скоро».");
     } catch (e) {
       setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось вывести в эфир.");
@@ -387,32 +351,37 @@ export function LiveManager({
     }
   }
 
-  // Статусы раундов считаются автоматически от выбранного: текущий — «идёт»,
-  // предыдущие — «завершён», следующие — «ожидание». Без ручного завершения.
-  async function syncRounds(n: number) {
-    const rounds = detail?.rounds ?? [];
-    const want = (num: number) => (num < n ? "finished" : num === n ? "live" : "pending");
-    const changed = rounds.filter((r) => r.status !== want(r.number));
-    if (!changed.length) return;
-    await Promise.all(changed.map((r) => api.patch(`/rounds/${r.id}`, { status: want(r.number) })));
-    await reloadCounters();
-  }
-
-  async function selectRound(n: number) {
-    setRoundNum(n);
-    if (detail?.status === "live") {
-      try {
-        await syncRounds(n);
-      } catch {
-        /* ignore */
-      }
+  // Выбор протокола фокусной стороны (сохраняется на сервере; '' — снять).
+  async function setProtocol(complicationId: string) {
+    if (!roundId || !participantId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await api.post(`/rounds/${roundId}/protocol`, { participantId, complicationId });
+      await reloadCounters();
+    } catch (e) {
+      setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось изменить протокол.");
+    } finally {
+      setBusy(false);
     }
   }
 
-  function setComp(cid: string) {
-    setCompByPart((m) => ({ ...m, [participantId]: cid }));
+  // Счётчик нарушений протокола (= минуты штрафа).
+  async function adjustViolations(delta: number) {
+    if (!roundId || !participantId) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await api.post(`/rounds/${roundId}/protocol/violations`, { participantId, delta });
+      await reloadCounters();
+    } catch (e) {
+      setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось изменить нарушения.");
+    } finally {
+      setBusy(false);
+    }
   }
 
+  // Per-side зачёт основного задания.
   async function adjustTask(asgId: string, delta: number) {
     if (!participantId) return;
     setBusy(true);
@@ -427,21 +396,23 @@ export function LiveManager({
     }
   }
 
-  async function adjustPenalty(complicationId: string, delta: number) {
+  // Раздать стороне случайные контракты (по умолчанию 2).
+  async function dealContracts() {
     if (!roundId || !participantId) return;
     setBusy(true);
     setMsg("");
     try {
-      await api.post(`/rounds/${roundId}/penalties/count`, { participantId, complicationId, delta });
+      await api.post(`/rounds/${roundId}/contracts/deal`, { participantId });
       await reloadCounters();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось изменить штраф.");
+      setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось раздать контракты.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function addBonus() {
+  // Добавить конкретный контракт стороне вручную.
+  async function addContract() {
     if (!roundId || !participantId || !bonusPick) return;
     setBusy(true);
     setMsg("");
@@ -450,28 +421,27 @@ export function LiveManager({
       setBonusPick("");
       await reloadCounters();
     } catch (e) {
-      setMsg(e instanceof ApiError ? (e.status === 409 ? "Это бонусное у участника уже есть." : e.body || e.message) : "Не удалось добавить.");
+      setMsg(e instanceof ApiError ? (e.status === 409 ? "Этот контракт у участника уже есть." : e.body || e.message) : "Не удалось добавить.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function adjustBonus(id: string, delta: number) {
+  // Отметить контракт: свой (+2) / противник (+1) / сброс.
+  async function completeContract(id: string, by: "owner" | "opponent" | "none") {
     setBusy(true);
     setMsg("");
     try {
-      // roundId — чтобы зачёт «приземлился» на текущий раунд: перенесённое задание
-      // засчитывается там, где его фактически зачли, а не где добавили.
-      await api.post(`/round-bonus-tasks/${id}/count`, { delta, roundId });
+      await api.post(`/round-bonus-tasks/${id}/complete`, { by });
       await reloadCounters();
     } catch (e) {
-      setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось изменить зачёт.");
+      setMsg(e instanceof ApiError ? e.body || e.message : "Не удалось изменить контракт.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function removeBonus(id: string) {
+  async function removeContract(id: string) {
     setBusy(true);
     setMsg("");
     try {
@@ -511,7 +481,7 @@ export function LiveManager({
           <div className="space-y-5">
             {locked && (
               <Panel className="border-l-2 border-danger bg-[rgba(255,107,107,0.1)] p-4 text-sm">
-                Турнир <span className="font-semibold">завершён</span> — правки закрыты (очки, задания, штрафы). Чтобы менять, верни его в эфир кнопкой «Вывести в эфир».
+                Турнир <span className="font-semibold">завершён</span> — правки закрыты (очки, задания, контракты). Чтобы менять, верни его в эфир кнопкой «Вывести в эфир».
               </Panel>
             )}
             <Panel className="space-y-4 p-5">
@@ -529,15 +499,14 @@ export function LiveManager({
                 )}
               </div>
 
-              <div className="space-y-1.5">
-                <span className="field-label">Раунд</span>
-                <div className="seg flex-wrap">
-                  {Array.from({ length: Math.max(totalRounds, 1) }, (_, i) => i + 1).map((n) => (
-                    <button key={n} type="button" className="seg-btn" aria-pressed={roundNum === n} disabled={busy} onClick={() => selectRound(n)}>
-                      <span>{n}</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                <span>1 раунд · 1 рейд</span>
+                {round?.map ? (
+                  <>
+                    <span>·</span>
+                    <span>{round.map}</span>
+                  </>
+                ) : null}
               </div>
 
               <div className="space-y-1.5">
@@ -552,14 +521,14 @@ export function LiveManager({
               </div>
 
               <div className="space-y-1.5">
-                <label className="field-label">Усложнение этой стороны (в оверлее)</label>
+                <label className="field-label">Протокол этой стороны (в оверлее)</label>
                 <CatalogCombobox
                   items={compItems}
                   value={compId}
-                  onChange={setComp}
-                  placeholder="№ или текст (напр. из чата «усложнение 10»)"
+                  onChange={setProtocol}
+                  placeholder="№ или текст (напр. из чата «протокол 10»)"
                   allowNone
-                  noneLabel="— без усложнения —"
+                  noneLabel="— без протокола —"
                 />
               </div>
             </Panel>
@@ -568,7 +537,7 @@ export function LiveManager({
               <h3 className="font-display text-base uppercase">Очки · {current?.name}</h3>
               <div className="flex gap-2.5">
                 <div className="flex-1 rounded-md bg-surface-2 p-3 text-center shadow-[inset_0_0_0_1px_var(--border)]">
-                  <div className="text-[0.62rem] uppercase tracking-wide text-muted">За раунд {roundNum}</div>
+                  <div className="text-[0.62rem] uppercase tracking-wide text-muted">За раунд</div>
                   <div className="font-display text-2xl leading-tight tnum text-primary-2">
                     {roundEarned > 0 ? `+${roundEarned}` : roundEarned}
                   </div>
@@ -581,53 +550,58 @@ export function LiveManager({
             </Panel>
 
             <Panel className="space-y-3 p-5">
-              <h3 className="font-display text-lg uppercase">Стартовые задания · раунд {roundNum}</h3>
+              <h3 className="font-display text-lg uppercase">Основные задания</h3>
               {roundStarterTasks.length ? (
                 <ul className="space-y-2">
                   {roundStarterTasks.map((t) => {
-                    const mine = t.completedBy === participantId;
-                    const shownTimes = mine ? t.times : 0;
+                    const times = doneTimes(t, participantId);
                     return (
                       <li key={t.id} className="flex items-center justify-between gap-3 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)]">
                         <span className="min-w-0 text-sm">
                           {t.text}
-                          <span className="ml-2 text-xs text-muted">+{t.points} × {shownTimes}</span>
-                          {t.completedBy && !mine && <span className="ml-2 text-xs text-accent">(другой стороне)</span>}
+                          <span className="ml-2 text-xs text-muted">+{t.points} × {times}</span>
                         </span>
-                        <Stepper value={shownTimes} busy={busy || locked} onDelta={(d) => adjustTask(t.id, d)} />
+                        <Stepper value={times} busy={busy || locked} onDelta={(d) => adjustTask(t.id, d)} />
                       </li>
                     );
                   })}
                 </ul>
               ) : (
-                <p className="text-sm text-muted">На раунд {roundNum} заданий не назначено (раскидать — в «Расписании»).</p>
+                <p className="text-sm text-muted">На раунд заданий не назначено (назначить — в «Расписании»).</p>
               )}
             </Panel>
 
             <Panel className="space-y-3 p-5">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="font-display text-lg uppercase">Бонусные · {current?.name}</h3>
-                <span className="text-xs text-muted">активных: {activeBonusCount}</span>
+                <h3 className="font-display text-lg uppercase">Контракты · {current?.name}</h3>
+                <button type="button" className="btn btn-cyan btn-sm" disabled={busy || locked} onClick={dealContracts}>
+                  <span>Раздать 2</span>
+                </button>
               </div>
-              {myBonus.length ? (
+              {myContracts.length ? (
                 <ul className="space-y-2">
-                  {myBonus.map((b) => {
-                    const carried = b.times === 0 && b.roundNumber < roundNum;
+                  {myContracts.map((b) => {
+                    const own = b.completedBy === b.participantId;
+                    const opp = !!b.completedBy && !own;
                     return (
-                      <li key={b.id} className={`flex items-center justify-between gap-3 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] ${b.times > 0 ? "opacity-80" : ""}`}>
-                        <span className="min-w-0 text-sm">
-                          <span className="mr-1 text-muted tnum">{bonusNum.get(b.taskId)}.</span>
+                      <li key={b.id} className={`flex flex-wrap items-center justify-between gap-2 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)] ${b.completedBy ? "opacity-90" : ""}`}>
+                        <span className="min-w-0 flex-1 text-sm">
+                          <span className="mr-1 text-muted tnum">{contractNum.get(b.taskId)}.</span>
                           {b.text}
-                          <span className="ml-2 text-xs text-muted">{taskReward({ points: b.points, valueType: b.valueType })} × {b.times}</span>
-                          {carried ? (
-                            <span className="ml-2 text-xs text-accent">↺ перенос из Р{b.roundNumber}</span>
-                          ) : (
-                            <span className="ml-2 text-xs text-muted">Р{b.roundNumber}</span>
-                          )}
+                          {own && <span className="ml-2 text-xs text-primary-2">✓ свой +{CONTRACT_OWN}</span>}
+                          {opp && <span className="ml-2 text-xs text-accent">✓ противник +{CONTRACT_OPP}</span>}
                         </span>
-                        <span className="flex flex-none items-center gap-2">
-                          <Stepper value={b.times} busy={busy || locked} onDelta={(d) => adjustBonus(b.id, d)} />
-                          <button type="button" className="text-muted transition hover:text-danger" disabled={busy} title="Убрать" onClick={() => removeBonus(b.id)}>
+                        <span className="flex flex-none items-center gap-1.5">
+                          <button type="button" className="btn btn-sm btn-cyan" aria-pressed={own} disabled={busy || locked} onClick={() => completeContract(b.id, "owner")}>
+                            <span>Свой +{CONTRACT_OWN}</span>
+                          </button>
+                          <button type="button" className="btn btn-sm btn-ghost" aria-pressed={opp} disabled={busy || locked} onClick={() => completeContract(b.id, "opponent")}>
+                            <span>Противник +{CONTRACT_OPP}</span>
+                          </button>
+                          <button type="button" className="btn btn-sm btn-ghost" disabled={busy || locked || !b.completedBy} onClick={() => completeContract(b.id, "none")}>
+                            <span>Сброс</span>
+                          </button>
+                          <button type="button" className="text-muted transition hover:text-danger" disabled={busy} title="Убрать" onClick={() => removeContract(b.id)}>
                             ✕
                           </button>
                         </span>
@@ -636,15 +610,15 @@ export function LiveManager({
                   })}
                 </ul>
               ) : (
-                <p className="text-sm text-muted">У этой стороны пока нет бонусных заданий.</p>
+                <p className="text-sm text-muted">У этой стороны пока нет контрактов. Раздай случайные кнопкой «Раздать 2» или добавь вручную ниже.</p>
               )}
               <div className="space-y-1.5 border-t border-[var(--border)] pt-3">
-                <span className="field-label">Добавить бонусное на раунд {roundNum}</span>
+                <span className="field-label">Добавить контракт вручную</span>
                 <div className="flex items-start gap-2">
                   <div className="flex-1">
-                    <CatalogCombobox items={bonusItems} value={bonusPick} onChange={setBonusPick} placeholder="№ или текст бонусного" />
+                    <CatalogCombobox items={contractItems} value={bonusPick} onChange={setBonusPick} placeholder="№ или текст контракта" />
                   </div>
-                  <button type="button" className="btn btn-primary btn-sm" disabled={busy || locked || !bonusPick} onClick={addBonus}>
+                  <button type="button" className="btn btn-primary btn-sm" disabled={busy || locked || !bonusPick} onClick={addContract}>
                     <span>Добавить</span>
                   </button>
                 </div>
@@ -652,24 +626,19 @@ export function LiveManager({
             </Panel>
 
             <Panel className="space-y-3 p-5">
-              <h3 className="font-display text-lg uppercase">Штрафы · раунд {roundNum}</h3>
-              {penaltyRows.length ? (
-                <ul className="space-y-2">
-                  {penaltyRows.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-3 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)]">
-                      <span className="min-w-0 text-sm">
-                        {p.text}
-                        <span className="ml-2 text-xs text-muted">
-                          {complicationPenalty({ penalty: p.penalty, valueType: p.valueType })}
-                          {p.valueType === "percent" ? " от суммы" : ""} × {p.times}
-                        </span>
-                      </span>
-                      <Stepper value={p.times} busy={busy || locked} onDelta={(d) => adjustPenalty(p.id, d)} />
-                    </li>
-                  ))}
-                </ul>
+              <h3 className="font-display text-lg uppercase">Протокол · {current?.name}</h3>
+              {myPenalty && focusComp ? (
+                <div className="flex items-center justify-between gap-3 bg-surface-2 p-2.5 shadow-[inset_0_0_0_1px_var(--border)]">
+                  <span className="min-w-0 text-sm">
+                    {focusComp.text}
+                    <span className="ml-2 text-xs text-muted">
+                      штраф: {minutesLabel(myPenalty.times)} (на очки не влияет)
+                    </span>
+                  </span>
+                  <Stepper value={myPenalty.times} busy={busy || locked} onDelta={adjustViolations} />
+                </div>
               ) : (
-                <p className="text-sm text-muted">Выбери усложнение этой стороны выше — появится счётчик нарушений.</p>
+                <p className="text-sm text-muted">Выбери протокол этой стороны выше — появится счётчик нарушений (минут).</p>
               )}
             </Panel>
 
