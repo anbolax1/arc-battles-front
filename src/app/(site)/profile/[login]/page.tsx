@@ -33,11 +33,12 @@ export default async function PlayerProfilePage({
     );
   }
 
-  const { user, points, wins, tournaments, stats, history } = profile;
+  const { user, mmrSolo, mmrDuo, wins, tournaments, stats, history } = profile;
   const role = roleBadge(user.role);
   const { items: highlights } = await getHighlights({ userId: user.id, limit: 6 });
   const summary = [
-    { label: "Очки сезона", value: points },
+    { label: "MMR 1×1", value: mmrSolo },
+    { label: "MMR 2×2", value: mmrDuo },
     { label: "Побед", value: wins },
     { label: "Турниров", value: tournaments },
   ];
@@ -60,7 +61,7 @@ export default async function PlayerProfilePage({
       </Panel>
 
       {/* Статистика */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {summary.map((s) => (
           <Panel key={s.label} className="p-5">
             <div className="font-display text-3xl tnum text-primary-2">{s.value}</div>

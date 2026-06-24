@@ -29,17 +29,19 @@ function Winrate({ label, wins, played }: { label: string; wins: number; played:
 }
 
 const SOURCES = [
-  { key: "starter", label: "Стартовые", color: "var(--accent)" },
-  { key: "bonus", label: "Бонусы", color: "var(--ok)" },
-  { key: "base", label: "За раунды", color: "var(--primary-2)" },
+  { key: "main", label: "Основные", color: "var(--accent)" },
+  { key: "contract", label: "Контракты", color: "var(--ok)" },
+  { key: "legendary", label: "Легендарные", color: "var(--gold)" },
+  { key: "base", label: "Корректировка", color: "var(--primary-2)" },
 ] as const;
 
 /** Блок расширенной статистики игрока: винрейт по режимам, источники очков, любимая карта, серия. */
 export function PlayerStatsBlock({ stats }: { stats: PlayerStats }) {
   const sources = [
-    { ...SOURCES[0], value: stats.starterPoints },
-    { ...SOURCES[1], value: stats.bonusPoints },
-    { ...SOURCES[2], value: stats.basePoints },
+    { ...SOURCES[0], value: stats.mainPoints },
+    { ...SOURCES[1], value: stats.contractPoints },
+    { ...SOURCES[2], value: stats.legendaryPoints },
+    { ...SOURCES[3], value: stats.basePoints },
   ].filter((s) => s.value > 0);
   const positive = sources.reduce((a, s) => a + s.value, 0);
 
@@ -62,9 +64,6 @@ export function PlayerStatsBlock({ stats }: { stats: PlayerStats }) {
       <Panel className="space-y-3 p-5">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-muted">Источники очков</span>
-          {stats.penaltyPoints > 0 && (
-            <span className="font-display tnum text-sm text-danger">−{stats.penaltyPoints} штрафы</span>
-          )}
         </div>
         {positive > 0 ? (
           <>

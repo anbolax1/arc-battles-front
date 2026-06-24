@@ -86,7 +86,7 @@ export function RatingTabs({
         <div className="panel glow-edge flex items-center gap-3 px-4 py-3">
           <span className="font-display text-sm uppercase tracking-wide text-muted">🏆 Чемпион{shownSeason ? ` «${shownSeason.name}»` : ""} · {tab}</span>
           <span className="font-display uppercase text-primary-2">{champ.displayName || champ.login}</span>
-          <span className="ml-auto font-display tnum">{champ.points}</span>
+          <span className="ml-auto font-display tnum">{champ.mmr} MMR</span>
         </div>
       )}
 

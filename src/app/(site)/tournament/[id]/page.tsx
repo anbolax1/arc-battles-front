@@ -27,7 +27,10 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   const { items: highlights } = await getHighlights({ tournamentId: id, limit: 6 });
 
   const participants = t.participants ?? [];
-  const rounds = [...(t.rounds ?? [])].sort((a, b) => a.number - b.number);
+  // Ровно один раунд на турнир (один раунд = один рейд).
+  const round = [...(t.rounds ?? [])].sort((a, b) => a.number - b.number)[0] ?? null;
+  const roundMap = round?.map || t.maps?.[0] || "";
+  const roundStatus = round?.status ?? "";
   const winner = t.winnerParticipantId
     ? participants.find((p) => p.id === t.winnerParticipantId)
     : null;
@@ -47,8 +50,11 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           <TournamentStatusPill status={t.status} />
           <Chip dot>{t.mode}</Chip>
           <Chip cyan dot>
-            {t.totalRounds} раунда
+            1 раунд
           </Chip>
+          {roundMap && (roundStatus === "live" || roundStatus === "finished") && (
+            <Chip dot>{roundMap}</Chip>
+          )}
         </div>
         <h1 className="text-3xl sm:text-4xl">{tournamentName(t)}</h1>
         <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-muted">
@@ -139,29 +145,19 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           )}
         </Panel>
 
-        {/* Раунды (карту раунда показываем только когда он идёт или завершён) */}
+        {/* Раунд (карту показываем только когда он идёт или завершён) */}
         <div className="space-y-3">
-          {(rounds.length
-            ? rounds.map((r) => ({ key: r.id, number: r.number, map: r.map, status: r.status }))
-            : Array.from({ length: t.totalRounds || 3 }, (_, i) => ({
-                key: `gen-${i}`,
-                number: i + 1,
-                map: t.maps?.[i] ?? "",
-                status: "",
-              }))
-          ).map((r) => (
-            <Panel key={r.key} className="flex items-center justify-between gap-3 p-4">
-              <div>
-                <div className="font-display uppercase">Раунд {r.number}</div>
-                {(r.status === "live" || r.status === "finished") && r.map && (
-                  <div className="text-sm text-muted">{r.map}</div>
-                )}
-              </div>
-              <span className="text-xs uppercase text-muted">
-                {r.status ? (ROUND_STATUS[r.status] ?? r.status) : "—"}
-              </span>
-            </Panel>
-          ))}
+          <Panel className="flex items-center justify-between gap-3 p-4">
+            <div>
+              <div className="font-display uppercase">Раунд</div>
+              {(roundStatus === "live" || roundStatus === "finished") && roundMap && (
+                <div className="text-sm text-muted">{roundMap}</div>
+              )}
+            </div>
+            <span className="text-xs uppercase text-muted">
+              {roundStatus ? (ROUND_STATUS[roundStatus] ?? roundStatus) : "—"}
+            </span>
+          </Panel>
         </div>
       </div>
 

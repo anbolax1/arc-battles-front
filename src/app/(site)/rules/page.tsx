@@ -6,11 +6,11 @@ import { Chip } from "@/components/ui/chip";
 
 export const metadata = {
   title: "Правила — Битва за Респект",
-  description: "Формат турниров, бонусные задания, усложнения и начисление очков.",
+  description: "Формат турниров, контракты, протоколы, легендарные контракты и MMR.",
 };
 
 export default async function RulesPage() {
-  const { tasks, complications } = await getRules();
+  const { tasks, complications, legendary } = await getRules();
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-10 px-6 py-12 sm:py-16">
@@ -20,29 +20,30 @@ export default async function RulesPage() {
         <Panel className="p-6">
           <h3 className="mb-3 font-display text-lg uppercase">Формат турнира</h3>
           <p className="text-sm text-muted">
-            3 раунда на разных картах. Режимы 1×1 (двое игроков) и 2×2 (две
-            команды). Один матч в день: стороны бронируют дату, организатор
-            подтверждает.
+            Один раунд — один рейд на выбранной карте. Режимы 1×1 (двое игроков)
+            и 2×2 (две команды). Один матч в день: стороны бронируют дату,
+            организатор подтверждает.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Chip dot>1×1 / 2×2</Chip>
             <Chip cyan dot>
-              3 раунда
+              1 раунд
             </Chip>
-            <Chip dot>~90 минут</Chip>
+            <Chip dot>~30 минут</Chip>
           </div>
         </Panel>
         <Panel className="p-6">
           <h3 className="mb-3 font-display text-lg uppercase">Как считаются очки</h3>
           <p className="text-sm text-muted">
-            За выполнение бонусных заданий начисляются баллы (фиксированные или
-            процент от очков), за усложнения раунда — штраф. Сумма очков за
-            завершённые турниры формирует сезонный рейтинг.
+            Свой выполненный контракт — +2 балла, выполненный контракт противника
+            — +1. Легендарный контракт — +10 баллов один раз навсегда. Протоколы
+            на очки не влияют: их штраф — минуты в рейде за нарушение. Исход
+            каждого матча двигает MMR (старт 1000), который и формирует рейтинг.
           </p>
         </Panel>
       </div>
 
-      <RulesList tasks={tasks} complications={complications} />
+      <RulesList tasks={tasks} complications={complications} legendary={legendary} />
     </div>
   );
 }

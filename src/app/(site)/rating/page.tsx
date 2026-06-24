@@ -15,7 +15,8 @@ export default async function RatingPage() {
     <div className="mx-auto max-w-[1240px] space-y-6 px-6 py-12 sm:py-16">
       <SectionHead eyebrow="Сезон" title="Таблица лидеров" />
       <p className="max-w-2xl text-sm text-muted">
-        Очки начисляются по итогам завершённых турниров сезона. Переключай сезон справа;
+        Главный показатель — MMR (старт 1000, сквозной по сезонам): он растёт за победы и падает
+        за поражения. Очки рядом — счёт за турниры сезона. Переключай сезон справа;
         «Все сезоны» — суммарный рейтинг за всё время.
       </p>
       <RatingTabs seasons={seasons} initialSolo={solo} initialDuo={duo} />

@@ -37,7 +37,7 @@ export function LeaderboardTable({ rows, kind = "1x1", compact = false, limit }:
     return (
       <EmptyState
         title="Рейтинг пока пуст"
-        hint="Очки появятся после первых завершённых турниров сезона."
+        hint="MMR появится после первых завершённых турниров сезона."
       />
     );
   }
@@ -51,7 +51,8 @@ export function LeaderboardTable({ rows, kind = "1x1", compact = false, limit }:
             <th className="px-4 py-3">{kind === "2x2" ? "Состав" : "Игрок"}</th>
             {!compact && <th className="px-4 py-3">Победы</th>}
             {!compact && <th className="px-4 py-3 text-center">Турниров</th>}
-            <th className="px-4 py-3 text-right">Очки</th>
+            {!compact && <th className="px-4 py-3 text-right">Очки</th>}
+            <th className="px-4 py-3 text-right">MMR</th>
           </tr>
         </thead>
         <tbody>
@@ -90,8 +91,11 @@ export function LeaderboardTable({ rows, kind = "1x1", compact = false, limit }:
               {!compact && (
                 <td className="px-4 py-3 text-center tnum text-muted">{r.tournaments}</td>
               )}
+              {!compact && (
+                <td className="px-4 py-3 text-right tnum text-muted">{r.points}</td>
+              )}
               <td className="px-4 py-3 text-right">
-                <span className="font-display text-base tnum text-primary-2">{r.points}</span>
+                <span className="font-display text-base tnum text-primary-2">{r.mmr}</span>
               </td>
             </tr>
           ))}

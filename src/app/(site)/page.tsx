@@ -27,7 +27,7 @@ const QUICK = [
   { href: "/schedule", title: "Расписание", desc: "Когда ближайшие битвы", Icon: CalendarIcon },
   { href: "/rating", title: "Рейтинг", desc: "Таблица лидеров сезона", Icon: TrophyIcon },
   { href: "/archive", title: "Архив", desc: "Прошедшие турниры и VOD", Icon: PlayIcon },
-  { href: "/rules", title: "Правила", desc: "Задания, усложнения, очки", Icon: ScrollIcon },
+  { href: "/rules", title: "Правила", desc: "Контракты, протоколы, MMR", Icon: ScrollIcon },
 ];
 
 export default async function HomePage() {
@@ -48,9 +48,9 @@ export default async function HomePage() {
           Сражайся за <span className="grad">респект</span> в прямом эфире
         </h1>
         <p className="max-w-2xl text-lg text-muted">
-          Турниры 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Бонусные
-          задания, усложнения раундов и сезонный рейтинг — выходи на арену и
-          забирай звание Чемпиона.
+          Турниры 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Контракты,
+          протоколы рейда и рейтинг по MMR — выходи на арену и забирай звание
+          Чемпиона.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
           <Link href="/join" className="btn btn-primary">

@@ -23,7 +23,7 @@ export function TournamentRow({ t }: { t: Tournament }) {
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-display text-base uppercase sm:text-lg">{name}</h3>
         <div className="mt-1 truncate text-sm text-muted">
-          <span className="text-fg">{t.mode}</span> · {t.totalRounds} раунда
+          <span className="text-fg">{t.mode}</span> · 1 раунд
           {t.startsAt && (
             <>
               {" · "}

@@ -55,10 +55,7 @@ export function LiveBanner({ state }: { state: LiveState }) {
               <span>{state.mode}</span>
             </span>
           )}
-          <span className="text-sm text-muted">
-            Раунд <span className="tnum text-fg">{state.currentRound}</span>
-            {state.totalRounds ? ` / ${state.totalRounds}` : ""}
-          </span>
+          <span className="text-sm text-muted">Рейд идёт</span>
         </div>
 
         {title &&
