@@ -38,6 +38,8 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const showRound = !!instance.showRoundScore;
   const a = standings[0];
   const b = standings[1];
+  // Ровно 1 раунд на турнир — счётчик «N/M» бессмысленен, показываем только «VS».
+  const multiRound = (state.totalRounds ?? 1) > 1;
 
   return (
     <WidgetFrame instance={instance}>
@@ -48,11 +50,17 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
           <div className="flex-1 px-4 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
         )}
         <div className="ov-fill-2 flex flex-col items-center justify-center gap-0.5 px-4 py-2">
-          <span className="text-[0.6rem] uppercase tracking-[0.2em] text-muted">Раунд</span>
-          <span className="font-display text-xl leading-none tnum">
-            {state.currentRound}
-            {state.totalRounds ? <span className="text-muted">/{state.totalRounds}</span> : null}
-          </span>
+          {multiRound ? (
+            <>
+              <span className="text-[0.6rem] uppercase tracking-[0.2em] text-muted">Раунд</span>
+              <span className="font-display text-xl leading-none tnum">
+                {state.currentRound}
+                <span className="text-muted">/{state.totalRounds}</span>
+              </span>
+            </>
+          ) : (
+            <span className="font-display text-xl leading-none text-muted">VS</span>
+          )}
         </div>
         {b ? <Side s={b} focused={b.participantId === focusedId} align="right" showRound={showRound} /> : <div className="flex-1" />}
       </div>

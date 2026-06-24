@@ -27,10 +27,10 @@ export const WIDGET_REGISTRY: Record<WidgetType, ComponentType<WidgetProps>> = {
 export const WIDGET_LABELS: Record<WidgetType, string> = {
   scoreboard: "Счёт",
   round: "Раунд",
-  complications: "Усложнения",
+  complications: "Протоколы",
   standings: "Таблица мест",
-  roundTasks: "Задания раунда",
-  bonusTasks: "Бонусные",
+  roundTasks: "Основные задания",
+  bonusTasks: "Контракты",
   text: "Текст",
   logo: "Логотип",
 };
