@@ -2,11 +2,19 @@
 
 import * as React from "react";
 import { api } from "@/lib/api";
-import type { LeaderboardResponse, LeaderboardRow, Season, TournamentMode } from "@/lib/types";
+import type {
+  LeaderboardResponse,
+  LeaderboardRow,
+  TeamLeaderboardResponse,
+  TeamLeaderboardRow,
+  Season,
+  TournamentMode,
+} from "@/lib/types";
 import { LeaderboardTable } from "./leaderboard-table";
+import { TeamLeaderboardTable } from "./team-leaderboard-table";
 
-/** Рейтинг 1×1/2×2 с выбором сезона. Дефолт — активный сезон; «Все сезоны» = за всё время.
-    При смене сезона догружает таблицы клиентом (/api/leaderboard?season=). */
+/** Рейтинг 1×1 (игроки) / 2×2 (команды) с выбором сезона. Дефолт — активный сезон;
+    «Все сезоны» = за всё время. При смене сезона догружает таблицы клиентом. */
 export function RatingTabs({
   seasons,
   initialSolo,
@@ -14,12 +22,11 @@ export function RatingTabs({
 }: {
   seasons: Season[];
   initialSolo: LeaderboardRow[];
-  initialDuo: LeaderboardRow[];
+  initialDuo: TeamLeaderboardRow[];
 }) {
   const active = seasons.find((s) => s.status === "active");
   const [tab, setTab] = React.useState<TournamentMode>("1x1");
   // "" — активный сезон (как пришло initial с сервера); "all" — за всё время; иначе id.
-  // Если активного сезона нет, бэк отдаёт initial за всё время — дефолт «Все сезоны».
   const [seasonSel, setSeasonSel] = React.useState<string>(active ? "" : "all");
   const [solo, setSolo] = React.useState(initialSolo);
   const [duo, setDuo] = React.useState(initialDuo);
@@ -32,7 +39,7 @@ export function RatingTabs({
       const q = value ? `&season=${encodeURIComponent(value)}` : "";
       const [s, d] = await Promise.all([
         api.get<LeaderboardResponse>(`/leaderboard?mode=1x1${q}`),
-        api.get<LeaderboardResponse>(`/leaderboard?mode=2x2${q}`),
+        api.get<TeamLeaderboardResponse>(`/leaderboard?mode=2x2${q}`),
       ]);
       setSolo(s.rows ?? []);
       setDuo(d.rows ?? []);
@@ -46,8 +53,14 @@ export function RatingTabs({
   // Какой сезон фактически показан + завершён ли он (для баннера чемпиона).
   const shownSeason = seasonSel === "all" ? null : seasonSel ? seasons.find((s) => s.id === seasonSel) : active;
   const finished = shownSeason?.status === "finished";
-  const rows = tab === "1x1" ? solo : duo;
-  const champ = finished && rows.length ? rows[0] : null;
+  const soloChamp = finished && solo.length ? solo[0] : null;
+  const duoChamp = finished && duo.length ? duo[0] : null;
+  const champActive = tab === "1x1" ? soloChamp : duoChamp;
+  const champName =
+    tab === "1x1"
+      ? soloChamp && (soloChamp.displayName || soloChamp.login)
+      : duoChamp && duoChamp.members.map((m) => m.displayName || m.login).join(" & ");
+  const champMmr = tab === "1x1" ? soloChamp?.mmr : duoChamp?.mmr;
 
   function onKey(e: React.KeyboardEvent) {
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
@@ -82,11 +95,11 @@ export function RatingTabs({
         )}
       </div>
 
-      {champ && (
+      {champActive && champName && (
         <div className="panel glow-edge flex items-center gap-3 px-4 py-3">
           <span className="font-display text-sm uppercase tracking-wide text-muted">🏆 Чемпион{shownSeason ? ` «${shownSeason.name}»` : ""} · {tab}</span>
-          <span className="font-display uppercase text-primary-2">{champ.displayName || champ.login}</span>
-          <span className="ml-auto font-display tnum">{champ.mmr} MMR</span>
+          <span className="font-display uppercase text-primary-2">{champName}</span>
+          <span className="ml-auto font-display tnum">{champMmr} MMR</span>
         </div>
       )}
 
@@ -94,7 +107,7 @@ export function RatingTabs({
         <LeaderboardTable rows={solo} kind="1x1" />
       </div>
       <div role="tabpanel" id="panel-2x2" aria-labelledby="tab-2x2" hidden={tab !== "2x2"} className={loading ? "opacity-50 transition-opacity" : ""}>
-        <LeaderboardTable rows={duo} kind="2x2" />
+        <TeamLeaderboardTable rows={duo} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { getLeaderboard, getSeasons } from "@/lib/queries";
+import { getLeaderboard, getTeamLeaderboard, getSeasons } from "@/lib/queries";
 import { RatingTabs } from "@/components/domain/rating-tabs";
 import { SectionHead } from "@/components/ui/section-head";
 
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default async function RatingPage() {
   // По умолчанию (без season) — активный сезон.
-  const [seasons, solo, duo] = await Promise.all([getSeasons(), getLeaderboard("1x1"), getLeaderboard("2x2")]);
+  const [seasons, solo, duo] = await Promise.all([getSeasons(), getLeaderboard("1x1"), getTeamLeaderboard()]);
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-6 py-12 sm:py-16">

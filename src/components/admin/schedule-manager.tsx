@@ -62,6 +62,7 @@ export function ScheduleManager({
   const [cPlayerType, setCPlayerType] = React.useState<PlayerType>("pvpve");
   const [cMap, setCMap] = React.useState("");
   const [cStart, setCStart] = React.useState("");
+  const [cRatingX2, setCRatingX2] = React.useState(false);
 
   const [pTeamName, setPTeamName] = React.useState("");
   const [pM1, setPM1] = React.useState<PickedMember>({ name: "" });
@@ -73,6 +74,7 @@ export function ScheduleManager({
   const [eTitle, setETitle] = React.useState("");
   const [ePlayerType, setEPlayerType] = React.useState<PlayerType>("pvpve");
   const [eStart, setEStart] = React.useState("");
+  const [eRatingX2, setERatingX2] = React.useState(false);
 
   // Стилизованное подтверждение удаления (вместо window.confirm).
   const [confirmAction, setConfirmAction] = React.useState<{
@@ -229,11 +231,13 @@ export function ScheduleManager({
         title: cTitle.trim(),
         mode: cMode,
         playerType: cPlayerType,
+        ratingMultiplier: cRatingX2 ? 2 : 1,
         maps: cMap.trim() ? [cMap.trim()] : [],
         startsAt: cStart ? `${cStart}:00+03:00` : null,
       });
       setList((xs) => [{ ...t, hasSpace: true }, ...xs]);
       setSelId(t.id);
+      setCRatingX2(false);
       setCreateOpen(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.body || err.message : "Не удалось создать.");
@@ -260,6 +264,7 @@ export function ScheduleManager({
     if (!detail) return;
     setETitle(detail.title);
     setEPlayerType(detail.playerType);
+    setERatingX2((detail.ratingMultiplier ?? 1) >= 2);
     setEStart(detail.startsAt ? toMskInput(detail.startsAt) : "");
     setError("");
     setEditTourOpen(true);
@@ -278,6 +283,7 @@ export function ScheduleManager({
       const t = await api.patch<Tournament>(`/tournaments/${detail.id}`, {
         title: eTitle.trim(),
         playerType: ePlayerType,
+        ratingMultiplier: eRatingX2 ? 2 : 1,
         startsAt: eStart ? `${eStart}:00+03:00` : null,
       });
       setDetail(t);
@@ -914,6 +920,12 @@ export function ScheduleManager({
             <span className="field-label">Дата и время (МСК)</span>
             <DateTimePicker value={cStart} onChange={setCStart} />
           </div>
+          <label className="flex items-start gap-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4" checked={cRatingX2} onChange={(e) => setCRatingX2(e.target.checked)} />
+            <span>
+              Жетон <b className="text-primary-2">×2 рейтинга</b> — матч считается за два: MMR начисляется дважды (второе — от обновлённого рейтинга), победа/поражение +2.
+            </span>
+          </label>
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
       </Modal>
@@ -952,6 +964,12 @@ export function ScheduleManager({
             <span className="field-label">Дата и время (МСК)</span>
             <DateTimePicker value={eStart} onChange={setEStart} />
           </div>
+          <label className="flex items-start gap-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4" checked={eRatingX2} onChange={(e) => setERatingX2(e.target.checked)} />
+            <span>
+              Жетон <b className="text-primary-2">×2 рейтинга</b> — матч считается за два: MMR начисляется дважды, победа/поражение +2.
+            </span>
+          </label>
           {error && <p className="text-sm text-danger">{error}</p>}
         </form>
       </Modal>

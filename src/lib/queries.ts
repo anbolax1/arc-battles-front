@@ -10,8 +10,11 @@ import type {
   CatalogLegendary,
   LeaderboardResponse,
   LeaderboardRow,
+  TeamLeaderboardResponse,
+  TeamLeaderboardRow,
   LiveState,
   PlayerProfile,
+  TeamProfile,
   Registration,
   RulesResponse,
   Season,
@@ -51,13 +54,24 @@ export async function getTournament(id: string): Promise<Tournament | null> {
   }
 }
 
-/** Сезонный рейтинг 1×1/2×2. season: пусто — активный сезон, "all" — за всё время, иначе id. */
+/** Сезонный рейтинг 1×1 (по игрокам). season: пусто — активный сезон, "all" — за всё время, иначе id. */
 export async function getLeaderboard(mode: TournamentMode, season?: string): Promise<LeaderboardRow[]> {
   const q = season ? `&season=${encodeURIComponent(season)}` : "";
   const res = await safe(
     `leaderboard(${mode})`,
     serverFetch<LeaderboardResponse>(`/leaderboard?mode=${mode}${q}`),
     { mode, rows: [] },
+  );
+  return res.rows ?? [];
+}
+
+/** Сезонный рейтинг 2×2 по КОМАНДАМ (пара игроков = команда). season как в getLeaderboard. */
+export async function getTeamLeaderboard(season?: string): Promise<TeamLeaderboardRow[]> {
+  const q = season ? `&season=${encodeURIComponent(season)}` : "";
+  const res = await safe(
+    "leaderboard(2x2/teams)",
+    serverFetch<TeamLeaderboardResponse>(`/leaderboard?mode=2x2${q}`),
+    { mode: "2x2" as TournamentMode, rows: [] },
   );
   return res.rows ?? [];
 }
@@ -98,6 +112,17 @@ export async function getPlayer(login: string): Promise<PlayerProfile | null> {
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     console.warn(`[queries] player(${login}): ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
+}
+
+/** Публичная страница команды 2×2 по ключу (пара userId). null — 404/ошибка. */
+export async function getTeam(teamKey: string): Promise<TeamProfile | null> {
+  try {
+    return await serverFetch<TeamProfile>(`/teams/${encodeURIComponent(teamKey)}`);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    console.warn(`[queries] team(${teamKey}): ${e instanceof Error ? e.message : e}`);
     return null;
   }
 }

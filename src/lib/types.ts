@@ -48,6 +48,7 @@ export interface Tournament {
   playerType: PlayerType; // pve | pvp | pvpve
   status: TournamentStatus;
   totalRounds: number; // всегда 1 (один раунд = один рейд)
+  ratingMultiplier: number; // жетон «×2 рейтинга»: 1 — обычный матч, 2 — считается за два (двойное Elo, W/L +2)
   maps: string[];
   startsAt?: string | null;
   winnerParticipantId?: string | null;
@@ -83,6 +84,94 @@ export interface LeaderboardRow {
   points: number; // сумма набранных баллов за сезон (вторично)
   wins: number;
   tournaments: number;
+}
+
+/** Игрок в составе команды 2×2 (для командного лидерборда). */
+export interface TeamMember {
+  userId: string;
+  login: string;
+  displayName: string;
+  avatarUrl: string;
+}
+
+/** Строка рейтинга 2×2 по КОМАНДАМ (пара игроков = команда с одним MMR).
+    wins/losses/games учитывают жетон ×2 (матч = 2). */
+export interface TeamLeaderboardRow {
+  teamKey: string;
+  mmr: number;
+  wins: number;
+  losses: number;
+  games: number;
+  members: TeamMember[];
+}
+
+/** Одна точка динамики MMR (для графика и ленты матчей). */
+export interface MmrPoint {
+  tournamentId: string;
+  title: string;
+  date?: string | null;
+  opponent: string;
+  opponentKey?: string; // login (1×1) или teamKey (2×2) — для ссылки
+  map: string;
+  mmr: number; // MMR после матча
+  delta: number;
+  win: boolean;
+  mult: number; // 2 = жетон ×2
+}
+
+/** Сводная статистика по исходам (игрок 1×1 или команда 2×2). */
+export interface MmrStats {
+  firstMatch?: string | null;
+  currentMmr: number;
+  peakMmr: number;
+  wins: number;
+  losses: number;
+  games: number;
+  winrate: number; // 0..100
+  bestWinStreak: number;
+  bestLossStreak: number;
+  currentStreakKind: "win" | "loss" | "";
+  currentStreakLen: number;
+  place: number; // место в таблице (0 — вне рейтинга)
+}
+
+/** Разбивка матчей по карте. */
+export interface MapStat {
+  map: string;
+  games: number;
+  wins: number;
+  losses: number;
+}
+
+/** Head-to-head против соперника (игрока или команды). */
+export interface OpponentStat {
+  name: string;
+  login?: string; // соперник-игрок (1×1)
+  teamKey?: string; // соперник-команда (2×2)
+  games: number;
+  wins: number;
+  losses: number;
+}
+
+/** Краткая карточка команды игрока (список команд в профиле). */
+export interface TeamSummary {
+  teamKey: string;
+  members: TeamMember[];
+  mmr: number;
+  wins: number;
+  losses: number;
+  games: number;
+  place: number;
+}
+
+/** Публичная страница команды 2×2: GET /api/teams/{teamKey}. */
+export interface TeamProfile {
+  teamKey: string;
+  members: TeamMember[];
+  stats: MmrStats;
+  timeline: MmrPoint[];
+  maps: MapStat[];
+  opponents: OpponentStat[];
 }
 
 export interface CatalogTask {
@@ -351,6 +440,11 @@ export interface PlayerProfile {
   tournaments: number;
   stats: PlayerStats;
   history: PlayerHistoryItem[];
+  mmr1x1: MmrStats;
+  timeline1x1: MmrPoint[];
+  maps1x1: MapStat[];
+  opponents1x1: OpponentStat[];
+  teams: TeamSummary[];
 }
 
 /** Пользователь + агрегаты участия: GET /api/users/overview (кабинет, раздел «Пользователи»). */
@@ -385,11 +479,18 @@ export interface Highlight {
   createdAt: string;
 }
 
-/** Ответ GET /api/leaderboard — ОБЁРНУТ в { mode, seasonId, rows }. */
+/** Ответ GET /api/leaderboard?mode=1x1 — ОБЁРНУТ в { mode, seasonId, rows }. */
 export interface LeaderboardResponse {
   mode: TournamentMode;
   seasonId?: string;
   rows: LeaderboardRow[];
+}
+
+/** Ответ GET /api/leaderboard?mode=2x2 — строки по КОМАНДАМ. */
+export interface TeamLeaderboardResponse {
+  mode: TournamentMode;
+  seasonId?: string;
+  rows: TeamLeaderboardRow[];
 }
 
 /** Сезон рейтинга (GET /api/seasons). */
