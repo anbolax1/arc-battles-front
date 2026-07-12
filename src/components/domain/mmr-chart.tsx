@@ -29,6 +29,7 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
   const [hover, setHover] = React.useState<number | null>(null);
   // Время фиксируем один раз на монтирование (для стабильной проекции).
   const [nowMs] = React.useState(() => Date.now());
+  const svgRef = React.useRef<SVGSVGElement>(null);
 
   if (!points.length) {
     return (
@@ -82,6 +83,25 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
   const netFromStart = last.mmr - start;
   const hp = hover != null ? points[hover] : null;
 
+  // Наведение: считаем позицию мыши в координатах SVG от реального размера и подсвечиваем
+  // БЛИЖАЙШУЮ по X точку (надёжнее мелких кружков — визуал и триггер всегда совпадают).
+  function onMove(e: React.MouseEvent) {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    const svgX = ((e.clientX - r.left) / r.width) * W;
+    let best = 0, bestD = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(X(xsDays[i]) - svgX);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    setHover(best);
+  }
+
   return (
     <div className="panel p-4">
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -106,7 +126,7 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
       </div>
 
       <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="График изменения MMR по матчам с прогнозом">
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="График изменения MMR по матчам с прогнозом">
           <defs>
             <linearGradient id="mmr-area" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--primary-2)" stopOpacity="0.28" />
@@ -143,20 +163,19 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
             </>
           )}
 
-          {points.map((p, i) => (
-            <g key={p.tournamentId + i}>
-              <circle cx={X(xsDays[i])} cy={Y(p.mmr)} r={n > 40 ? 2.5 : 3.5}
-                fill={p.win ? "var(--accent)" : "var(--danger)"} stroke="var(--bg)" strokeWidth="1" />
-              {/* Крупная невидимая зона наведения */}
-              <circle cx={X(xsDays[i])} cy={Y(p.mmr)} r="10" fill="transparent" style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover((h) => (h === i ? null : h))}
-                onFocus={() => setHover(i)} onBlur={() => setHover(null)} tabIndex={0} />
-            </g>
-          ))}
-
-          {hover != null && (
-            <circle cx={X(xsDays[hover])} cy={Y(points[hover].mmr)} r="5.5" fill="none" stroke="var(--fg)" strokeWidth="1.5" opacity="0.7" />
+          {/* Гайд-линия и подсветка наведённой точки */}
+          {hp && (
+            <>
+              <line x1={X(xsDays[hover!])} y1={pad.t} x2={X(xsDays[hover!])} y2={pad.t + innerH} stroke="var(--border-strong)" strokeWidth="1" />
+              <circle cx={X(xsDays[hover!])} cy={Y(hp.mmr)} r="6" fill="none" stroke="var(--fg)" strokeWidth="1.5" opacity="0.85" />
+            </>
           )}
+
+          {/* Точки матчей */}
+          {points.map((p, i) => (
+            <circle key={p.tournamentId + i} cx={X(xsDays[i])} cy={Y(p.mmr)} r={n > 40 ? 2.5 : 3.5}
+              fill={p.win ? "var(--accent)" : "var(--danger)"} stroke="var(--bg)" strokeWidth="1" />
+          ))}
 
           {points[0].date && (
             <text x={X(xsDays[0])} y={H - 10} textAnchor="start" fontSize="10" fill="var(--muted)">{fmtDate(points[0].date)}</text>
@@ -164,6 +183,12 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
           {canProject && (
             <text x={W - pad.r + 4} y={H - 10} textAnchor="end" fontSize="9" fill="var(--accent)">+{horizon}д</text>
           )}
+
+          {/* Зона захвата наведения по всей области графика (ловит мышь, снап к ближайшей точке) */}
+          <rect
+            x={pad.l} y={pad.t} width={innerW} height={innerH} fill="transparent"
+            onMouseMove={onMove} onMouseLeave={() => setHover(null)} style={{ cursor: "crosshair" }}
+          />
         </svg>
 
         {/* Тултип по наведению */}
