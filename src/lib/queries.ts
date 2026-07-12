@@ -15,6 +15,7 @@ import type {
   LiveState,
   PlayerProfile,
   TeamProfile,
+  ClaimInfo,
   Registration,
   RulesResponse,
   Season,
@@ -131,6 +132,15 @@ export async function getTeam(teamKey: string): Promise<TeamProfile | null> {
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     console.warn(`[queries] team(${teamKey}): ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
+}
+
+/** Данные страницы активации аккаунта по одноразовой ссылке. null — ссылка недействительна. */
+export async function getClaimInfo(token: string): Promise<ClaimInfo | null> {
+  try {
+    return await serverFetch<ClaimInfo>(`/claim/${encodeURIComponent(token)}`);
+  } catch {
     return null;
   }
 }

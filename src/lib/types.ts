@@ -466,6 +466,13 @@ export interface UserOverview extends User {
   wins: number; // побед в завершённых
   points: number; // суммарные очки в завершённых
   participations: number; // всего участий (включая текущие/анонсы)
+  isPlaceholder: boolean; // импортный аккаунт-заглушка (можно выдать доступ по ссылке)
+}
+
+/** Данные страницы активации аккаунта по ссылке (GET /api/claim/{token}). */
+export interface ClaimInfo {
+  login: string;
+  displayName: string;
 }
 
 export type HighlightStatus = "processing" | "pending" | "approved" | "rejected" | "failed";

@@ -68,6 +68,24 @@ export function UsersManager({
   const { user: currentUser } = useAuth();
   const [roleBusyId, setRoleBusyId] = React.useState<string | null>(null);
   const [roleError, setRoleError] = React.useState<Record<string, string>>({});
+  // Активация заглушек: ссылка доступа по userId.
+  const [claimBusy, setClaimBusy] = React.useState<string | null>(null);
+  const [claimLink, setClaimLink] = React.useState<Record<string, string>>({});
+
+  async function makeClaimLink(u: UserOverview, regenerate = false) {
+    setClaimBusy(u.id);
+    try {
+      const res = await api.post<{ token: string }>(
+        `/users/${u.id}/claim-link${regenerate ? "?regenerate=1" : ""}`,
+        {},
+      );
+      setClaimLink((prev) => ({ ...prev, [u.id]: `${window.location.origin}/claim/${res.token}` }));
+    } catch {
+      /* игнор */
+    } finally {
+      setClaimBusy(null);
+    }
+  }
 
   async function changeRole(u: UserOverview, role: Role) {
     setRoleBusyId(u.id);
@@ -255,6 +273,38 @@ export function UsersManager({
                                 <span>Полная статистика ↗</span>
                               </a>
                             </div>
+                            {u.isPlaceholder && (
+                              <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
+                                <span className="text-xs uppercase tracking-wide text-muted">Доступ игроку</span>
+                                <button
+                                  type="button"
+                                  className="btn btn-cyan btn-sm"
+                                  disabled={claimBusy === u.id}
+                                  onClick={() => makeClaimLink(u)}
+                                >
+                                  <span>{claimBusy === u.id ? "…" : claimLink[u.id] ? "Ссылка активна" : "Выдать доступ по ссылке"}</span>
+                                </button>
+                                {claimLink[u.id] && (
+                                  <>
+                                    <input
+                                      readOnly
+                                      value={claimLink[u.id]}
+                                      onFocus={(e) => e.currentTarget.select()}
+                                      className="input h-8 min-w-0 flex-1 text-xs"
+                                    />
+                                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard?.writeText(claimLink[u.id])}>
+                                      <span>Копировать</span>
+                                    </button>
+                                    <button type="button" className="btn btn-ghost btn-sm" disabled={claimBusy === u.id} onClick={() => makeClaimLink(u, true)}>
+                                      <span>Новая</span>
+                                    </button>
+                                  </>
+                                )}
+                                <span className="w-full text-xs text-muted">
+                                  Одноразовая: игрок задаёт пароль и сразу входит. Ссылка действует, пока аккаунт не активирован.
+                                </span>
+                              </div>
+                            )}
                             {prof === undefined || prof === "loading" ? (
                               <p className="text-sm text-muted">Загрузка истории участия…</p>
                             ) : prof === "error" ? (
