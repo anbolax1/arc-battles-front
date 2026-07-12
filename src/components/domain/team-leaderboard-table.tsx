@@ -54,25 +54,21 @@ export function TeamLeaderboardTable({ rows }: { rows: TeamLeaderboardRow[] }) {
                 <span className={cn("rank", i < 3 && `rank-${i + 1}`)}>{i + 1}</span>
               </td>
               <td className="px-4 py-3">
-                <div className="flex flex-col gap-1.5">
+                <Link
+                  href={`/teams/${encodeURIComponent(r.teamKey)}`}
+                  className="block truncate font-display text-sm uppercase leading-tight text-primary-2 transition hover:opacity-80"
+                >
+                  {r.name || r.members.map((m) => m.displayName || m.login).join(" & ")}
+                </Link>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   {r.members.map((m, mi) => (
                     <Link
                       key={m.userId || mi}
                       href={m.login ? `/profile/${m.login}` : "#"}
-                      className="flex items-center gap-2.5 transition hover:opacity-80"
+                      className="flex items-center gap-1.5 text-xs text-muted transition hover:opacity-80"
                     >
-                      <Avatar
-                        name={m.displayName || m.login}
-                        src={m.avatarUrl}
-                        tone={toneByIndex(i + mi)}
-                        size="sm"
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate font-display text-sm uppercase leading-tight">
-                          {m.displayName || m.login}
-                        </div>
-                        {m.login && <div className="truncate text-xs text-muted">@{m.login}</div>}
-                      </div>
+                      <Avatar name={m.displayName || m.login} src={m.avatarUrl} tone={toneByIndex(i + mi)} size="sm" />
+                      <span className="truncate">{m.displayName || m.login}</span>
                     </Link>
                   ))}
                 </div>

@@ -30,10 +30,12 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   // Ровно один раунд на турнир (один раунд = один рейд).
   const round = [...(t.rounds ?? [])].sort((a, b) => a.number - b.number)[0] ?? null;
   const roundMap = round?.map || t.maps?.[0] || "";
-  const roundStatus = round?.status ?? "";
+  // Завершённый турнир = раунд завершён (импортированные/старые раунды могут быть pending).
+  const roundStatus = t.status === "finished" ? "finished" : (round?.status ?? "");
   const winner = t.winnerParticipantId
     ? participants.find((p) => p.id === t.winnerParticipantId)
     : null;
+  const mmrByPid = new Map((t.mmrChanges ?? []).map((c) => [c.participantId, c]));
   const time = fmtTime(t.startsAt);
 
   return (
@@ -131,6 +133,23 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
                         </div>
                       </div>
                     </td>
+                    {mmrByPid.size > 0 && (
+                      <td className="px-3 py-3 text-right">
+                        {(() => {
+                          const c = mmrByPid.get(p.id);
+                          if (!c) return <span className="text-muted">—</span>;
+                          return (
+                            <div className="tnum leading-tight">
+                              <span className={c.delta >= 0 ? "text-accent" : "text-danger"}>
+                                {c.delta >= 0 ? "+" : ""}
+                                {c.delta}
+                              </span>
+                              <div className="text-xs text-muted">MMR {c.after}</div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    )}
                     <td className="px-5 py-3 text-right">
                       <span className="font-display tnum text-primary-2">{p.totalPoints}</span>
                     </td>

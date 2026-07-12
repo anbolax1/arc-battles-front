@@ -24,7 +24,8 @@ export default async function TeamPage({ params }: { params: Promise<{ key: stri
     );
   }
 
-  const name = team.members.map((m) => m.displayName || m.login).join(" & ");
+  const roster = team.members.map((m) => m.displayName || m.login).join(" & ");
+  const name = team.name || roster;
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-8 px-6 py-12 sm:py-16">

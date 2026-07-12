@@ -129,7 +129,10 @@ export function TeamsList({ teams }: { teams: TeamSummary[] }) {
             ))}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate font-display text-sm uppercase">
+            <div className="truncate font-display text-base uppercase leading-tight text-primary-2">
+              {t.name || t.members.map((m) => m.displayName || m.login).join(" & ")}
+            </div>
+            <div className="truncate text-xs text-muted">
               {t.members.map((m) => m.displayName || m.login).join(" & ")}
             </div>
             <div className="text-xs text-muted">

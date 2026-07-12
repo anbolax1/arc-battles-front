@@ -58,6 +58,15 @@ export interface Tournament {
   hasSpace?: boolean;
   participants?: Participant[];
   rounds?: Round[];
+  mmrChanges?: ParticipantMmr[]; // изменение MMR сторон за этот матч (для завершённых)
+}
+
+/** Изменение MMR стороны за конкретный матч (страница турнира). */
+export interface ParticipantMmr {
+  participantId: string;
+  before: number;
+  after: number;
+  delta: number;
 }
 
 export interface Registration {
@@ -98,6 +107,7 @@ export interface TeamMember {
     wins/losses/games учитывают жетон ×2 (матч = 2). */
 export interface TeamLeaderboardRow {
   teamKey: string;
+  name: string;
   mmr: number;
   wins: number;
   losses: number;
@@ -156,6 +166,7 @@ export interface OpponentStat {
 /** Краткая карточка команды игрока (список команд в профиле). */
 export interface TeamSummary {
   teamKey: string;
+  name: string;
   members: TeamMember[];
   mmr: number;
   wins: number;
@@ -167,6 +178,7 @@ export interface TeamSummary {
 /** Публичная страница команды 2×2: GET /api/teams/{teamKey}. */
 export interface TeamProfile {
   teamKey: string;
+  name: string;
   members: TeamMember[];
   stats: MmrStats;
   timeline: MmrPoint[];

@@ -2,8 +2,7 @@ import Link from "next/link";
 import { getHighlights, getPlayer } from "@/lib/queries";
 import { HighlightsGrid } from "@/components/domain/highlights-grid";
 import { PlayerStatsBlock } from "@/components/domain/player-stats";
-import { MmrChart } from "@/components/domain/mmr-chart";
-import { MmrStatsGrid, MapBreakdown, HeadToHead, TeamsList } from "@/components/domain/mmr-analytics";
+import { PlayerRatingSections } from "@/components/domain/player-rating-sections";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/card";
@@ -35,7 +34,7 @@ export default async function PlayerProfilePage({
     );
   }
 
-  const { user, mmrSolo, mmrDuo, wins, tournaments, stats, history, mmr1x1, timeline1x1, maps1x1, opponents1x1, teams } = profile;
+  const { user, mmrSolo, mmrDuo, wins, tournaments, stats, history } = profile;
   const role = roleBadge(user.role);
   const { items: highlights } = await getHighlights({ userId: user.id, limit: 6 });
   const summary = [
@@ -75,37 +74,8 @@ export default async function PlayerProfilePage({
       {/* Расширенная статистика — когда есть хотя бы один завершённый турнир */}
       {tournaments > 0 && <PlayerStatsBlock stats={stats} />}
 
-      {/* Рейтинг и динамика MMR 1×1 */}
-      {mmr1x1.games > 0 && (
-        <section className="space-y-4">
-          <h3 className="text-xl">Рейтинг 1×1</h3>
-          <MmrStatsGrid stats={mmr1x1} />
-          <MmrChart points={timeline1x1} />
-        </section>
-      )}
-
-      {/* Аналитика матчей 1×1 */}
-      {mmr1x1.games > 0 && (
-        <section className="space-y-4">
-          <h3 className="text-xl">Аналитика матчей 1×1</h3>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3">
-              <h4 className="font-display text-sm uppercase tracking-wide text-muted">По картам</h4>
-              <MapBreakdown maps={maps1x1} />
-            </div>
-            <div className="space-y-3">
-              <h4 className="font-display text-sm uppercase tracking-wide text-muted">Против кого играл</h4>
-              <HeadToHead opponents={opponents1x1} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Команды 2×2 игрока */}
-      <section className="space-y-4">
-        <h3 className="text-xl">Команды 2×2</h3>
-        <TeamsList teams={teams} />
-      </section>
+      {/* Рейтинг, динамика MMR, аналитика и команды игрока */}
+      <PlayerRatingSections profile={profile} />
 
       {/* История */}
       <section className="space-y-4">
@@ -131,7 +101,12 @@ export default async function PlayerProfilePage({
                     h.win ? (
                       <Badge kind="champ">Победа</Badge>
                     ) : (
-                      <StatusPill status="done">Завершён</StatusPill>
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-display uppercase text-danger"
+                        style={{ background: "color-mix(in oklab, var(--danger) 16%, transparent)" }}
+                      >
+                        Поражение
+                      </span>
                     )
                   ) : (
                     <StatusPill status="soon">Идёт</StatusPill>

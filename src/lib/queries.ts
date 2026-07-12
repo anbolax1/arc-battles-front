@@ -116,10 +116,18 @@ export async function getPlayer(login: string): Promise<PlayerProfile | null> {
   }
 }
 
-/** Публичная страница команды 2×2 по ключу (пара userId). null — 404/ошибка. */
+/** Публичная страница команды 2×2 по ключу (пара userId). null — 404/ошибка.
+    Ключ нормализуем: сначала декодируем (Next может отдать параметр уже закодированным —
+    `A%7CB`), затем кодируем ровно один раз, иначе `|` уедет в двойное кодирование → 404. */
 export async function getTeam(teamKey: string): Promise<TeamProfile | null> {
+  let raw = teamKey;
   try {
-    return await serverFetch<TeamProfile>(`/teams/${encodeURIComponent(teamKey)}`);
+    raw = decodeURIComponent(teamKey);
+  } catch {
+    /* оставим как есть */
+  }
+  try {
+    return await serverFetch<TeamProfile>(`/teams/${encodeURIComponent(raw)}`);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     console.warn(`[queries] team(${teamKey}): ${e instanceof Error ? e.message : e}`);

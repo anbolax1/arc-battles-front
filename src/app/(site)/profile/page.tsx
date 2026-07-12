@@ -1,4 +1,5 @@
-import { getMe, getMyRegistrations } from "@/lib/queries";
+import { getMe, getMyRegistrations, getPlayer } from "@/lib/queries";
+import { PlayerRatingSections } from "@/components/domain/player-rating-sections";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/pill";
@@ -39,7 +40,7 @@ export default async function ProfilePage() {
     );
   }
 
-  const regs = await getMyRegistrations();
+  const [regs, playerProfile] = await Promise.all([getMyRegistrations(), getPlayer(user.login)]);
   const role = roleBadge(user.role);
 
   return (
@@ -57,6 +58,9 @@ export default async function ProfilePage() {
           </div>
         </div>
       </Panel>
+
+      {/* Статистика, рейтинг и команды (как в публичном профиле) */}
+      {playerProfile && <PlayerRatingSections profile={playerProfile} />}
 
       {/* Embark ID */}
       <Panel className="space-y-4 p-6">
