@@ -246,6 +246,14 @@ export function UsersManager({
                                 </button>
                               )}
                               {roleError[u.id] && <span className="text-sm text-danger">{roleError[u.id]}</span>}
+                              <a
+                                href={`/profile/${u.login}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm ml-auto"
+                              >
+                                <span>Полная статистика ↗</span>
+                              </a>
                             </div>
                             {prof === undefined || prof === "loading" ? (
                               <p className="text-sm text-muted">Загрузка истории участия…</p>
@@ -253,6 +261,13 @@ export function UsersManager({
                               <p className="text-sm text-danger">Не удалось загрузить историю участия.</p>
                             ) : prof.history.length ? (
                               <div className="space-y-2">
+                                <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+                                  <span>MMR 1×1 <b className="text-primary-2 tnum">{prof.mmr1x1.currentMmr}</b></span>
+                                  <span>Винрейт <b className="tnum">{prof.mmr1x1.winrate}%</b> ({prof.mmr1x1.wins}–{prof.mmr1x1.losses})</span>
+                                  {prof.mmr1x1.place > 0 && <span>Место <b className="tnum">#{prof.mmr1x1.place}</b></span>}
+                                  <span>Команд <b className="tnum">{prof.teams.length}</b></span>
+                                  {prof.mmr1x1.bestWinStreak > 0 && <span>Вин-стрик <b className="tnum">{prof.mmr1x1.bestWinStreak}</b></span>}
+                                </div>
                                 <div className="text-xs uppercase tracking-wide text-muted">
                                   Участие в турнирах · {prof.history.length}
                                   {u.participations > u.tournaments ? ` · завершённых ${u.tournaments}` : ""}
