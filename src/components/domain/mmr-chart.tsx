@@ -22,10 +22,29 @@ function linreg(xs: number[], ys: number[]): { slope: number; intercept: number 
   return { slope, intercept: (sy - slope * sx) / n };
 }
 
+/** Плавная кривая через точки (Catmull-Rom → кубические кривые Безье, натяжение 1/6). */
+function smoothPath(pts: { x: number; y: number }[]): string {
+  if (!pts.length) return "";
+  if (pts.length < 3) return "M " + pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ");
+  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 /** Интерактивный график динамики MMR: ползунок горизонта прогноза (линия тренда тянется дальше,
     чем дальше крутишь) + тултип по наведению на точку. Клиентский компонент. */
 export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?: number }) {
-  const [horizon, setHorizon] = React.useState(30);
+  const [horizon, setHorizon] = React.useState(0);
   const [hover, setHover] = React.useState<number | null>(null);
   // Время фиксируем один раз на монтирование (для стабильной проекции).
   const [nowMs] = React.useState(() => Date.now());
@@ -53,7 +72,7 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
 
   const reg = haveDates ? linreg(xsDays, points.map((p) => p.mmr)) : null;
   const projDays = haveDates && reg ? dayOf(nowMs + horizon * DAY) : null;
-  const canProject = reg != null && projDays != null && projDays > xsDays[n - 1];
+  const canProject = reg != null && projDays != null && horizon > 0 && projDays > xsDays[n - 1];
   const projMmrRaw = canProject ? Math.round(reg!.intercept + reg!.slope * projDays!) : null;
 
   const xLo = xsDays[0];
@@ -74,8 +93,9 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
   const hi = maxV + span * 0.14;
   const Y = (v: number) => pad.t + innerH * (1 - (v - lo) / (hi - lo));
 
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${X(xsDays[i]).toFixed(1)} ${Y(p.mmr).toFixed(1)}`).join(" ");
-  const areaPath = `${linePath} L ${X(xsDays[n - 1]).toFixed(1)} ${(pad.t + innerH).toFixed(1)} L ${X(xsDays[0]).toFixed(1)} ${(pad.t + innerH).toFixed(1)} Z`;
+  const pts = points.map((p, i) => ({ x: X(xsDays[i]), y: Y(p.mmr) }));
+  const linePath = smoothPath(pts);
+  const areaPath = `${linePath} L ${pts[n - 1].x.toFixed(1)} ${(pad.t + innerH).toFixed(1)} L ${pts[0].x.toFixed(1)} ${(pad.t + innerH).toFixed(1)} Z`;
   const baseY = Y(start);
   const nowDays = haveDates ? dayOf(nowMs) : null;
 
@@ -149,7 +169,7 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
           {n > 1 && <path d={areaPath} fill="url(#mmr-area)" />}
           {n > 1 && <path d={linePath} fill="none" stroke="var(--primary-2)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />}
 
-          {reg && (
+          {canProject && reg && (
             <line
               x1={X(xLo)} y1={Y(Math.max(lo, Math.min(hi, reg.intercept + reg.slope * xLo)))}
               x2={X(xHi)} y2={Y(Math.max(lo, Math.min(hi, reg.intercept + reg.slope * xHi)))}
