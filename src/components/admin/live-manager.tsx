@@ -16,6 +16,7 @@ import type {
   CatalogTask,
   LiveState,
   OverlayLayout,
+  OverlayPreset,
   RoundBonusTask,
   RoundPenalty,
   RoundStarterTask,
@@ -41,46 +42,155 @@ function Stepper({ value, onDelta, busy }: { value: number; onDelta: (d: number)
   );
 }
 
-/** Ссылка на оверлей для вставки в OBS + кнопка копирования. */
-function OverlayLink() {
-  const [url, setUrl] = React.useState("/overlay");
+/** Кнопка «скопировать» с галочкой-подтверждением. */
+function CopyButton({ text, label = "скопировать ссылку" }: { text: string; label?: string }) {
   const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    // origin доступен только на клиенте после монтирования (иначе рассинхрон гидрации).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUrl(`${window.location.origin}/overlay`);
-  }, []);
-
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
       /* clipboard может быть недоступен */
     }
   };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={label}
+      title={copied ? "Скопировано" : "Скопировать ссылку"}
+      className={`flex h-7 w-7 flex-none items-center justify-center rounded-md transition-colors ${
+        copied ? "text-[var(--accent)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--fg)]"
+      }`}
+    >
+      {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+    </button>
+  );
+}
+
+/** Строка пресета: название, правимый адрес ссылки и копирование полного URL.
+    Ключ строки включает slug — после сохранения компонент пересоздаётся, и черновик
+    подхватывает адрес, каким его нормализовал сервер. */
+function PresetLinkRow({
+  origin,
+  preset,
+  onRename,
+}: {
+  origin: string;
+  preset: OverlayPreset;
+  onRename: (next: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = React.useState(preset.slug);
+  const [busy, setBusy] = React.useState(false);
+  const clean = draft.trim();
+  const dirty = clean !== "" && clean !== preset.slug;
+  const url = `${origin}/overlay/${preset.slug}`;
+
+  const save = async () => {
+    if (!dirty || busy) return;
+    setBusy(true);
+    try {
+      await onRename(clean);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="space-y-1">
-      <span className="field-label">Ссылка для OBS (Browser Source)</span>
-      <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] py-1 pl-2.5 pr-1">
-        <code className="flex-1 truncate text-xs text-[var(--muted)]">{url}</code>
-        <button
-          type="button"
-          onClick={copy}
-          aria-label="скопировать ссылку"
-          title={copied ? "Скопировано" : "Скопировать ссылку"}
-          className={`flex h-7 w-7 flex-none items-center justify-center rounded-md transition-colors ${
-            copied
-              ? "text-[var(--accent)]"
-              : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--fg)]"
-          }`}
-        >
-          {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+    <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] py-1 pl-2.5 pr-1">
+      <span className="w-24 flex-none truncate text-xs" title={preset.name}>
+        {preset.name}
+      </span>
+      <span className="flex min-w-0 flex-1 items-center text-xs text-[var(--muted)]">
+        <span className="flex-none">/overlay/</span>
+        <input
+          className="min-w-0 flex-1 bg-transparent text-[var(--fg)] outline-none"
+          value={draft}
+          disabled={busy}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void save();
+            }
+          }}
+          aria-label={`адрес пресета «${preset.name}»`}
+          title={url}
+        />
+      </span>
+      {dirty && (
+        <button type="button" className="btn btn-cyan btn-sm flex-none" disabled={busy} onClick={save} title="сохранить адрес">
+          <span>✓</span>
         </button>
+      )}
+      <CopyButton text={url} label={`скопировать ссылку пресета «${preset.name}»`} />
+    </div>
+  );
+}
+
+/** Ссылки на оверлей для OBS: общая (раскладка выбирается в редакторе) плюс своя
+    на каждый пресет — чтобы вид оверлея переключался сценой OBS, а не кабинетом. */
+function OverlayLinks({ reloadSig }: { reloadSig: number }) {
+  const [origin, setOrigin] = React.useState("");
+  const [presets, setPresets] = React.useState<OverlayPreset[]>([]);
+  const [err, setErr] = React.useState("");
+
+  React.useEffect(() => {
+    // origin доступен только на клиенте после монтирования (иначе рассинхрон гидрации).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOrigin(window.location.origin);
+  }, []);
+
+  // Перечитываем список, когда пресеты меняли в редакторе (reloadSig).
+  React.useEffect(() => {
+    let active = true;
+    api
+      .get<OverlayPreset[]>("/overlay/presets")
+      .then((l) => {
+        if (active) setPresets(l);
+      })
+      .catch(() => {
+        if (active) setPresets([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadSig]);
+
+  // Адрес нормализует и разводит по уникальности бэкенд — в списке держим его ответ.
+  const rename = async (p: OverlayPreset, next: string) => {
+    setErr("");
+    try {
+      const u = await api.put<OverlayPreset>(`/overlay/presets/${p.id}`, { name: p.name, slug: next, layout: p.layout });
+      setPresets((xs) => xs.map((x) => (x.id === u.id ? u : x)));
+    } catch {
+      setErr("Не удалось изменить адрес пресета.");
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <span className="field-label">Ссылки для OBS (Browser Source)</span>
+
+      <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] py-1 pl-2.5 pr-1">
+        <code className="flex-1 truncate text-xs text-[var(--muted)]">{origin}/overlay</code>
+        <CopyButton text={`${origin}/overlay`} />
       </div>
+      <p className="text-[0.7rem] leading-snug text-muted">Общая ссылка: показывает ту раскладку, что сейчас выбрана в редакторе макета.</p>
+
+      {presets.length > 0 && (
+        <div className="space-y-1 pt-1">
+          <p className="text-[0.7rem] leading-snug text-muted">
+            Ссылка на пресет всегда показывает свою раскладку — заведи по источнику на каждую и переключай оверлеи сценами OBS:
+          </p>
+          {presets.map((p) => (
+            <PresetLinkRow key={`${p.id}:${p.slug}`} origin={origin} preset={p} onRename={(next) => rename(p, next)} />
+          ))}
+        </div>
+      )}
+      {err && <p className="text-xs text-danger">{err}</p>}
+
       <details className="mt-1.5 text-xs text-[var(--muted)]">
         <summary className="cursor-pointer select-none hover:text-[var(--fg)]">Как добавить в OBS</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-4 leading-relaxed">
@@ -89,6 +199,10 @@ function OverlayLink() {
           <li>В поле «URL-адрес» вставьте ссылку выше (кнопка копирования).</li>
           <li>Ширина — 1920, высота — 1080 (под размер вашей сцены).</li>
           <li>Поставьте галочку «Обновлять браузер, когда сцена становится активной» → «ОК».</li>
+          <li>
+            Чтобы менять вид оверлея сценами: создайте по такому источнику на каждую ссылку пресета и разложите их по разным
+            сценам. Переключили сцену — сменился оверлей, кабинет для этого открывать не нужно.
+          </li>
           <li>
             Оверлей обновляется сам во время эфира. Если завис — правый клик по источнику → «Обновить».
           </li>
@@ -124,6 +238,8 @@ export function LiveManager({
   // Пока не загрузили её с сервера, не пушим состояние, чтобы дефолт не затёр реальную раскладку.
   const [layoutReady, setLayoutReady] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
+  // Пресеты создают/удаляют в редакторе — по этому счётчику список ссылок для OBS перечитывается.
+  const [presetsSig, setPresetsSig] = React.useState(0);
   // Фон превью (геймплей с HUD) — только для превью/редактора, на /overlay не влияет.
   const [previewBg, setPreviewBg] = React.useState<"day" | "night" | "off">("day");
   const bgImage = previewBg === "off" ? null : previewBg === "night" ? "/preview-bg-night.jpg" : "/preview-bg.jpg";
@@ -719,13 +835,20 @@ export function LiveManager({
               </div>
             </div>
             {editing ? (
-              <OverlayEditor state={state} layout={layout} onChange={setLayout} onClose={() => setEditing(false)} bgImage={bgImage} />
+              <OverlayEditor
+                state={state}
+                layout={layout}
+                onChange={setLayout}
+                onClose={() => setEditing(false)}
+                onPresetsChanged={() => setPresetsSig((s) => s + 1)}
+                bgImage={bgImage}
+              />
             ) : (
               <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
                 <OverlayStage state={state} mode="preview" bgImage={bgImage} />
               </div>
             )}
-            <OverlayLink />
+            <OverlayLinks reloadSig={presetsSig} />
           </div>
         </div>
       )}

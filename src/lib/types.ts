@@ -409,6 +409,8 @@ export interface OverlayLayout {
 export interface OverlayPreset {
   id: string;
   name: string;
+  /** Адрес пресета в ссылке для OBS: /overlay/<slug>. Уникален, правится в кабинете. */
+  slug: string;
   layout: OverlayLayout;
   createdAt: string;
   updatedAt: string;

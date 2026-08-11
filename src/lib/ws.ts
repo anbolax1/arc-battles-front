@@ -23,9 +23,19 @@ function overlayWsUrl(): string {
   return `${proto}//${window.location.host}${base}/ws/overlay`;
 }
 
-/** null — активного эфира нет (стейт пуст). */
-export function useOverlayState(): LiveState | null {
+/** Живой поток оверлея: состояние эфира + ревизия пресетов. */
+export interface OverlayFeed {
+  /** null — активного эфира нет (стейт пуст). */
+  state: LiveState | null;
+  /** Счётчик правок пресетов с сервера. Приходит только по WS (в снапшоте GET его нет),
+      меняется при сохранении/удалении пресета — по нему страница /overlay/<slug>
+      перечитывает свою раскладку. */
+  presetsRev: number;
+}
+
+export function useOverlayFeed(): OverlayFeed {
   const [state, setState] = React.useState<LiveState | null>(null);
+  const [presetsRev, setPresetsRev] = React.useState(0);
 
   React.useEffect(() => {
     let active = true;
@@ -40,6 +50,10 @@ export function useOverlayState(): LiveState | null {
         return;
       }
       const o = raw as Record<string, unknown>;
+      // Незнакомый тип сообщения — не про состояние: молча пропускаем, иначе
+      // оверлей мигнул бы плашкой «никто не в эфире».
+      if (typeof o.type === "string" && o.type !== "state") return;
+      if (typeof o.presetsRev === "number") setPresetsRev(o.presetsRev);
       const s = (o.type === "state" && o.state ? o.state : o) as Partial<LiveState>;
       setState(s && s.tournamentName ? (s as LiveState) : null);
     }
@@ -116,5 +130,5 @@ export function useOverlayState(): LiveState | null {
     };
   }, []);
 
-  return state;
+  return { state, presetsRev };
 }

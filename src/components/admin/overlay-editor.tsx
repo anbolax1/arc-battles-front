@@ -123,12 +123,15 @@ export function OverlayEditor({
   layout,
   onChange,
   onClose,
+  onPresetsChanged,
   bgImage = null,
 }: {
   state: LiveState;
   layout: OverlayLayout;
   onChange: (next: OverlayLayout) => void;
   onClose: () => void;
+  /** Пресетов стало больше/меньше — снаружи по этому событию обновляется список ссылок для OBS. */
+  onPresetsChanged?: () => void;
   /** Подложка-геймплей (с HUD) под сценой редактора — для оценки читаемости. */
   bgImage?: string | null;
 }) {
@@ -308,7 +311,8 @@ export function OverlayEditor({
       setPresetSel(p.id);
       onChange({ ...layout, activePresetId: p.id }); // новый пресет становится активным
       setPresetName("");
-      setPresetMsg(`Сохранён «${p.name}»`);
+      setPresetMsg(`Сохранён «${p.name}» — ссылка для OBS: /overlay/${p.slug}`);
+      onPresetsChanged?.();
     } catch {
       setPresetMsg("Не удалось сохранить пресет.");
     } finally {
@@ -324,7 +328,8 @@ export function OverlayEditor({
       const u = await api.put<OverlayPreset>(`/overlay/presets/${p.id}`, { name: p.name, layout });
       setPresets((xs) => xs.map((x) => (x.id === u.id ? u : x)));
       onChange({ ...layout, activePresetId: u.id }); // текущая раскладка теперь соответствует пресету u
-      setPresetMsg(`Обновлён «${u.name}»`);
+      setPresetMsg(`Обновлён «${u.name}» — оверлеи на /overlay/${u.slug} подхватят макет сами`);
+      onPresetsChanged?.();
     } catch {
       setPresetMsg("Не удалось обновить пресет.");
     } finally {
@@ -342,6 +347,7 @@ export function OverlayEditor({
       setPresetSel("");
       if (layout.activePresetId === p.id) onChange({ ...layout, activePresetId: "" }); // активный удалили → сброс
       setPresetMsg(`Удалён «${p.name}»`);
+      onPresetsChanged?.();
     } catch {
       setPresetMsg("Не удалось удалить пресет.");
     } finally {
