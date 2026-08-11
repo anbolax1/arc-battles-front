@@ -148,7 +148,9 @@ function OverlayLinks({ reloadSig }: { reloadSig: number }) {
     api
       .get<OverlayPreset[]>("/overlay/presets")
       .then((l) => {
-        if (active) setPresets(l);
+        // Без slug ссылки не существует — так отвечает бэкенд старее этой фичи
+        // (окно между деплоями фронта и бэка). Такие пресеты просто не показываем.
+        if (active) setPresets(l.filter((p) => typeof p.slug === "string" && p.slug !== ""));
       })
       .catch(() => {
         if (active) setPresets([]);
