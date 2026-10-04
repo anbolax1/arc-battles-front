@@ -4,12 +4,13 @@ import * as React from "react";
 import type { MatchPlayer } from "@/lib/types";
 import { initials } from "@/lib/format";
 
-/** Выбор игрока стороны: поиск по нику с MMR сезона, заявки сверху; если игрока нет - создать по нику. */
+/** Выбор игрока: поиск по нику с MMR сезона, заявки сверху; если игрока нет - создать по нику. */
 export function PlayerPicker({
   inputId,
   players,
   applicants,
   exclude,
+  hide,
   onPick,
   onCreate,
   busy,
@@ -18,8 +19,9 @@ export function PlayerPicker({
   players: MatchPlayer[];
   applicants: Set<string>;
   exclude?: string | null;
+  hide?: Set<string>;
   onPick: (p: MatchPlayer) => void;
-  onCreate: (nick: string) => void;
+  onCreate?: (nick: string) => void;
   busy?: boolean;
 }) {
   const [q, setQ] = React.useState("");
@@ -38,11 +40,12 @@ export function PlayerPicker({
   const query = q.trim().toLowerCase();
   const matches = (p: MatchPlayer) =>
     !query || p.login.toLowerCase().includes(query) || (p.displayName || "").toLowerCase().includes(query);
-  const pool = players.filter((p) => p.id !== exclude && applicants.has(p.id) && matches(p));
-  const rest = players.filter((p) => p.id !== exclude && !applicants.has(p.id) && matches(p));
+  const shown = (p: MatchPlayer) => p.id !== exclude && !hide?.has(p.id) && matches(p);
+  const pool = players.filter((p) => applicants.has(p.id) && shown(p));
+  const rest = players.filter((p) => !applicants.has(p.id) && shown(p));
   const items = [...pool, ...rest].slice(0, 8);
   const exact = players.some((p) => p.login.toLowerCase() === query || (p.displayName || "").toLowerCase() === query);
-  const canCreate = query.length >= 2 && !exact;
+  const canCreate = !!onCreate && query.length >= 2 && !exact;
 
   const pick = (p: MatchPlayer) => {
     onPick(p);
@@ -71,7 +74,7 @@ export function PlayerPicker({
           if (e.key === "Enter") {
             e.preventDefault();
             if (items[0]) pick(items[0]);
-            else if (canCreate) onCreate(q.trim());
+            else if (canCreate) onCreate?.(q.trim());
           }
           if (e.key === "Escape") setOpen(false);
         }}
@@ -102,7 +105,7 @@ export function PlayerPicker({
             <button
               type="button"
               disabled={busy}
-              onClick={() => onCreate(q.trim())}
+              onClick={() => onCreate?.(q.trim())}
               className="mt-1 flex w-full items-center gap-3 rounded bg-[rgba(34,211,238,0.07)] px-2 py-2 text-left text-accent shadow-[inset_0_0_0_1px_rgba(34,211,238,0.3)]"
             >
               <span className="flex h-8 w-8 flex-none items-center justify-center text-lg">+</span>
@@ -113,7 +116,9 @@ export function PlayerPicker({
             </button>
           )}
           {!items.length && !canCreate && (
-            <p className="px-2 py-3 text-sm text-muted">Никого не нашли — введите хотя бы 2 символа, чтобы создать игрока.</p>
+            <p className="px-2 py-3 text-sm text-muted">
+              {onCreate ? "Никого не нашли — введите хотя бы 2 символа, чтобы создать игрока." : "Никого не нашли."}
+            </p>
           )}
         </div>
       )}

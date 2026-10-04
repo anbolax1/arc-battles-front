@@ -20,6 +20,33 @@ export interface User {
   role: Role;
   embarkId: string;
   createdAt: string;
+  /** Теги, тег роли первым. На сайте приходят только видимые, в кабинете - все. */
+  tags?: UserTag[];
+}
+
+/** Тег игрока; visible - организатор показывает его на сайте, hiddenByUser - игрок сам убрал его из профиля. */
+export interface UserTag {
+  id: string;
+  name: string;
+  color: string;
+  visible: boolean;
+  hiddenByUser?: boolean;
+}
+
+export interface TagHolder {
+  userId: string;
+  login: string;
+  displayName: string;
+}
+
+/** Тег в кабинете вместе с теми, кому он выдан. Тег с ролью есть у всех с этой ролью,
+    тег с сезоном выдаётся сам победителю сезона. */
+export interface Tag extends UserTag {
+  role?: Role;
+  seasonId?: string;
+  seasonName?: string;
+  holderCount: number;
+  holders: TagHolder[];
 }
 
 export interface Participant {
@@ -130,6 +157,12 @@ export interface MmrPoint {
   delta: number;
   win: boolean;
   mult: number; // 2 = жетон ×2
+  /** Сколько матчей засчитывает (×2 прошлых сезонов - два). */
+  games?: number;
+  /** id сезона; пусто - матч вне сезонов. */
+  season?: string;
+  /** Не матч, а сверка рейтинга с официальными цифрами. */
+  correction?: boolean;
 }
 
 /** Сводная статистика по исходам (игрок 1×1 или команда 2×2). */
@@ -475,6 +508,8 @@ export interface PlayerHistoryItem {
   name: string;
   points: number;
   win: boolean;
+  /** Изменение MMR игрока (или его команды) за матч. */
+  mmrDelta?: number;
 }
 
 /** Расширенная статистика игрока: винрейт по режимам, источники очков, любимая карта, серия. */

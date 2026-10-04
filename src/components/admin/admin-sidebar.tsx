@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/admin/legendary", label: "Легендарки" },
   { href: "/admin/seasons", label: "Сезоны" },
   { href: "/admin/users", label: "Игроки" },
+  { href: "/admin/tags", label: "Теги" },
   { href: "/admin/registrations", label: "Заявки" },
   { href: "/admin/highlights", label: "Хайлайты" },
 ];

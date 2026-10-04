@@ -5,6 +5,7 @@ import { api, errorText } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { TagBadge } from "@/components/ui/tag-badge";
 import { StatusPill } from "@/components/ui/pill";
 import { SectionHead } from "@/components/ui/section-head";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,11 +17,10 @@ import type { PlayerProfile, Role, User, UserOverview } from "@/lib/types";
    серверные (через /users/overview), чтобы не тянуть всех сразу. Клик по строке
    раскрывает историю участия — она грузится лениво из /players/{login} и кешируется. */
 
-type SortKey = "points" | "tournaments" | "wins" | "joined" | "name";
+type SortKey = "tournaments" | "wins" | "joined" | "name";
 
 const SORTS: { key: SortKey; label: string }[] = [
-  { key: "points", label: "Очки" },
-  { key: "tournaments", label: "Турниры" },
+  { key: "tournaments", label: "Матчи" },
   { key: "wins", label: "Победы" },
   { key: "joined", label: "Регистрация" },
   { key: "name", label: "Имя" },
@@ -55,7 +55,7 @@ export function UsersManager({
   const [items, setItems] = React.useState<UserOverview[]>(initialItems);
   const [total, setTotal] = React.useState(initialTotal);
   const [page, setPage] = React.useState(0);
-  const [sort, setSort] = React.useState<SortKey>("points");
+  const [sort, setSort] = React.useState<SortKey>("tournaments");
   const [queryInput, setQueryInput] = React.useState("");
   const [query, setQuery] = React.useState(""); // дебаунс-значение, уходит на бэк
   const [loading, setLoading] = React.useState(false);
@@ -110,7 +110,7 @@ export function UsersManager({
   }, [queryInput]);
 
   // Загрузка страницы при изменении page/sort/query. Первый рендер — данные из пропсов
-  // (page 0, sort points, без поиска), запрос не шлём.
+  // (page 0, сортировка по матчам, без поиска), запрос не шлём.
   React.useEffect(() => {
     if (firstRun.current) {
       firstRun.current = false;
@@ -201,9 +201,8 @@ export function UsersManager({
                   <th className="px-4 py-3">Embark ID</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Регистрация</th>
-                  <th className="px-4 py-3 text-right">Турниров</th>
+                  <th className="px-4 py-3 text-right">Матчей</th>
                   <th className="px-4 py-3 text-right">Побед</th>
-                  <th className="px-4 py-3 text-right">Очки</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,9 +220,16 @@ export function UsersManager({
                           <div className="flex items-center gap-3">
                             <Avatar name={userName(u)} src={u.avatarUrl} size="sm" />
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="truncate font-display uppercase">{userName(u)}</span>
-                                <Badge kind={role.kind}>{role.label}</Badge>
+                                {(u.tags ?? []).map((t) => (
+                                  <TagBadge
+                                    key={t.id}
+                                    tag={t}
+                                    className={t.visible && !t.hiddenByUser ? "" : "opacity-50"}
+                                    title={!t.visible ? "на сайте скрыт" : t.hiddenByUser ? "игрок скрыл в профиле" : undefined}
+                                  />
+                                ))}
                               </div>
                               <div className="truncate text-xs text-muted">@{u.login}</div>
                             </div>
@@ -234,7 +240,6 @@ export function UsersManager({
                         <td className="px-4 py-3 text-muted">{u.createdAt ? fmtDate(u.createdAt) : "—"}</td>
                         <td className="px-4 py-3 text-right tnum">{u.tournaments}</td>
                         <td className="px-4 py-3 text-right tnum">{u.wins}</td>
-                        <td className="px-4 py-3 text-right tnum text-primary-2">{u.points}</td>
                       </tr>
                       {open && (
                         <tr className="border-b border-[var(--border)] last:border-0">
@@ -319,7 +324,7 @@ export function UsersManager({
                                   {prof.mmr1x1.bestWinStreak > 0 && <span>Вин-стрик <b className="tnum">{prof.mmr1x1.bestWinStreak}</b></span>}
                                 </div>
                                 <div className="text-xs uppercase tracking-wide text-muted">
-                                  Участие в турнирах · {prof.history.length}
+                                  Участие в матчах · {prof.history.length}
                                   {u.participations > u.tournaments ? ` · завершённых ${u.tournaments}` : ""}
                                 </div>
                                 {prof.history.map((h, i) => (
@@ -339,7 +344,12 @@ export function UsersManager({
                                       </div>
                                     </div>
                                     <div className="flex flex-none items-center gap-3">
-                                      <span className="font-display tnum text-primary-2">{h.points}</span>
+                                      {h.mmrDelta != null && h.mmrDelta !== 0 && (
+                                        <span className={`font-display text-sm tnum ${h.mmrDelta > 0 ? "text-ok" : "text-danger"}`}>
+                                          {h.mmrDelta > 0 ? "+" : ""}
+                                          {h.mmrDelta} MMR
+                                        </span>
+                                      )}
                                       {h.status === "finished" ? (
                                         h.win ? (
                                           <Badge kind="champ">Победа</Badge>
@@ -354,7 +364,7 @@ export function UsersManager({
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-sm text-muted">Пока не участвовал в турнирах.</p>
+                              <p className="text-sm text-muted">Пока не участвовал в матчах.</p>
                             )}
                           </td>
                         </tr>
