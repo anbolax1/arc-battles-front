@@ -13,25 +13,36 @@ const KINDS: Array<[TaskKind, string]> = [
   ["pvpve", "Для всех"],
 ];
 
+// Баллы храним строкой, чтобы поле можно было стереть и вписать заново.
 type Draft = {
   id?: string;
   name: string;
   text: string;
   kind: TaskKind;
   mapCode: string;
-  points: number;
+  points: string;
   active: boolean;
   source: "official" | "boosty";
   author: string;
   title: string;
 };
 
+const MIN_POINTS = 1;
+const MAX_POINTS = 10;
+
+/** Баллы из поля, если это целое в допустимых пределах; иначе null. */
+function draftPoints(v: string): number | null {
+  if (!/^\d+$/.test(v.trim())) return null;
+  const n = Number(v);
+  return n >= MIN_POINTS && n <= MAX_POINTS ? n : null;
+}
+
 const emptyDraft = (category: TaskCategory, kind: TaskKind, mapCode: string): Draft => ({
   name: "",
   text: "",
   kind,
   mapCode,
-  points: category === "protocol" ? 1 : 2,
+  points: category === "protocol" ? "1" : "2",
   active: true,
   source: "official",
   author: "",
@@ -92,9 +103,14 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
       setErr("Укажите описание задания.");
       return;
     }
+    const points = draftPoints(draft.points);
+    if (points === null) {
+      setErr(`Баллы — от ${MIN_POINTS} до ${MAX_POINTS}.`);
+      return;
+    }
     setBusy(true);
     setErr("");
-    const body = { ...draft, category, mapCode: category === "protocol" ? "" : draft.mapCode, valueType: "fixed" };
+    const body = { ...draft, points, category, mapCode: category === "protocol" ? "" : draft.mapCode, valueType: "fixed" };
     try {
       const saved = draft.id
         ? await api.patch<CatalogTask>(`/catalog/tasks/${draft.id}`, body)
@@ -268,7 +284,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                         text: t.text,
                         kind: t.kind,
                         mapCode: t.mapCode ?? "",
-                        points: t.points,
+                        points: String(t.points),
                         active: t.active,
                         source: t.source === "boosty" ? "boosty" : "official",
                         author: t.author ?? "",
@@ -348,11 +364,13 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                 <input
                   id="d-pts"
                   type="number"
-                  min={1}
-                  max={10}
+                  inputMode="numeric"
+                  min={MIN_POINTS}
+                  max={MAX_POINTS}
                   className="input"
+                  aria-invalid={draftPoints(draft.points) === null}
                   value={draft.points}
-                  onChange={(e) => setDraft({ ...draft, points: Math.max(1, Number(e.target.value) || 1) })}
+                  onChange={(e) => setDraft({ ...draft, points: e.target.value })}
                 />
               </div>
               <div className="space-y-1.5">

@@ -32,6 +32,54 @@ function fromDateInput(v: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+// Пределы правил рейтинга - те же, что проверяет сервер.
+const K_MIN = 1;
+const K_MAX = 400;
+const START_MIN = 1;
+const START_MAX = 10000;
+
+/** Целое из поля в заданных пределах; иначе null. */
+function parseIntIn(v: string, min: number, max: number): number | null {
+  if (!/^\d+$/.test(v.trim())) return null;
+  const n = Number(v);
+  return n >= min && n <= max ? n : null;
+}
+
+/** Поле правила рейтинга. Значение хранится строкой, чтобы его можно было стереть и вписать заново. */
+function RuleField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  max: number;
+  onChange: (v: string) => void;
+}) {
+  const invalid = parseIntIn(value, min, max) === null;
+  return (
+    <label className="block text-sm">
+      <span className="text-muted">{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        className="input mt-1 w-full"
+        aria-invalid={invalid}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <span className={`mt-1 block text-xs ${invalid ? "text-danger" : "text-muted"}`}>
+        от {min} до {max}
+      </span>
+    </label>
+  );
+}
+
 /** Управление сезонами рейтинга. «Начать новый» завершает текущий активный и открывает новый.
     Турниры авто-привязываются к активному сезону; рейтинг считается в его рамках. */
 export function SeasonsManager({ initial }: { initial: Season[] }) {
@@ -43,21 +91,23 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
   const [eName, setEName] = React.useState("");
   const [eStart, setEStart] = React.useState("");
   const [eEnd, setEEnd] = React.useState("");
-  const [eK, setEK] = React.useState(100);
-  const [eStartMmr, setEStartMmr] = React.useState(1000);
-  const [newK, setNewK] = React.useState(100);
-  const [newStartMmr, setNewStartMmr] = React.useState(1000);
+  const [eK, setEK] = React.useState("100");
+  const [eStartMmr, setEStartMmr] = React.useState("1000");
+  const [newK, setNewK] = React.useState("100");
+  const [newStartMmr, setNewStartMmr] = React.useState("1000");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
 
   const active = seasons.find((s) => s.status === "active");
+  const newRule = { k: parseIntIn(newK, K_MIN, K_MAX), start: parseIntIn(newStartMmr, START_MIN, START_MAX) };
+  const editRule = { k: parseIntIn(eK, K_MIN, K_MAX), start: parseIntIn(eStartMmr, START_MIN, START_MAX) };
 
   async function startNew() {
-    if (!name.trim()) return;
+    if (!name.trim() || newRule.k === null || newRule.start === null) return;
     setBusy(true);
     setError("");
     try {
-      const created = await api.post<Season>("/seasons", { name: name.trim(), kFactor: newK, startMmr: newStartMmr });
+      const created = await api.post<Season>("/seasons", { name: name.trim(), kFactor: newRule.k, startMmr: newRule.start });
       // активный стал finished, новый — активный; перезагрузим список с сервера для актуальности
       const list = await api.get<Season[]>("/seasons");
       setSeasons(list);
@@ -91,13 +141,13 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
     setEName(s.name);
     setEStart(toDateInput(s.startedAt));
     setEEnd(toDateInput(s.endedAt));
-    setEK(s.kFactor || 100);
-    setEStartMmr(s.startMmr || 1000);
+    setEK(String(s.kFactor || 100));
+    setEStartMmr(String(s.startMmr || 1000));
     setError("");
   }
 
   async function saveEdit() {
-    if (!editing || !eName.trim() || !eStart) return;
+    if (!editing || !eName.trim() || !eStart || editRule.k === null || editRule.start === null) return;
     const startedAt = fromDateInput(eStart);
     // Дата окончания необязательна для любого сезона (пусто = не задана).
     const endedAt = fromDateInput(eEnd);
@@ -112,8 +162,8 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
         name: eName.trim(),
         startedAt,
         endedAt,
-        kFactor: eK,
-        startMmr: eStartMmr,
+        kFactor: editRule.k,
+        startMmr: editRule.start,
       });
       setSeasons((prev) => prev.map((s) => (s.id === upd.id ? upd : s)));
       setEditing(null);
@@ -203,7 +253,12 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirm(false)}>
               <span>Отмена</span>
             </button>
-            <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={startNew}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={busy || newRule.k === null || newRule.start === null}
+              onClick={startNew}
+            >
               <span>{busy ? "Создаём…" : "Начать"}</span>
             </button>
           </>
@@ -214,21 +269,8 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
           Новые матчи пойдут в него. Прошлые сезоны и их таблицы остаются доступны на /rating.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="block text-sm">
-            <span className="text-muted">K-фактор Эло</span>
-            <input type="number" min={1} max={400} className="input mt-1 w-full" value={newK} onChange={(e) => setNewK(Number(e.target.value) || 100)} />
-          </label>
-          <label className="block text-sm">
-            <span className="text-muted">Стартовый MMR</span>
-            <input
-              type="number"
-              min={1}
-              max={10000}
-              className="input mt-1 w-full"
-              value={newStartMmr}
-              onChange={(e) => setNewStartMmr(Number(e.target.value) || 1000)}
-            />
-          </label>
+          <RuleField label="K-фактор Эло" value={newK} min={K_MIN} max={K_MAX} onChange={setNewK} />
+          <RuleField label="Стартовый MMR" value={newStartMmr} min={START_MIN} max={START_MAX} onChange={setNewStartMmr} />
         </div>
         {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       </Modal>
@@ -274,7 +316,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={busy || !eName.trim() || !eStart}
+              disabled={busy || !eName.trim() || !eStart || editRule.k === null || editRule.start === null}
               onClick={saveEdit}
             >
               <span>{busy ? "Сохраняем…" : "Сохранить"}</span>
@@ -303,21 +345,8 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
           </div>
           <p className="text-xs text-muted">Дату окончания можно оставить пустой.</p>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-sm">
-              <span className="text-muted">K-фактор Эло</span>
-              <input type="number" min={1} max={400} className="input mt-1 w-full" value={eK} onChange={(e) => setEK(Number(e.target.value) || 100)} />
-            </label>
-            <label className="block text-sm">
-              <span className="text-muted">Стартовый MMR</span>
-              <input
-                type="number"
-                min={1}
-                max={10000}
-                className="input mt-1 w-full"
-                value={eStartMmr}
-                onChange={(e) => setEStartMmr(Number(e.target.value) || 1000)}
-              />
-            </label>
+            <RuleField label="K-фактор Эло" value={eK} min={K_MIN} max={K_MAX} onChange={setEK} />
+            <RuleField label="Стартовый MMR" value={eStartMmr} min={START_MIN} max={START_MAX} onChange={setEStartMmr} />
           </div>
           <p className="text-xs text-muted">Если поменять K или стартовый MMR, рейтинг сезона пересчитается по всем его матчам.</p>
           {error && <p className="text-sm text-danger">{error}</p>}
