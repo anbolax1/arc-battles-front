@@ -21,7 +21,7 @@ const NO_APPLICANTS = new Set<string>();
 
 /** Откуда у тега держатели: роль и победа в сезоне выдаются сами. */
 function autoNote(t: Tag): string {
-  if (t.role) return `есть у всех с этой ролью · ${t.holderCount}`;
+  if (t.role) return `есть у всех с этой ролью и выше · ${t.holderCount}`;
   if (t.seasonId) return `выдаётся победителю «${t.seasonName}» сам`;
   return "";
 }

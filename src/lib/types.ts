@@ -39,7 +39,7 @@ export interface TagHolder {
   displayName: string;
 }
 
-/** Тег в кабинете вместе с теми, кому он выдан. Тег с ролью есть у всех с этой ролью,
+/** Тег в кабинете вместе с теми, кому он выдан. Тег с ролью есть у всех с этой ролью и выше,
     тег с сезоном выдаётся сам победителю сезона. */
 export interface Tag extends UserTag {
   role?: Role;
@@ -123,6 +123,7 @@ export interface LeaderboardRow {
   points: number; // сумма набранных баллов за сезон (вторично)
   wins: number;
   tournaments: number;
+  tags?: UserTag[]; // теги, видные на сайте
 }
 
 /** Игрок в составе команды 2×2 (для командного лидерборда). */
@@ -131,6 +132,7 @@ export interface TeamMember {
   login: string;
   displayName: string;
   avatarUrl: string;
+  tags?: UserTag[]; // теги, видные на сайте
 }
 
 /** Строка рейтинга 2×2 по КОМАНДАМ (пара игроков = команда с одним MMR).

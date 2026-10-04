@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { LeaderboardRow } from "@/lib/types";
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PublicTags } from "@/components/ui/tag-badge";
 import { cn } from "@/lib/cn";
 
 function WinLossBar({ wins, total }: { wins: number; total: number }) {
@@ -25,7 +26,7 @@ export interface LeaderboardTableProps {
   rows: LeaderboardRow[];
   /** 2×2 показывает «Состав» вместо «Игрок» в заголовке. */
   kind?: "1x1" | "2x2";
-  /** Компактный вид для главной (топ-5, без энергобара). */
+  /** Компактный вид для главной (топ-5, без энергобара и тегов). */
   compact?: boolean;
   limit?: number;
 }
@@ -75,8 +76,11 @@ export function LeaderboardTable({ rows, kind = "1x1", compact = false, limit }:
                     size="sm"
                   />
                   <div className="min-w-0">
-                    <div className="truncate font-display text-sm uppercase leading-tight">
-                      {r.displayName || r.login}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="truncate font-display text-sm uppercase leading-tight">
+                        {r.displayName || r.login}
+                      </span>
+                      {!compact && <PublicTags tags={r.tags} />}
                     </div>
                     {r.login && <div className="truncate text-xs text-muted">@{r.login}</div>}
                   </div>

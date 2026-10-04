@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { TeamLeaderboardRow } from "@/lib/types";
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PublicTags } from "@/components/ui/tag-badge";
 import { cn } from "@/lib/cn";
 
 function WinLossBar({ wins, total }: { wins: number; total: number }) {
@@ -69,6 +70,7 @@ export function TeamLeaderboardTable({ rows }: { rows: TeamLeaderboardRow[] }) {
                     >
                       <Avatar name={m.displayName || m.login} src={m.avatarUrl} tone={toneByIndex(i + mi)} size="sm" />
                       <span className="truncate">{m.displayName || m.login}</span>
+                      <PublicTags tags={m.tags} />
                     </Link>
                   ))}
                 </div>
