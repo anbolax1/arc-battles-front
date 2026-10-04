@@ -90,9 +90,20 @@ export interface Tournament {
   updatedAt: string;
   participantCount?: number;
   hasSpace?: boolean;
+  /** В списках: стороны по порядку со счётом. */
+  score?: SideScore[];
+  /** В списках: карты по раундам; у сыгранного матча - только сыгранные. */
+  roundMaps?: string[];
   participants?: Participant[];
   rounds?: Round[];
   mmrChanges?: ParticipantMmr[]; // изменение MMR сторон за этот матч (для завершённых)
+}
+
+/** Сторона матча в списках: имя, очки и победила ли она. */
+export interface SideScore {
+  name: string;
+  points: number;
+  winner?: boolean;
 }
 
 /** Изменение MMR стороны за конкретный матч (страница турнира). */

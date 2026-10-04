@@ -7,7 +7,8 @@ import { TournamentStatusPill } from "./tournament-status-pill";
 /** Карточка завершённого турнира для сетки архива. */
 export function ArchiveCard({ t }: { t: Tournament }) {
   const name = tournamentName(t);
-  const maps = t.maps?.length ? t.maps.join(" · ") : "—";
+  const list = t.roundMaps?.length ? t.roundMaps : t.maps;
+  const maps = list?.length ? list.join(" · ") : "—";
 
   return (
     <Link
