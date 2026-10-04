@@ -2,58 +2,125 @@ import type { LiveStanding } from "@/lib/types";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
-function Side({ s, focused, align, showRound }: { s: LiveStanding; focused: boolean; align: "left" | "right"; showRound: boolean }) {
-  // 2×2: имя команды «Ник1 & Ник2» — в две строки; длинные ники обрезаются.
+type Tone = "a" | "b";
+
+const TONE: Record<Tone, { text: string; bar: string; glow: string }> = {
+  a: { text: "text-primary-2", bar: "bg-[var(--primary)]", glow: "shadow-[0_0_16px_2px_rgba(255,106,26,0.6)]" },
+  b: { text: "text-accent", bar: "bg-[var(--accent)]", glow: "shadow-[0_0_16px_2px_rgba(34,211,238,0.55)]" },
+};
+
+function PlaceBadge({ place }: { place: number }) {
+  const medal =
+    place === 1
+      ? "bg-[var(--gold)] text-[#2a1a00]"
+      : place === 2
+        ? "bg-[var(--silver)] text-[#1b1f24]"
+        : place === 3
+          ? "bg-[var(--bronze)] text-[#2a1200]"
+          : "bg-white/12 text-fg";
+  return (
+    <span
+      className={`inline-flex h-6 min-w-[2rem] flex-none items-center justify-center rounded px-1.5 font-display text-xs leading-none tnum [text-shadow:none] ${medal}`}
+    >
+      #{place}
+    </span>
+  );
+}
+
+function Side({
+  s,
+  tone,
+  focused,
+  showRound,
+  showMmr,
+  showPlace,
+}: {
+  s: LiveStanding;
+  tone: Tone;
+  focused: boolean;
+  showRound: boolean;
+  showMmr: boolean;
+  showPlace: boolean;
+}) {
+  const right = tone === "b";
+  // 2×2: имя команды «Ник1 & Ник2» - в две строки; длинные ники обрезаются.
   const parts = (s.name || "—").split(/\s*&\s*/);
   const rp = s.roundPoints ?? 0;
+  const place = showPlace ? (s.place ?? 0) : 0;
+  const mmr = showMmr ? (s.mmr ?? 0) : 0;
+  const delta = showMmr ? (s.mmrDelta ?? 0) : 0;
+  const t = TONE[tone];
+
   return (
     <div
-      className={[
-        "flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5",
-        align === "right" ? "flex-row-reverse text-right" : "",
-        focused ? "shadow-[inset_0_-3px_0_var(--primary)]" : "",
-      ].join(" ")}
+      className={`relative flex min-w-0 flex-1 items-center gap-4 py-2.5 ${right ? "flex-row-reverse pl-4 pr-5 text-right" : "pl-5 pr-4"}`}
     >
-      <div className={`flex items-baseline gap-1.5 font-display leading-none ${focused ? "text-primary-2" : "text-fg"}`}>
-        <span className="text-4xl tnum sm:text-5xl">{s.points}</span>
-        {showRound && <span className="text-base tnum text-muted sm:text-lg">({rp >= 0 ? `+${rp}` : rp})</span>}
-      </div>
-      <div className="min-w-0">
-        {parts.map((n, i) => (
-          <div key={i} className={`truncate font-display text-base uppercase leading-tight sm:text-lg ${focused ? "" : "opacity-80"}`}>
-            {n}
+      <span className={`absolute inset-y-0 w-1 ${right ? "right-0" : "left-0"} ${t.bar} ${focused ? t.glow : "opacity-50"}`} />
+      <div className="min-w-0 flex-1">
+        <div className={`flex items-center gap-2.5 ${right ? "flex-row-reverse" : ""}`}>
+          {place > 0 && <PlaceBadge place={place} />}
+          <div className="min-w-0">
+            {parts.map((n, i) => (
+              <div key={i} className="truncate font-display text-lg uppercase leading-tight sm:text-xl">
+                {n}
+              </div>
+            ))}
           </div>
-        ))}
-        {focused && <div className="text-[0.6rem] font-semibold uppercase tracking-widest text-primary-2">● в рейде</div>}
+        </div>
+        {(mmr > 0 || focused) && (
+          <div
+            className={`mt-1 flex items-center gap-2.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
+          >
+            {mmr > 0 && (
+              <span className="tnum">
+                {mmr} MMR
+                {delta !== 0 && (
+                  <span className={delta > 0 ? "text-ok" : "text-danger"}> {delta > 0 ? `▲${delta}` : `▼${-delta}`}</span>
+                )}
+              </span>
+            )}
+            {focused && <span className={t.text}>● в рейде</span>}
+          </div>
+        )}
+      </div>
+      <div className={`flex flex-none items-baseline gap-1.5 font-display leading-none ${right ? "flex-row-reverse" : ""}`}>
+        <span className={`text-4xl tnum sm:text-5xl ${t.text}`}>{s.points}</span>
+        {showRound && <span className="text-base tnum text-muted sm:text-lg">({rp >= 0 ? `+${rp}` : rp})</span>}
       </div>
     </div>
   );
 }
 
-/** Виджет «Счёт»: VS-табло двух сторон + номер раунда по центру. Фокусная сторона
-    подсвечена. Извлечён из прежнего единого OverlayWidget. */
+/** Виджет «Счёт»: табло двух сторон, раунд по центру; по настройкам - MMR и места в таблице сезона. */
 export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const standings = state.standings ?? [];
   const focusedId = state.currentParticipantId ?? undefined;
-  const showRound = !!instance.showRoundScore;
+  const opts = {
+    showRound: !!instance.showRoundScore,
+    showMmr: !!instance.showMmr,
+    showPlace: !!instance.showPlace,
+  };
   const a = standings[0];
   const b = standings[1];
-  // Ровно 1 раунд на турнир — счётчик «N/M» бессмысленен, показываем только «VS».
+  // При единственном раунде счётчик «N/M» не нужен - по центру только «VS».
   const multiRound = (state.totalRounds ?? 1) > 1;
+  const finished = state.stage === "finished";
 
   return (
     <WidgetFrame instance={instance}>
-      <div className="flex items-stretch">
+      <div className="flex h-full items-stretch">
         {a ? (
-          <Side s={a} focused={a.participantId === focusedId} align="left" showRound={showRound} />
+          <Side s={a} tone="a" focused={!finished && a.participantId === focusedId} {...opts} />
         ) : (
-          <div className="flex-1 px-4 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
+          <div className="flex flex-1 items-center px-5 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
         )}
-        <div className="ov-fill-2 flex flex-col items-center justify-center gap-0.5 px-4 py-2">
-          {multiRound ? (
+        <div className="ov-fill-2 flex min-w-[5.5rem] flex-col items-center justify-center gap-1 px-4 py-2">
+          {finished ? (
+            <span className="font-display text-lg uppercase leading-none tracking-wider text-gold">Итог</span>
+          ) : multiRound ? (
             <>
               <span className="text-[0.6rem] uppercase tracking-[0.2em] text-muted">Раунд</span>
-              <span className="font-display text-xl leading-none tnum">
+              <span className="font-display text-2xl leading-none tnum">
                 {state.currentRound}
                 <span className="text-muted">/{state.totalRounds}</span>
               </span>
@@ -62,7 +129,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
             <span className="font-display text-xl leading-none text-muted">VS</span>
           )}
         </div>
-        {b ? <Side s={b} focused={b.participantId === focusedId} align="right" showRound={showRound} /> : <div className="flex-1" />}
+        {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} {...opts} /> : <div className="flex-1" />}
       </div>
     </WidgetFrame>
   );

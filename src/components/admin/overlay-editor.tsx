@@ -792,10 +792,20 @@ export function OverlayEditor({
           )}
 
           {sel.type === "scoreboard" && (
-            <SettingRow label="Счёт за раунд">
-              <Switch on={!!sel.showRoundScore} onChange={(v) => patch(sel.id, { showRoundScore: v })} title="показывать очки за текущий раунд в скобках у счёта" />
-              <span className="text-xs text-muted">{sel.showRoundScore ? "в скобках" : "скрыт"}</span>
-            </SettingRow>
+            <>
+              <SettingRow label="Счёт за раунд">
+                <Switch on={!!sel.showRoundScore} onChange={(v) => patch(sel.id, { showRoundScore: v })} title="показывать очки за текущий раунд в скобках у счёта" />
+                <span className="text-xs text-muted">{sel.showRoundScore ? "в скобках" : "скрыт"}</span>
+              </SettingRow>
+              <SettingRow label="Текущий MMR">
+                <Switch on={!!sel.showMmr} onChange={(v) => patch(sel.id, { showMmr: v })} title="показывать текущий MMR сторон" />
+                <span className="text-xs text-muted">{sel.showMmr ? "под ником" : "скрыт"}</span>
+              </SettingRow>
+              <SettingRow label="Место в таблице">
+                <Switch on={!!sel.showPlace} onChange={(v) => patch(sel.id, { showPlace: v })} title="показывать текущее место сторон в таблице сезона" />
+                <span className="text-xs text-muted">{sel.showPlace ? "рядом с ником" : "скрыто"}</span>
+              </SettingRow>
+            </>
           )}
 
           {sel.type === "bonusTasks" && (

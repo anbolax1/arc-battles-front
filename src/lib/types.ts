@@ -342,6 +342,12 @@ export interface LiveStanding {
   points: number;
   /** Очки за текущий раунд (для опции «счёт за раунд» в табло). */
   roundPoints?: number;
+  /** MMR сезона; после матча - уже с его итогом. */
+  mmr?: number;
+  /** Изменение MMR за завершённый матч. */
+  mmrDelta?: number;
+  /** Место в таблице 1×1 сезона; 0 - в сезоне ещё не играл. */
+  place?: number;
 }
 
 /** Полезная нагрузка оверлея (live_state). Усложнение (B3) — опциональное поле. */
@@ -422,6 +428,10 @@ export interface WidgetInstance {
   showRoundScore?: boolean;
   /** Контракты: показывать и контракты противника (что можно «украсть» за +1). */
   showOpponentContracts?: boolean;
+  /** Табло: показывать MMR сторон. */
+  showMmr?: boolean;
+  /** Табло: показывать места сторон в таблице сезона. */
+  showPlace?: boolean;
   /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
   anchor?: string;
   bg: OverlayBg;
