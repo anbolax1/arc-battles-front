@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import { VideoPlayer } from "@/components/domain/video-player";
 import { CloseIcon } from "@/components/icons";
@@ -147,7 +148,7 @@ export function HighlightsWall({ items }: { items: Highlight[] }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((h) => (
-          <Tile key={h.id} h={h} autoplay={desktop} onOpen={setActive} />
+          <Tile key={h.id} h={h} autoplay={desktop} onOpen={(x) => flushSync(() => setActive(x))} />
         ))}
       </div>
 
@@ -177,6 +178,7 @@ export function HighlightsWall({ items }: { items: Highlight[] }) {
                 className="aspect-video w-full"
                 src={active.videoUrl}
                 poster={active.thumbUrl || undefined}
+                autoPlay
               />
             )}
           </div>

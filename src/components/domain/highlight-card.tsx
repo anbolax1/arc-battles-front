@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { Avatar } from "@/components/ui/avatar";
 import { VideoPlayer } from "@/components/domain/video-player";
 import { fmtDate } from "@/lib/format";
@@ -27,11 +28,11 @@ export function HighlightCard({ h }: { h: Highlight }) {
         {!h.videoUrl ? (
           <div className="flex h-full items-center justify-center text-xs text-muted">видео недоступно</div>
         ) : open ? (
-          <VideoPlayer className="h-full w-full" src={h.videoUrl} poster={h.thumbUrl || undefined} />
+          <VideoPlayer className="h-full w-full" src={h.videoUrl} poster={h.thumbUrl || undefined} autoPlay />
         ) : (
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => flushSync(() => setOpen(true))}
             className="group relative block h-full w-full"
             aria-label="Смотреть хайлайт"
           >

@@ -43,10 +43,13 @@ export function VideoPlayer({
   src,
   poster,
   className,
+  autoPlay = false,
 }: {
   src: string;
   poster?: string;
   className?: string;
+  /** Плеер открыт кликом по превью: видео стартует сразу, без второго клика. */
+  autoPlay?: boolean;
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -62,6 +65,13 @@ export function VideoPlayer({
   const [isFs, setIsFs] = React.useState(false);
 
   const clickTimer = React.useRef<number | null>(null);
+
+  // Синхронно после монтирования: если родитель открыл плеер через flushSync в обработчике клика,
+  // play() ещё внутри жеста пользователя - иначе iOS не даст включить видео со звуком.
+  React.useLayoutEffect(() => {
+    if (autoPlay) void videoRef.current?.play().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   React.useEffect(() => {
     const onFs = () => setIsFs(document.fullscreenElement === containerRef.current);
