@@ -3,19 +3,9 @@
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
 import { mapImage } from "@/lib/match";
-import type { MapInfo, MatchState, Participant, VetoAction } from "@/lib/types";
+import type { MapInfo, MatchState, Participant, VetoStep } from "@/lib/types";
 
-/** Порядок пиков-банов 3 сезона: бан A, бан B, пик A (1-й раунд), бан B, бан A, оставшаяся - 2-й раунд. */
-const ORDER: Array<{ action: VetoAction["action"]; side: "A" | "B" | ""; round?: number }> = [
-  { action: "ban", side: "A" },
-  { action: "ban", side: "B" },
-  { action: "pick", side: "A", round: 1 },
-  { action: "ban", side: "B" },
-  { action: "ban", side: "A" },
-  { action: "rest", side: "", round: 2 },
-];
-
-function stepLabel(s: (typeof ORDER)[number]): string {
+function stepLabel(s: VetoStep): string {
   if (s.action === "ban") return `Бан ${s.side}`;
   if (s.action === "pick") return `Пик ${s.side} · раунд ${s.round}`;
   return `Остаток · раунд ${s.round}`;
@@ -41,11 +31,13 @@ export function VetoBoard({
   onStart: () => void;
 }) {
   const [manual, setManual] = React.useState<string[] | null>(null);
+  const order = st.vetoOrder ?? [];
   const turn = st.veto.length;
   const rounds = st.tournament.rounds ?? [];
   const ready = rounds.length > 0 && rounds.every((r) => r.map);
-  const vetoDone = turn >= ORDER.length || (ready && turn === 0);
-  const cur = vetoDone ? null : ORDER[turn];
+  const vetoDone = turn >= order.length || (ready && turn === 0);
+  const cur = vetoDone ? null : order[turn];
+  const rest = order.find((s) => s.action === "rest");
   const nameOf = (side: string) => (side === "A" ? sides[0]?.name : side === "B" ? sides[1]?.name : "") || side;
   const byCode = new Map(st.veto.map((v) => [v.mapCode, v]));
 
@@ -54,7 +46,7 @@ export function VetoBoard({
       <Panel className="space-y-4 p-5">
         <div className="space-y-1">
           <h3 className="font-display text-lg uppercase">Карты без пиков-банов</h3>
-          <p className="text-sm text-muted">Для шоуматча: выберите карту каждого раунда по порядку.</p>
+          <p className="text-sm text-muted">Если пики-баны прошли вне эфира: выберите карту каждого раунда по порядку.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {maps.map((m) => {
@@ -101,7 +93,7 @@ export function VetoBoard({
     <div className="space-y-4">
       <Panel className="flex flex-wrap items-center gap-x-8 gap-y-2 p-5" aria-live="polite">
         <div className="space-y-1">
-          <span className="field-label">{vetoDone ? "Карты определены" : `Ход ${turn + 1} из ${ORDER.length}`}</span>
+          <span className="field-label">{vetoDone ? "Карты определены" : `Ход ${turn + 1} из ${order.length}`}</span>
           <div
             className={`font-display text-2xl uppercase ${
               vetoDone ? "text-ok" : cur?.action === "ban" ? "text-danger" : "text-accent"
@@ -117,13 +109,13 @@ export function VetoBoard({
             ? "Задания на эти карты раздадутся сами, когда начнётся раунд."
             : cur?.action === "ban"
               ? "Убирает одну карту из пула."
-              : "Выбирает карту 1-го раунда. Последняя оставшаяся карта уйдёт во 2-й раунд."}
+              : `Выбирает карту ${cur?.round}-го раунда.${rest ? ` Последняя оставшаяся карта уйдёт в ${rest.round}-й раунд.` : ""}`}
         </p>
       </Panel>
 
       {!(ready && turn === 0) && (
         <ol className="flex flex-wrap gap-2">
-          {ORDER.map((s, i) => {
+          {order.map((s, i) => {
             const done = st.veto[i];
             const now = i === turn && !vetoDone;
             return (
@@ -148,6 +140,7 @@ export function VetoBoard({
           const v = byCode.get(m.code);
           const round = rounds.find((r) => r.mapCode === m.code)?.number;
           const banned = v?.action === "ban";
+          const unused = vetoDone && !v && !round;
           const disabled = busy || vetoDone || !!v;
           return (
             <button
@@ -158,9 +151,9 @@ export function VetoBoard({
               aria-label={v ? `${m.name}: ${banned ? "бан" : `раунд ${round}`}` : `${cur?.action === "ban" ? "Забанить" : "Выбрать"} ${m.name}`}
               className={`group relative h-40 overflow-hidden rounded-lg text-left transition ${
                 round ? "ring-2 ring-[var(--accent)]" : ""
-              } ${!disabled ? "hover:-translate-y-1" : ""} ${banned ? "opacity-50" : ""}`}
+              } ${!disabled ? "hover:-translate-y-1" : ""} ${banned || unused ? "opacity-50" : ""}`}
             >
-              <MapBg code={m.code} dim={banned} />
+              <MapBg code={m.code} dim={banned || unused} />
               <span
                 className={`absolute bottom-10 left-4 right-4 font-display text-lg uppercase drop-shadow ${banned ? "line-through" : ""}`}
               >
@@ -179,6 +172,10 @@ export function VetoBoard({
                   <span className="badge bg-black/60 text-fg opacity-80 group-hover:opacity-100">
                     <span>{cur?.action === "ban" ? "Нажмите — бан" : "Нажмите — пик"}</span>
                   </span>
+                ) : unused ? (
+                  <span className="badge bg-black/60 text-muted">
+                    <span>Не играется</span>
+                  </span>
                 ) : null}
               </span>
             </button>
@@ -191,7 +188,7 @@ export function VetoBoard({
           <span>↶ Отменить ход</span>
         </button>
         <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setManual([])}>
-          <span>Без пиков (шоуматч)</span>
+          <span>Карты вручную</span>
         </button>
         <span className="min-w-0 flex-1 text-xs text-muted">Зрители видят ходы в оверлее сразу (виджет «Пики-баны»).</span>
         <button type="button" className="btn btn-primary" disabled={busy || !ready} onClick={onStart}>

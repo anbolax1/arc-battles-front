@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
 import { StreamButtons } from "@/components/domain/stream-buttons";
-import { mapImage, matchSides, roundScore, stageLabel, totalScore } from "@/lib/match";
+import { isShowMatch, mapImage, matchSides, roundScore, stageLabel, totalScore } from "@/lib/match";
 import type { MatchState } from "@/lib/types";
 
 /** Блок матча на главной: идущий (со ссылкой на пульт для организатора) или последний сыгранный. */
@@ -16,6 +16,7 @@ export function CurrentMatch({ st, live, organizer }: { st: MatchState; live: bo
     <Panel glow className="space-y-5 p-6">
       <div className="flex flex-wrap items-center gap-3">
         {live ? <StatusPill status="live">Сейчас</StatusPill> : <StatusPill status="done">Последний матч</StatusPill>}
+        {isShowMatch(t) && <span className="chip chip-cyan"><span>Шоу-матч</span></span>}
         <span className="text-sm text-muted">{stageLabel(st.stage, st.currentRound || 1, rounds.length)}</span>
         <span className="chip"><span>{t.mode}</span></span>
         {t.ratingMultiplier === 2 && <span className="chip chip-cyan"><span>рейтинг ×2</span></span>}

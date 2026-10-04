@@ -48,7 +48,9 @@ export interface Tournament {
   mode: TournamentMode;
   playerType: PlayerType; // pve | pvp | pvpve
   status: TournamentStatus;
-  totalRounds: number; // матч 3 сезона - два раунда (рейда)
+  totalRounds: number; // матч 3 сезона - два раунда (рейда), шоу-матч - три
+  /** match - обычный матч, show - шоу-матч из расписания. */
+  format?: MatchFormat;
   ratingMultiplier: number; // жетон «×2 рейтинга»: 1 — обычный матч, 2 — считается за два (двойное Elo, W/L +2)
   maps: string[];
   startsAt?: string | null;
@@ -613,8 +615,17 @@ export interface RoundScore {
   points: number;
 }
 
-/** Стадия матча: пики-баны, карты готовы, идёт раунд, завершён. */
-export type MatchStage = "veto" | "ready" | "round" | "finished";
+/** Стадия матча: запланирован, пики-баны, карты готовы, идёт раунд, завершён. */
+export type MatchStage = "scheduled" | "veto" | "ready" | "round" | "finished";
+
+export type MatchFormat = "match" | "show";
+
+/** Ход в порядке пиков-банов: кто ходит, что делает и в какой раунд уходит карта. */
+export interface VetoStep {
+  action: "ban" | "pick" | "rest";
+  side: "A" | "B" | "";
+  round?: number;
+}
 
 /** Матч целиком: GET /api/tournaments/{id}/match. */
 export interface MatchState {
@@ -622,6 +633,7 @@ export interface MatchState {
   stage: MatchStage;
   currentRound: number;
   veto: VetoAction[];
+  vetoOrder: VetoStep[];
   tasks: RoundBonusTask[];
   legendary: LegendaryCompletion[];
   scores: RoundScore[];

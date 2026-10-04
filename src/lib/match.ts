@@ -1,7 +1,7 @@
 /* Расчёты по матчу 3 сезона для пульта, главной и страницы матча: стороны A/B, счёт по раундам,
    подписи стадий и превью карт. */
 
-import type { MatchStage, MatchState, Participant, RoundBonusTask } from "@/lib/types";
+import type { MatchStage, MatchState, Participant, RoundBonusTask, Tournament } from "@/lib/types";
 
 /** Превью карты по коду (картинки лежат в /public/maps). */
 export function mapImage(code?: string | null): string {
@@ -32,6 +32,8 @@ export function manualPoints(st: MatchState, round: number, participantId: strin
 
 export function stageLabel(stage: MatchStage, round: number, total: number): string {
   switch (stage) {
+    case "scheduled":
+      return "Запланирован";
     case "veto":
       return "Пики-баны";
     case "ready":
@@ -41,6 +43,15 @@ export function stageLabel(stage: MatchStage, round: number, total: number): str
     case "finished":
       return "Матч завершён";
   }
+}
+
+export function isShowMatch(t: Pick<Tournament, "format">): boolean {
+  return t.format === "show";
+}
+
+/** «2 раунда», «3 раунда», «1 раунд». */
+export function roundsLabel(n: number): string {
+  return n === 1 ? "1 раунд" : `${n} раунда`;
 }
 
 /** Набор на раунд по правилам 3 сезона: в первом - бесплатный, дальше - свой. */

@@ -11,10 +11,12 @@ import { ArrowLeftIcon, CheckIcon, TrophyIcon } from "@/components/icons";
 import { StreamButtons } from "@/components/domain/stream-buttons";
 import { fmtDate, fmtTime } from "@/lib/format";
 import {
+  isShowMatch,
   loadoutLabel,
   mapImage,
   matchSides,
   roundScore,
+  roundsLabel,
   taskDescription,
   taskKindLabel,
   taskTitle,
@@ -46,9 +48,10 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
       <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           <TournamentStatusPill status={t.status} />
+          {isShowMatch(t) && <Chip cyan>Шоу-матч</Chip>}
           <Chip dot>{t.mode}</Chip>
           <Chip cyan dot>
-            {rounds.length > 1 ? `${rounds.length} раунда` : "1 раунд"}
+            {roundsLabel(rounds.length || t.totalRounds)}
           </Chip>
           {t.ratingMultiplier === 2 && <Chip dot>рейтинг ×2</Chip>}
         </div>
@@ -64,13 +67,19 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
             Тип игроков: <span className="text-fg">{t.playerType.toUpperCase()}</span>
           </span>
         </div>
-        {t.status === "upcoming" && (
-          <div className="pt-1">
-            <Link href="/join" className="btn btn-primary">
-              <span>Записаться на турнир</span>
-            </Link>
-          </div>
-        )}
+        {t.status === "upcoming" &&
+          (isShowMatch(t) ? (
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <StreamButtons />
+              <span className="text-sm text-muted">Шоу-матч пройдёт в эфире у Дениса Блима.</span>
+            </div>
+          ) : (
+            <div className="pt-1">
+              <Link href="/join" className="btn btn-primary">
+                <span>Записаться на турнир</span>
+              </Link>
+            </div>
+          ))}
       </header>
 
       {t.status === "live" && (

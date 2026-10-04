@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError, errorText } from "@/lib/api";
 import { useOverlayFeed } from "@/lib/ws";
-import { matchSides, roundScore, stageLabel, totalScore } from "@/lib/match";
+import { isShowMatch, matchSides, roundScore, stageLabel, totalScore } from "@/lib/match";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -14,16 +14,29 @@ import { OverlayStage } from "@/components/overlay/overlay-stage";
 import { VetoBoard } from "@/components/admin/match/veto-board";
 import { RoundConsole } from "@/components/admin/match/round-console";
 import { MatchResult } from "@/components/admin/match/match-result";
+import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
 import type { CatalogLegendary, MapInfo, MatchState } from "@/lib/types";
 
 type Confirm = "finish" | "early" | "cancel" | null;
 
 const STEPS = ["Стороны", "Пики-баны", "Матч", "Итог"];
+const SHOW_STEPS = ["Анонс", "Пики-баны", "Матч", "Итог"];
 
 function stepIndex(stage: MatchState["stage"]): number {
+  if (stage === "scheduled") return 0;
   if (stage === "veto" || stage === "ready") return 1;
   if (stage === "round") return 2;
   return 3;
+}
+
+/** Матч, который уже идёт в эфире: сервер присылает его id в ответе 409. */
+function conflictMatchId(e: unknown): string {
+  if (!(e instanceof ApiError) || e.status !== 409) return "";
+  try {
+    return (JSON.parse(e.body) as { matchId?: string }).matchId ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /** Пульт матча: пики-баны, раунды с заданиями обеих сторон и итог на одной странице. */
@@ -42,6 +55,7 @@ export function MatchConsole({
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
   const [gone, setGone] = React.useState(false);
+  const [liveId, setLiveId] = React.useState("");
   const [confirm, setConfirm] = React.useState<Confirm>(null);
   const actions = React.useRef(0);
   const feed = useOverlayFeed();
@@ -74,6 +88,7 @@ export function MatchConsole({
     actions.current++;
     setBusy(true);
     setErr("");
+    setLiveId("");
     try {
       const next = await api.post<MatchState>(path, body);
       setSt(next);
@@ -82,6 +97,7 @@ export function MatchConsole({
       if (e instanceof ApiError && e.status === 404) setGone(true);
       else {
         setErr(errorText(e));
+        setLiveId(conflictMatchId(e));
         void refresh();
       }
       return null;
@@ -111,12 +127,15 @@ export function MatchConsole({
   const scoreA = totalScore(st, a?.id);
   const scoreB = totalScore(st, b?.id);
   const leader = scoreA === scoreB ? null : scoreA > scoreB ? a : b;
+  const show = isShowMatch(st.tournament);
   const pill =
     st.stage === "finished"
       ? ({ status: "ok", label: "Завершён" } as const)
       : st.stage === "round"
         ? ({ status: "live", label: "В эфире" } as const)
-        : ({ status: "soon", label: "Пики-баны" } as const);
+        : st.stage === "scheduled"
+          ? ({ status: "soon", label: "Запланирован" } as const)
+          : ({ status: "soon", label: "Пики-баны" } as const);
 
   if (gone) {
     return (
@@ -139,6 +158,7 @@ export function MatchConsole({
           </Link>
           <h2 className="truncate text-2xl sm:text-3xl">{st.tournament.title}</h2>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+            {show && <span className="chip chip-cyan"><span>Шоу-матч</span></span>}
             <span className="chip"><span>{st.tournament.mode}</span></span>
             <span className="chip"><span>{st.tournament.playerType.toUpperCase()}</span></span>
             {st.tournament.ratingMultiplier === 2 && <span className="chip chip-cyan"><span>рейтинг ×2</span></span>}
@@ -149,7 +169,7 @@ export function MatchConsole({
       </div>
 
       <ol className="flex flex-wrap gap-2" aria-label="Шаги матча">
-        {STEPS.map((label, i) => {
+        {(show ? SHOW_STEPS : STEPS).map((label, i) => {
           const cur = stepIndex(st.stage);
           const done = i < cur;
           return (
@@ -169,6 +189,17 @@ export function MatchConsole({
 
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-4">
+          {st.stage === "scheduled" && (
+            <ScheduledPanel
+              st={st}
+              sides={sides}
+              busy={busy}
+              onStart={() => run(`/tournaments/${id}/start`)}
+              onReschedule={(iso) => run(`/tournaments/${id}/schedule`, { startsAt: iso })}
+              onCancel={() => setConfirm("cancel")}
+            />
+          )}
+
           {(st.stage === "veto" || st.stage === "ready") && (
             <VetoBoard
               st={st}
@@ -235,7 +266,16 @@ export function MatchConsole({
 
           {st.stage === "finished" && <MatchResult st={st} sides={sides} />}
 
-          {err && <p className="text-sm text-danger">{err}</p>}
+          {err && (
+            <p className="text-sm text-danger">
+              {err}{" "}
+              {liveId && liveId !== id && (
+                <Link href={`/admin/matches/${liveId}`} className="text-accent underline">
+                  Открыть текущий матч
+                </Link>
+              )}
+            </p>
+          )}
         </div>
 
         <aside className="space-y-3">

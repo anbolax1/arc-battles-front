@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Tournament } from "@/lib/types";
 import { tournamentName } from "@/lib/display";
 import { fmtDay, fmtMonShort, fmtTime } from "@/lib/format";
+import { isShowMatch, roundsLabel } from "@/lib/match";
 import { TournamentStatusPill } from "./tournament-status-pill";
 
 /** Строка турнира в списке (расписание, «ближайшие»). Ведёт на деталку. */
@@ -23,7 +24,8 @@ export function TournamentRow({ t }: { t: Tournament }) {
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-display text-base uppercase sm:text-lg">{name}</h3>
         <div className="mt-1 truncate text-sm text-muted">
-          <span className="text-fg">{t.mode}</span> · 1 раунд
+          {isShowMatch(t) && <span className="text-accent">Шоу-матч · </span>}
+          <span className="text-fg">{t.mode}</span> · {roundsLabel(t.totalRounds || 1)}
           {t.startsAt && (
             <>
               {" · "}

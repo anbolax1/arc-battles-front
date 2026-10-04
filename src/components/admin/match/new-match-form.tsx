@@ -7,7 +7,7 @@ import { api, ApiError, errorText } from "@/lib/api";
 import { initials } from "@/lib/format";
 import { Panel } from "@/components/ui/card";
 import { PlayerPicker } from "@/components/admin/match/player-picker";
-import type { MatchPlayer, MatchState, PlayerType, Registration, User } from "@/lib/types";
+import type { MatchFormat, MatchPlayer, MatchState, PlayerType, Registration, User } from "@/lib/types";
 
 const PLAYER_TYPES: Array<[PlayerType, string]> = [
   ["pvp", "PvP"],
@@ -15,7 +15,7 @@ const PLAYER_TYPES: Array<[PlayerType, string]> = [
   ["pvpve", "PvPvE"],
 ];
 
-/** Кто станет стороной A (первой банит карту): новичок сезона или тот, у кого меньше MMR. */
+/** Кто станет стороной A (первой ходит в пиках-банах): новичок сезона или тот, у кого меньше MMR. */
 function orderSides(a: MatchPlayer, b: MatchPlayer): [MatchPlayer, MatchPlayer] {
   if (b.isNew && !a.isNew) return [b, a];
   if (a.isNew === b.isNew && b.mmr < a.mmr) return [b, a];
@@ -77,9 +77,20 @@ function SideCard({
   );
 }
 
-/** Новый матч: стороны, тип игроков и ×2 - и сразу к пикам-банам. */
-export function NewMatchForm() {
+/** Завтра в 20:00 по часам ведущего - в формате поля datetime-local. */
+function defaultShowTime(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(20, 0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Новый матч: стороны, тип игроков и ×2 - и сразу к пикам-банам; шоу-матч - в расписание на дату. */
+export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
   const router = useRouter();
+  const [format, setFormat] = React.useState<MatchFormat>(liveMatchId ? "show" : "match");
+  const [startsAt, setStartsAt] = React.useState(defaultShowTime);
   const [players, setPlayers] = React.useState<MatchPlayer[]>([]);
   const [pool, setPool] = React.useState<Registration[]>([]);
   const [first, setFirst] = React.useState<MatchPlayer | null>(null);
@@ -129,8 +140,13 @@ export function NewMatchForm() {
     }
   };
 
+  const show = format === "show";
   const create = async () => {
     if (!sideA || !sideB) return;
+    if (show && !startsAt) {
+      setErr("Укажите дату и время шоу-матча.");
+      return;
+    }
     setBusy(true);
     setErr("");
     setLiveId("");
@@ -139,6 +155,8 @@ export function NewMatchForm() {
         mode: "1x1",
         playerType,
         ratingMultiplier: mult,
+        format,
+        startsAt: show ? new Date(startsAt).toISOString() : undefined,
         sides: [{ userId: sideA.id }, { userId: sideB.id }],
       });
       router.push(`/admin/matches/${st.tournament.id}`);
@@ -161,6 +179,35 @@ export function NewMatchForm() {
   return (
     <div className="space-y-4">
       <Panel className="flex flex-wrap items-end gap-x-8 gap-y-4 p-5">
+        <div className="space-y-1.5">
+          <span className="field-label">Формат</span>
+          <div className="seg">
+            <button
+              type="button"
+              className={`seg-btn ${liveMatchId ? "opacity-50" : ""}`}
+              aria-pressed={!show}
+              disabled={!!liveMatchId}
+              title={liveMatchId ? "Сначала завершите текущий матч" : "Матч начнётся сразу"}
+              onClick={() => setFormat("match")}
+            >
+              <span>Матч</span>
+            </button>
+            <button type="button" className="seg-btn" aria-pressed={show} onClick={() => setFormat("show")}>
+              <span>Шоу-матч</span>
+            </button>
+          </div>
+        </div>
+        {show && (
+          <label className="space-y-1.5">
+            <span className="field-label">Начало</span>
+            <input
+              type="datetime-local"
+              className="input block"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+            />
+          </label>
+        )}
         <div className="space-y-1.5">
           <span className="field-label">Режим</span>
           <div className="seg">
@@ -197,7 +244,7 @@ export function NewMatchForm() {
       <div className="flex flex-col gap-4 lg:flex-row">
         <SideCard
           title="Игрок A"
-          hint="банит первым: меньше MMR или новичок"
+          hint="ходит первым: меньше MMR или новичок"
           player={sideA}
           tone="primary"
           applicant={!!sideA && applicants.has(sideA.id)}
@@ -256,12 +303,17 @@ export function NewMatchForm() {
             {sideA && sideB ? `${sideA.displayName || sideA.login} vs ${sideB.displayName || sideB.login}` : "Выберите обоих игроков"}
           </div>
           <div className="text-sm text-muted">
-            1×1 · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · 2 раунда · рейтинг ×{mult}
+            {show ? "Шоу-матч · " : ""}1×1 · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · {show ? "3 раунда" : "2 раунда"} ·
+            рейтинг ×{mult}
           </div>
-          <div className="text-xs text-muted">Название соберётся из ников, матч сразу станет текущим</div>
+          <div className="text-xs text-muted">
+            {show
+              ? "Появится в расписании; начать его можно из пульта, когда придёт время"
+              : "Название соберётся из ников, матч сразу станет текущим"}
+          </div>
         </div>
         <button type="button" className="btn btn-primary" disabled={!sideA || !sideB || busy} onClick={create}>
-          <span>{busy ? "Создаём…" : "Создать и перейти к пикам →"}</span>
+          <span>{busy ? "Создаём…" : show ? "Запланировать шоу-матч →" : "Создать и перейти к пикам →"}</span>
         </button>
       </Panel>
 
