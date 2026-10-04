@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ReactNode } from "react";
-import type { CatalogComplication, CatalogLegendary, CatalogTask } from "@/lib/types";
+import type { CatalogLegendary, CatalogTask, MapInfo } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -103,85 +103,102 @@ function LegendaryItem({ num, item }: { num: number; item: CatalogLegendary }) {
 
 export function RulesList({
   tasks,
-  complications,
   legendary = [],
+  maps = [],
 }: {
   tasks: CatalogTask[];
-  complications: CatalogComplication[];
   legendary?: CatalogLegendary[];
+  maps?: MapInfo[];
 }) {
   const [q, setQ] = React.useState("");
-  // Номер = позиция в общем списке (тот же порядок, что в кабинете и эфире).
-  const numTasks = tasks.map((t, i) => ({ ...t, num: i + 1 }));
-  const numComps = complications.map((c, i) => ({ ...c, num: i + 1 }));
+  const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
+  const active = tasks.filter((t) => t.active);
+  const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
+  const groupOrder = ["", ...maps.map((m) => m.code)];
+  // Номера идут подряд в порядке показа (общие, затем по картам), по ним ищут задание.
+  const poolTasks = active
+    .filter(
+      (t) =>
+        t.category !== "protocol" && (t.kind === pool || t.kind === "pvpve") && groupOrder.includes(t.mapCode ?? ""),
+    )
+    .sort((x, y) => groupOrder.indexOf(x.mapCode ?? "") - groupOrder.indexOf(y.mapCode ?? ""))
+    .map((t, i) => ({ ...t, num: i + 1, text: t.name ? `«${t.name}» — ${t.text}` : t.text }));
+  const groups = groupOrder
+    .map((code) => ({ code, items: poolTasks.filter((t) => (t.mapCode ?? "") === code && matches(t, q)) }))
+    .filter((g) => g.items.length);
+  const shownProtocols = active
+    .filter((t) => t.category === "protocol")
+    .map((t, i) => ({ ...t, num: i + 1, text: t.name ? `«${t.name}» — ${t.text}` : t.text }))
+    .filter((t) => matches(t, q));
   const numLegendary = legendary.map((l, i) => ({ item: l, num: i + 1, text: l.text }));
-  const shownTasks = numTasks.filter((t) => matches(t, q));
-  const shownComps = numComps.filter((c) => matches(c, q));
   const shownLegendary = numLegendary.filter((l) => matches(l, q));
 
   return (
     <div className="space-y-5">
-      <div className="relative max-w-md">
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Поиск по номеру или тексту…"
-          className="input pl-9"
-          aria-label="Поиск контрактов и протоколов"
-        />
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">⌕</span>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative w-full max-w-md">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Поиск по номеру или тексту…"
+            className="input pl-9"
+            aria-label="Поиск заданий и протоколов"
+          />
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">⌕</span>
+        </div>
+        <div className="seg">
+          {(["pvp", "pve"] as const).map((k) => (
+            <button key={k} type="button" className="seg-btn" aria-pressed={pool === k} onClick={() => setPool(k)}>
+              <span>{k === "pvp" ? "Задания PvP" : "Задания PvE"}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel glow className="p-6">
-          <div className="mb-4 flex items-baseline justify-between gap-3">
-            <h3 className="font-display text-lg uppercase">Контракты</h3>
-            <span className="text-xs text-muted">2 контракта на раунд</span>
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <Panel glow className="space-y-5 p-6">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-lg uppercase">Задания</h3>
+            <span className="text-xs text-muted">2 на раунд: общее и на карту раунда</span>
           </div>
-          {shownTasks.length ? (
-            <ul>
-              {shownTasks.map((t) => (
-                <CatalogItem
-                  key={t.id}
-                  num={t.num}
-                  text={t.text}
-                  // Контракт даёт фиксированные +2 балла (свой; чужой — +1, см. правила).
-                  pts="+2 балла"
-                  ptsTone="pts-cyan"
-                  meta={
-                    <>
-                      {KIND_LABEL[t.kind] && (
-                        <span className="chip">
-                          <span>{KIND_LABEL[t.kind]}</span>
-                        </span>
-                      )}
-                      <SourceTag source={t.source} author={t.author} title={t.title} />
-                    </>
-                  }
-                />
-              ))}
-            </ul>
+          {groups.length ? (
+            groups.map((g) => (
+              <div key={g.code || "universal"}>
+                <h4 className="font-display text-sm uppercase text-muted">{g.code ? mapName(g.code) : "Общие"}</h4>
+                <ul>
+                  {g.items.map((t) => (
+                    <CatalogItem
+                      key={t.id}
+                      num={t.num}
+                      text={t.text}
+                      pts={`+${pointsLabel(t.points)}`}
+                      ptsTone="pts-cyan"
+                      meta={<SourceTag source={t.source} author={t.author} title={t.title} />}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))
           ) : (
-            <EmptyState title={q ? "Ничего не найдено" : "Контрактов пока нет"} />
+            <EmptyState title={q ? "Ничего не найдено" : "Заданий пока нет"} />
           )}
         </Panel>
 
         <Panel glow className="p-6">
           <div className="mb-4 flex items-baseline justify-between gap-3">
             <h3 className="font-display text-lg uppercase">Протоколы</h3>
-            <span className="text-xs text-muted">1 на турнир</span>
+            <span className="text-xs text-muted">1 на раунд · до 15-й минуты</span>
           </div>
-          {shownComps.length ? (
+          {shownProtocols.length ? (
             <ul>
-              {shownComps.map((c) => (
+              {shownProtocols.map((c) => (
                 <CatalogItem
                   key={c.id}
                   num={c.num}
                   text={c.text}
-                  // Протокол не влияет на очки: штраф — минуты в рейде за нарушение.
-                  pts="−1 минута за нарушение"
-                  ptsTone="pts-minus"
+                  pts={`+${pointsLabel(c.points)}`}
+                  ptsTone="pts-orange"
                   meta={<SourceTag source={c.source} author={c.author} title={c.title} />}
                 />
               ))}
@@ -194,7 +211,7 @@ export function RulesList({
 
       <Panel glow className="p-6">
         <div className="mb-4 flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-lg uppercase">Легендарные контракты</h3>
+          <h3 className="font-display text-lg uppercase">Легендарные задания</h3>
           <span className="text-xs text-muted">10 баллов · один раз навсегда</span>
         </div>
         {shownLegendary.length ? (
@@ -204,7 +221,7 @@ export function RulesList({
             ))}
           </ul>
         ) : (
-          <EmptyState title={q ? "Ничего не найдено" : "Легендарных контрактов пока нет"} />
+          <EmptyState title={q ? "Ничего не найдено" : "Легендарных заданий пока нет"} />
         )}
       </Panel>
     </div>

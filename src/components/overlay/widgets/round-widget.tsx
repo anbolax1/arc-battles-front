@@ -1,11 +1,9 @@
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
-/** Виджет «Раунд»: отдельная плашка с номером текущего раунда (можно повесить
-    куда угодно отдельно от табло). При единственном раунде счётчик «N/M» не
-    показываем — только подпись «Раунд». */
+/** Виджет «Раунд»: номер текущего раунда и его карта. При единственном раунде
+    счётчик «N/M» не показываем. */
 export function RoundWidget({ state, instance }: WidgetProps) {
-  // Ровно 1 раунд на турнир — суффикс «/M» бессмысленен.
   const multiRound = (state.totalRounds ?? 1) > 1;
   return (
     <WidgetFrame instance={instance}>
@@ -15,6 +13,7 @@ export function RoundWidget({ state, instance }: WidgetProps) {
           {state.currentRound}
           {multiRound ? <span className="text-muted">/{state.totalRounds}</span> : null}
         </span>
+        {state.currentMap ? <span className="pt-1 text-xs uppercase tracking-wide text-accent">{state.currentMap}</span> : null}
       </div>
     </WidgetFrame>
   );

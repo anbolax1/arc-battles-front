@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getHighlights, getLeaderboard, getOverlayState, getTournaments } from "@/lib/queries";
-import { LiveBanner } from "@/components/domain/live-banner";
+import { getCurrentMatch, getHighlights, getLeaderboard, getMe, getTournaments } from "@/lib/queries";
+import { roleAtLeast } from "@/lib/roles";
+import { CurrentMatch } from "@/components/domain/current-match";
 import { HighlightsWall } from "@/components/domain/highlights-wall";
 import { LeaderboardTable } from "@/components/domain/leaderboard-table";
 import { TournamentRow } from "@/components/domain/tournament-row";
@@ -27,20 +28,32 @@ const QUICK = [
   { href: "/schedule", title: "Расписание", desc: "Когда ближайшие битвы", Icon: CalendarIcon },
   { href: "/rating", title: "Рейтинг", desc: "Таблица лидеров сезона", Icon: TrophyIcon },
   { href: "/archive", title: "Архив", desc: "Прошедшие турниры и VOD", Icon: PlayIcon },
-  { href: "/rules", title: "Правила", desc: "Контракты, протоколы, MMR", Icon: ScrollIcon },
+  { href: "/rules", title: "Правила", desc: "Задания, протоколы, MMR", Icon: ScrollIcon },
 ];
 
 export default async function HomePage() {
-  const [live, top, upcoming, hl] = await Promise.all([
-    getOverlayState(),
+  const [match, top, upcoming, hl, me] = await Promise.all([
+    getCurrentMatch(),
     getLeaderboard("1x1"),
     getTournaments("upcoming"),
     getHighlights({ random: true, limit: 3 }),
+    getMe(),
   ]);
   const nextMatches = [...upcoming].sort(byStartAsc).slice(0, 3);
+  const organizer = !!me && roleAtLeast(me.role, "superadmin");
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-16 px-6 py-12 sm:py-16">
+      {match.current && <CurrentMatch st={match.current} live organizer={organizer} />}
+      {!match.current && organizer && (
+        <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
+          <span className="text-sm text-muted">Сейчас матч не идёт.</span>
+          <Link href="/admin/matches" className="btn btn-primary btn-sm">
+            <span>Новый матч</span>
+          </Link>
+        </div>
+      )}
+
       {/* Герой */}
       <section className="space-y-6">
         <p className="eyebrow">Серия турниров · Arc Raiders · Live</p>
@@ -48,9 +61,9 @@ export default async function HomePage() {
           Сражайся за <span className="grad">респект</span> в прямом эфире
         </h1>
         <p className="max-w-2xl text-lg text-muted">
-          Турниры 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Контракты,
-          протоколы рейда и рейтинг по MMR — выходи на арену и забирай звание
-          Чемпиона.
+          Турниры 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Два раунда,
+          пики-баны карт, задания, протоколы и рейтинг по MMR — выходи на арену
+          и забирай звание Чемпиона.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
           <Link href="/join" className="btn btn-primary">
@@ -63,7 +76,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {live && <LiveBanner state={live} />}
+      {!match.current && match.last && <CurrentMatch st={match.last} live={false} organizer={organizer} />}
 
       {hl.items.length > 0 && <HighlightsWall items={hl.items} />}
 
