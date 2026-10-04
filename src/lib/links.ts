@@ -1,3 +1,4 @@
-/** Внешние ссылки проекта: каналы ведущего в Twitch и YouTube. */
+/** Внешние ссылки проекта: каналы ведущего. */
 export const STREAM_URL = "https://www.twitch.tv/denisblim";
 export const YOUTUBE_URL = "https://www.youtube.com/@denisblim";
+export const TELEGRAM_URL = "https://t.me/denisblim";
