@@ -219,10 +219,8 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
               MMR <span className="text-primary-2">{hp.mmr}</span>{" "}
               <span className={hp.delta >= 0 ? "text-accent" : "text-danger"}>({hp.delta >= 0 ? "+" : ""}{hp.delta})</span>
             </div>
-            <div className="text-muted">
-              {hp.correction ? "" : `${hp.map || "—"} · `}
-              {hp.date ? fmtDate(hp.date) : ""}
-            </div>
+            {!hp.correction && <div className="text-muted">{hp.map || "Карта не указана"}</div>}
+            {hp.date && <div className="text-muted">{fmtDate(hp.date)}</div>}
           </div>
         )}
       </div>
