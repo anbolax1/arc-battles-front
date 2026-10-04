@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { BoltIcon, DiscordIcon, TelegramIcon, TwitchIcon, YouTubeIcon } from "@/components/icons";
-import { STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
+import { BoltIcon, BoostyIcon, DiscordIcon, TelegramIcon, TwitchIcon, YouTubeIcon } from "@/components/icons";
+import { BOOSTY_URL, STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
 
 const LINKS = [
   { href: "/schedule", label: "Расписание" },
@@ -15,6 +15,7 @@ const SOCIALS = [
   { label: "YouTube", href: YOUTUBE_URL, Icon: YouTubeIcon, hover: "hover:text-[var(--youtube)]" },
   { label: "Telegram", href: TELEGRAM_URL, Icon: TelegramIcon, hover: "hover:text-[#29a9eb]" },
   { label: "Discord", href: "https://discord.gg/p5NsqPQMJr", Icon: DiscordIcon, hover: "hover:text-[#5865f2]" },
+  { label: "Boosty", href: BOOSTY_URL, Icon: BoostyIcon, hover: "hover:text-[var(--boosty)]" },
 ];
 
 export function SiteFooter() {

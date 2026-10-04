@@ -45,6 +45,14 @@ export function TelegramIcon(props: IconProps) {
   );
 }
 
+export function BoostyIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...props}>
+      <path fillRule="evenodd" d="M5 3h3.4v7.1a6 6 0 1 1-3.4 5.4V3Zm6 9.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
+    </svg>
+  );
+}
+
 export function YouTubeIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...props}>
