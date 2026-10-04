@@ -4,25 +4,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/admin", label: "Обзор", exact: true },
-  { href: "/admin/schedule", label: "Расписание" },
+  { href: "/admin/matches", label: "Матчи" },
+  { href: "/admin/overlay", label: "Оверлей" },
+  { href: "/admin/tasks", label: "Задания и протоколы" },
+  { href: "/admin/legendary", label: "Легендарки" },
   { href: "/admin/seasons", label: "Сезоны" },
+  { href: "/admin/users", label: "Игроки" },
+  { href: "/admin/registrations", label: "Заявки" },
+  { href: "/admin/highlights", label: "Хайлайты" },
+];
+
+/* Разделы старого пульта (один раунд, протоколы-штрафы) - для правок прошлых матчей. */
+const LEGACY = [
+  { href: "/admin/schedule", label: "Расписание" },
   { href: "/admin/live", label: "Эфир" },
   { href: "/admin/starter-tasks", label: "Основные задания" },
-  { href: "/admin/tasks", label: "Контракты" },
-  { href: "/admin/complications", label: "Протоколы" },
-  { href: "/admin/legendary", label: "Легендарные контракты" },
-  { href: "/admin/registrations", label: "Заявки" },
-  { href: "/admin/users", label: "Пользователи" },
-  { href: "/admin/highlights", label: "Хайлайты" },
+  { href: "/admin/complications", label: "Протоколы 2 сезона" },
 ];
 
 const SOON: string[] = [];
 
 export function AdminSidebar() {
   const pathname = usePathname() || "/admin";
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <aside className="w-full flex-none lg:w-52">
@@ -32,7 +36,18 @@ export function AdminSidebar() {
             key={l.href}
             href={l.href}
             className="side-link"
-            aria-current={isActive(l.href, l.exact) ? "page" : undefined}
+            aria-current={isActive(l.href) ? "page" : undefined}
+          >
+            {l.label}
+          </Link>
+        ))}
+        <div className="hidden px-3 pt-4 text-[0.62rem] uppercase tracking-wide text-muted lg:block">Старый пульт</div>
+        {LEGACY.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="side-link opacity-70"
+            aria-current={isActive(l.href) ? "page" : undefined}
           >
             {l.label}
           </Link>

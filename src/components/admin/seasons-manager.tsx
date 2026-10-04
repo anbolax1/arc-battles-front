@@ -43,6 +43,10 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
   const [eName, setEName] = React.useState("");
   const [eStart, setEStart] = React.useState("");
   const [eEnd, setEEnd] = React.useState("");
+  const [eK, setEK] = React.useState(100);
+  const [eStartMmr, setEStartMmr] = React.useState(1000);
+  const [newK, setNewK] = React.useState(100);
+  const [newStartMmr, setNewStartMmr] = React.useState(1000);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -53,7 +57,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
     setBusy(true);
     setError("");
     try {
-      const created = await api.post<Season>("/seasons", { name: name.trim() });
+      const created = await api.post<Season>("/seasons", { name: name.trim(), kFactor: newK, startMmr: newStartMmr });
       // активный стал finished, новый — активный; перезагрузим список с сервера для актуальности
       const list = await api.get<Season[]>("/seasons");
       setSeasons(list);
@@ -87,6 +91,8 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
     setEName(s.name);
     setEStart(toDateInput(s.startedAt));
     setEEnd(toDateInput(s.endedAt));
+    setEK(s.kFactor || 100);
+    setEStartMmr(s.startMmr || 1000);
     setError("");
   }
 
@@ -102,7 +108,13 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
     setBusy(true);
     setError("");
     try {
-      const upd = await api.patch<Season>(`/seasons/${editing.id}`, { name: eName.trim(), startedAt, endedAt });
+      const upd = await api.patch<Season>(`/seasons/${editing.id}`, {
+        name: eName.trim(),
+        startedAt,
+        endedAt,
+        kFactor: eK,
+        startMmr: eStartMmr,
+      });
       setSeasons((prev) => prev.map((s) => (s.id === upd.id ? upd : s)));
       setEditing(null);
     } catch (e) {
@@ -135,8 +147,8 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
       </div>
 
       <p className="max-w-2xl text-sm text-muted">
-        Новые турниры автоматически попадают в активный сезон, а рейтинг на сайте считается по его турнирам.
-        «Начать новый сезон» завершает текущий (его таблица замораживается, топ-1 становится чемпионом) и открывает следующий.
+        Новые матчи автоматически попадают в активный сезон. MMR считается внутри сезона: в начале у всех стартовый,
+        шаг Эло задаёт K (в 3 сезоне — 100). «Начать новый сезон» завершает текущий (его таблица замораживается) и открывает следующий.
       </p>
 
       <div className="panel overflow-hidden">
@@ -148,6 +160,9 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
                 <span>{s.status === "active" ? "Активный" : "Завершён"}</span>
               </span>
               <span className="font-display text-lg uppercase">{s.name}</span>
+              <span className="text-xs text-muted">
+                K {s.kFactor} · старт {s.startMmr}
+              </span>
               <span className="ml-auto text-xs text-muted">
                 {fmtDate(s.startedAt)}
                 {s.endedAt ? ` — ${fmtDate(s.endedAt)}` : " — …"}
@@ -198,6 +213,23 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
           Текущий сезон{active ? ` «${active.name}»` : ""} будет завершён (рейтинг заморозится), и откроется новый сезон «{name.trim()}».
           Новые турниры пойдут в него. Прошлые сезоны и их таблицы остаются доступны на /rating.
         </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <label className="block text-sm">
+            <span className="text-muted">K-фактор Эло</span>
+            <input type="number" min={1} max={400} className="input mt-1 w-full" value={newK} onChange={(e) => setNewK(Number(e.target.value) || 100)} />
+          </label>
+          <label className="block text-sm">
+            <span className="text-muted">Стартовый MMR</span>
+            <input
+              type="number"
+              min={1}
+              max={10000}
+              className="input mt-1 w-full"
+              value={newStartMmr}
+              onChange={(e) => setNewStartMmr(Number(e.target.value) || 1000)}
+            />
+          </label>
+        </div>
         {error && <p className="mt-3 text-sm text-danger">{error}</p>}
       </Modal>
 
@@ -270,6 +302,24 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             </div>
           </div>
           <p className="text-xs text-muted">Дату окончания можно оставить пустой.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="text-muted">K-фактор Эло</span>
+              <input type="number" min={1} max={400} className="input mt-1 w-full" value={eK} onChange={(e) => setEK(Number(e.target.value) || 100)} />
+            </label>
+            <label className="block text-sm">
+              <span className="text-muted">Стартовый MMR</span>
+              <input
+                type="number"
+                min={1}
+                max={10000}
+                className="input mt-1 w-full"
+                value={eStartMmr}
+                onChange={(e) => setEStartMmr(Number(e.target.value) || 1000)}
+              />
+            </label>
+          </div>
+          <p className="text-xs text-muted">Если поменять K или стартовый MMR, рейтинг сезона пересчитается по всем его матчам.</p>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </Modal>

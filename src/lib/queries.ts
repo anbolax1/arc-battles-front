@@ -8,11 +8,13 @@ import { serverFetch, serverGetOptional } from "@/lib/server-api";
 import { ApiError } from "@/lib/api";
 import type {
   CatalogLegendary,
+  CurrentMatchResponse,
+  MapInfo,
+  MatchState,
   LeaderboardResponse,
   LeaderboardRow,
   TeamLeaderboardResponse,
   TeamLeaderboardRow,
-  LiveState,
   PlayerProfile,
   TeamProfile,
   ClaimInfo,
@@ -94,16 +96,6 @@ export function getRules(): Promise<RulesResponse> {
 /** Легендарные контракты (глобальный пул со статусом и журналом). */
 export function getLegendary(): Promise<CatalogLegendary[]> {
   return safe("legendary", serverFetch<CatalogLegendary[]>("/legendary"), []);
-}
-
-/** Текущее состояние оверлея. null — если стейт не задан ({}) или бэк недоступен. */
-export async function getOverlayState(): Promise<LiveState | null> {
-  const s = await safe<Partial<LiveState> | null>(
-    "overlay/state",
-    serverFetch<Partial<LiveState>>("/overlay/state"),
-    null,
-  );
-  return s && s.tournamentName ? (s as LiveState) : null;
 }
 
 /** Публичный профиль игрока по логину. null — 404/ошибка. */
@@ -205,4 +197,25 @@ export function getMyRegistrations(): Promise<Registration[]> {
     serverFetch<Registration[]>("/me/registrations", { auth: true }),
     [],
   );
+}
+
+/** Идущий матч (или последний сыгранный, если сейчас никто не играет) - для главной и кабинета. */
+export function getCurrentMatch(): Promise<CurrentMatchResponse> {
+  return safe("matches/current", serverFetch<CurrentMatchResponse>("/matches/current"), { current: null, last: null });
+}
+
+/** Матч целиком: стороны, пики-баны, задания и счёт по раундам. null - если матча нет. */
+export async function getMatch(id: string): Promise<MatchState | null> {
+  try {
+    return await serverFetch<MatchState>(`/tournaments/${encodeURIComponent(id)}/match`);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    console.warn(`[queries] match(${id}): ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
+}
+
+/** Справочник карт с превью. */
+export function getMaps(): Promise<MapInfo[]> {
+  return safe("maps", serverFetch<MapInfo[]>("/maps"), []);
 }

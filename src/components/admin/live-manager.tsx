@@ -131,7 +131,7 @@ function PresetLinkRow({
 
 /** Ссылки на оверлей для OBS: общая (раскладка выбирается в редакторе) плюс своя
     на каждый пресет — чтобы вид оверлея переключался сценой OBS, а не кабинетом. */
-function OverlayLinks({ reloadSig }: { reloadSig: number }) {
+export function OverlayLinks({ reloadSig }: { reloadSig: number }) {
   const [origin, setOrigin] = React.useState("");
   const [presets, setPresets] = React.useState<OverlayPreset[]>([]);
   const [err, setErr] = React.useState("");

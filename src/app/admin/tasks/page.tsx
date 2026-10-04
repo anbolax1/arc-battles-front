@@ -1,9 +1,9 @@
-import { getRules } from "@/lib/queries";
-import { CatalogManager } from "@/components/admin/catalog-manager";
+import { getMaps, getRules } from "@/lib/queries";
+import { TasksCatalog } from "@/components/admin/tasks-catalog";
 
-export const metadata = { title: "Контракты — Кабинет" };
+export const metadata = { title: "Задания и протоколы — Кабинет" };
 
 export default async function AdminTasksPage() {
-  const { tasks } = await getRules();
-  return <CatalogManager kind="task" initial={tasks} />;
+  const [{ tasks }, maps] = await Promise.all([getRules(), getMaps()]);
+  return <TasksCatalog initial={tasks} maps={maps} />;
 }

@@ -38,6 +38,7 @@ export interface Round {
   tournamentId: string;
   number: number;
   map: string;
+  mapCode?: string;
   status: string;
 }
 
@@ -47,7 +48,7 @@ export interface Tournament {
   mode: TournamentMode;
   playerType: PlayerType; // pve | pvp | pvpve
   status: TournamentStatus;
-  totalRounds: number; // всегда 1 (один раунд = один рейд)
+  totalRounds: number; // матч 3 сезона - два раунда (рейда)
   ratingMultiplier: number; // жетон «×2 рейтинга»: 1 — обычный матч, 2 — считается за два (двойное Elo, W/L +2)
   maps: string[];
   startsAt?: string | null;
@@ -186,6 +187,8 @@ export interface TeamProfile {
   opponents: OpponentStat[];
 }
 
+export type TaskCategory = "task" | "protocol";
+
 export interface CatalogTask {
   id: string;
   text: string;
@@ -195,6 +198,13 @@ export interface CatalogTask {
   source: CatalogSource;
   author?: string;
   title?: string;
+  /** Название задания, например «Голыми руками». */
+  name?: string;
+  category: TaskCategory;
+  /** Задание на карту; пусто - универсальное. */
+  mapCode?: string;
+  /** Выключенные не раздаются, но остаются в истории матчей. */
+  active: boolean;
 }
 
 export interface CatalogComplication {
@@ -245,6 +255,9 @@ export interface RoundBonusTask {
   kind: TaskKind;
   times: number;
   completedBy?: string | null;
+  name?: string;
+  category: TaskCategory;
+  mapCode?: string;
 }
 
 /** Протокол стороны в раунде. times — число нарушений (= минут штрафа в рейде; на очки НЕ влияет). */
@@ -283,6 +296,10 @@ export interface LegendaryCompletion {
   map?: string;
   completedAt: string;
   tournamentTitle?: string;
+  roundId?: string | null;
+  roundNumber?: number;
+  legendaryText?: string;
+  points?: number;
 }
 
 export interface LiveTask {
@@ -302,6 +319,20 @@ export interface LiveComplication {
   times?: number;
   /** Минуты штрафа (= times). Дублируется для явности в оверлее. */
   minutes?: number;
+  /** Протокол 3 сезона: награда за выполнение (+1); у старого протокола-штрафа нет. */
+  reward?: number;
+  /** Протокол 3 сезона выполнен. */
+  done?: boolean;
+}
+
+/** Ход пиков-банов в оверлее. */
+export interface LiveVeto {
+  mapCode: string;
+  mapName: string;
+  action: VetoActionKind;
+  side?: "A" | "B" | "";
+  sideName?: string;
+  round?: number;
 }
 
 /** Сторона матча в оверлее с суммарными очками (по всем раундам). */
@@ -336,6 +367,10 @@ export interface LiveState {
   complications?: LiveComplication[]; // усложнения обеих сторон
   /** Кастомизируемая раскладка модульного оверлея. Если нет — рендерится DEFAULT_LAYOUT. */
   layout?: OverlayLayout | null;
+  /** Карта текущего раунда. */
+  currentMap?: string;
+  stage?: MatchStage;
+  veto?: LiveVeto[];
 }
 
 /** Контракт стороны в оверлее (виджет «Контракты»). */
@@ -345,7 +380,8 @@ export interface LiveBonus {
   valueType: ValueType;
   times: number; // 0 — не зачтён, >0 — зачтён (подсветка)
   who?: string; // имя стороны-владельца
-  opponent?: boolean; // контракт противника фокусной стороны
+  opponent?: boolean; // задание противника фокусной стороны
+  category?: "task" | "map" | "protocol";
 }
 
 /** Типы виджетов модульного оверлея. */
@@ -357,7 +393,8 @@ export type WidgetType =
   | "roundTasks"
   | "bonusTasks"
   | "text"
-  | "logo";
+  | "logo"
+  | "veto";
 
 /** Фон (вкл/выкл + прозрачность 0..1) — для виджета и для сцены целиком. */
 export interface OverlayBg {
@@ -522,6 +559,83 @@ export interface Season {
   startedAt: string;
   endedAt?: string | null;
   createdAt: string;
+  /** Шаг Эло в сезоне (в 3 сезоне - 100). */
+  kFactor: number;
+  /** MMR, с которого все начинают сезон. */
+  startMmr: number;
+}
+
+/** Карта из справочника: код, название и превью. */
+export interface MapInfo {
+  code: string;
+  name: string;
+  image: string;
+  sortOrder: number;
+}
+
+export type VetoActionKind = "ban" | "pick" | "rest";
+
+/** Ход пиков-банов матча. */
+export interface VetoAction {
+  seq: number;
+  action: VetoActionKind;
+  side: "A" | "B" | "";
+  mapCode: string;
+  mapName: string;
+  roundNumber?: number | null;
+}
+
+/** Запись журнала матча. */
+export interface MatchLogEntry {
+  id: string;
+  roundNumber: number;
+  participantId?: string | null;
+  kind: "task" | "points" | "legendary";
+  text: string;
+  delta: number;
+  createdAt: string;
+}
+
+/** Очки стороны за раунд. */
+export interface RoundScore {
+  roundNumber: number;
+  participantId: string;
+  points: number;
+}
+
+/** Стадия матча: пики-баны, карты готовы, идёт раунд, завершён. */
+export type MatchStage = "veto" | "ready" | "round" | "finished";
+
+/** Матч целиком: GET /api/tournaments/{id}/match. */
+export interface MatchState {
+  tournament: Tournament;
+  stage: MatchStage;
+  currentRound: number;
+  veto: VetoAction[];
+  tasks: RoundBonusTask[];
+  legendary: LegendaryCompletion[];
+  scores: RoundScore[];
+  manual: RoundScore[];
+  log: MatchLogEntry[];
+}
+
+/** GET /api/matches/current: идущий матч или, если никто не играет, последний сыгранный. */
+export interface CurrentMatchResponse {
+  current: MatchState | null;
+  last: MatchState | null;
+}
+
+/** Игрок для выбора стороны матча: MMR и счёт текущего сезона. */
+export interface MatchPlayer {
+  id: string;
+  login: string;
+  displayName: string;
+  mmr: number;
+  wins: number;
+  losses: number;
+  /** В текущем сезоне ещё не играл. */
+  isNew: boolean;
+  isPlaceholder: boolean;
 }
 
 /** Ответ GET /api/rules — ОБЁРНУТ в { tasks (контракты), complications (протоколы), legendary }. */
