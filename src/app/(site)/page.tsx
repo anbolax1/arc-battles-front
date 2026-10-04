@@ -4,9 +4,8 @@ import { roleAtLeast } from "@/lib/roles";
 import { CurrentMatch } from "@/components/domain/current-match";
 import { HighlightsWall } from "@/components/domain/highlights-wall";
 import { LeaderboardTable } from "@/components/domain/leaderboard-table";
-import { TournamentRow } from "@/components/domain/tournament-row";
+import { ShowMatchCard } from "@/components/domain/show-match-card";
 import { SectionHead } from "@/components/ui/section-head";
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   ArrowRightIcon,
   CalendarIcon,
@@ -15,6 +14,7 @@ import {
   TrophyIcon,
 } from "@/components/icons";
 import { StreamButtons } from "@/components/domain/stream-buttons";
+import { isShowMatch } from "@/lib/match";
 import type { Tournament } from "@/lib/types";
 
 function byStartAsc(a: Tournament, b: Tournament): number {
@@ -24,9 +24,9 @@ function byStartAsc(a: Tournament, b: Tournament): number {
 }
 
 const QUICK = [
-  { href: "/schedule", title: "Расписание", desc: "Когда ближайшие битвы", Icon: CalendarIcon },
+  { href: "/schedule", title: "Расписание", desc: "Анонсы шоу-матчей", Icon: CalendarIcon },
   { href: "/rating", title: "Рейтинг", desc: "Таблица лидеров сезона", Icon: TrophyIcon },
-  { href: "/archive", title: "Архив", desc: "Прошедшие турниры и VOD", Icon: PlayIcon },
+  { href: "/archive", title: "Архив", desc: "Сыгранные матчи и VOD", Icon: PlayIcon },
   { href: "/rules", title: "Правила", desc: "Задания, протоколы, MMR", Icon: ScrollIcon },
 ];
 
@@ -38,7 +38,7 @@ export default async function HomePage() {
     getHighlights({ random: true, limit: 3 }),
     getMe(),
   ]);
-  const nextMatches = [...upcoming].sort(byStartAsc).slice(0, 3);
+  const shows = upcoming.filter(isShowMatch).sort(byStartAsc);
   const organizer = !!me && roleAtLeast(me.role, "superadmin");
 
   return (
@@ -60,7 +60,7 @@ export default async function HomePage() {
           Сражайся за <span className="grad">респект</span> в прямом эфире
         </h1>
         <p className="max-w-2xl text-lg text-muted">
-          Турниры 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Два раунда,
+          Матчи 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Два раунда,
           пики-баны карт, задания, протоколы и рейтинг по MMR — выходи на арену
           и забирай звание Чемпиона.
         </p>
@@ -91,31 +91,13 @@ export default async function HomePage() {
         <LeaderboardTable rows={top} kind="1x1" compact limit={5} />
       </section>
 
-      {/* Ближайшие битвы */}
-      <section>
-        <SectionHead
-          eyebrow="Скоро"
-          title="Ближайшие битвы"
-          action={
-            <Link href="/schedule" className="btn btn-ghost btn-sm">
-              <span>Всё расписание</span>
-              <ArrowRightIcon />
-            </Link>
-          }
-        />
-        {nextMatches.length ? (
-          <div className="space-y-3">
-            {nextMatches.map((t) => (
-              <TournamentRow key={t.id} t={t} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="Ближайших турниров пока нет"
-            hint="Следи за анонсами — расписание скоро обновится."
-          />
-        )}
-      </section>
+      {/* Запланированный шоу-матч */}
+      {shows[0] && (
+        <section>
+          <SectionHead eyebrow="Скоро" title="Шоу-матч" />
+          <ShowMatchCard t={shows[0]} more={shows.length - 1} />
+        </section>
+      )}
 
       {/* Куда дальше */}
       <section>
@@ -145,7 +127,7 @@ export default async function HomePage() {
         <div className="space-y-2">
           <h2 className="text-2xl sm:text-3xl">Готов выйти на арену?</h2>
           <p className="max-w-xl text-muted">
-            Войди, укажи Embark ID в профиле и подай заявку на ближайший турнир.
+            Войди и подай заявку — организатор позовёт тебя на матч.
           </p>
         </div>
         <Link href="/join" className="btn btn-primary flex-none">

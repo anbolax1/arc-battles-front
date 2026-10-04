@@ -211,7 +211,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
       >
         <p className="text-sm text-muted">
           Текущий сезон{active ? ` «${active.name}»` : ""} будет завершён (рейтинг заморозится), и откроется новый сезон «{name.trim()}».
-          Новые турниры пойдут в него. Прошлые сезоны и их таблицы остаются доступны на /rating.
+          Новые матчи пойдут в него. Прошлые сезоны и их таблицы остаются доступны на /rating.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="block text-sm">
@@ -252,7 +252,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
         }
       >
         <p className="text-sm text-muted">
-          Сезон{toDelete ? ` «${toDelete.name}»` : ""} будет удалён. Его турниры <b>не удаляются</b> — они просто
+          Сезон{toDelete ? ` «${toDelete.name}»` : ""} будет удалён. Его матчи <b>не удаляются</b> — они просто
           отвяжутся от сезона и останутся в истории; в другие сезоны автоматически не попадут.
           {toDelete?.status === "active" && " Это активный сезон — после удаления активного не останется, пока вы не начнёте новый."}
         </p>

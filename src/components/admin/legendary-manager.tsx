@@ -355,7 +355,7 @@ export function LegendaryManager({
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="field-label" htmlFor="lc-tour">Турнир (необязательно)</label>
+            <label className="field-label" htmlFor="lc-tour">Матч (необязательно)</label>
             <select
               id="lc-tour"
               className="select"

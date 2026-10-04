@@ -11,8 +11,8 @@ import type { Registration } from "@/lib/types";
 
 const PREVIEW = 30;
 
-/** Общий пул заявок: кто подал раньше — выше. Постановка в турнир — в «Расписании»
-    (при добавлении участника); здесь можно только отклонить лишние. */
+/** Общий пул заявок: кто подал раньше - выше. В матч игроков ставят в форме нового матча,
+    здесь лишние заявки только отклоняют. */
 export function RegistrationsManager() {
   const [regs, setRegs] = React.useState<Registration[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -61,8 +61,8 @@ export function RegistrationsManager() {
         <div className="space-y-1">
           <h2 className="text-2xl">Заявки (пул)</h2>
           <p className="text-sm text-muted">
-            Общий список желающих сыграть. Кто подал раньше — выше. Чтобы поставить игрока в турнир,
-            открой «Расписание» → нужный турнир → «Из заявок».
+            Общий список желающих сыграть. Кто подал раньше — выше. Игроки из заявок стоят первыми
+            в форме нового матча — выбери их там.
           </p>
         </div>
         <span className="whitespace-nowrap text-sm text-muted">Всего: {regs.length}</span>

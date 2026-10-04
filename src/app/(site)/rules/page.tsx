@@ -18,7 +18,7 @@ export default async function RulesPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel className="p-6">
-          <h3 className="mb-3 font-display text-lg uppercase">Формат турнира</h3>
+          <h3 className="mb-3 font-display text-lg uppercase">Формат матча</h3>
           <p className="text-sm text-muted">
             Матч — два раунда, один раунд — один рейд. В первом раунде бесплатный набор,
             во втором — свой. Карты выбирают пиками-банами: бан A → бан B → пик A

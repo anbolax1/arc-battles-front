@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata = {
   title: "Архив — Битва за Респект",
-  description: "Прошедшие турниры по Arc Raiders: результаты и записи эфиров.",
+  description: "Сыгранные матчи турнира по Arc Raiders: результаты и записи эфиров.",
 };
 
 export default async function ArchivePage() {
@@ -13,7 +13,7 @@ export default async function ArchivePage() {
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-8 px-6 py-12 sm:py-16">
-      <SectionHead eyebrow="История" title="Прошедшие турниры" />
+      <SectionHead eyebrow="История" title="Сыгранные матчи" />
       {finished.length ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {finished.map((t) => (
@@ -23,7 +23,7 @@ export default async function ArchivePage() {
       ) : (
         <EmptyState
           title="Архив пока пуст"
-          hint="Здесь появятся завершённые турниры с результатами и VOD."
+          hint="Здесь появятся сыгранные матчи с результатами и VOD."
         />
       )}
     </div>

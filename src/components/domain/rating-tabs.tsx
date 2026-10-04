@@ -13,8 +13,8 @@ import type {
 import { LeaderboardTable } from "./leaderboard-table";
 import { TeamLeaderboardTable } from "./team-leaderboard-table";
 
-/** Рейтинг 1×1 (игроки) / 2×2 (команды) с выбором сезона. Дефолт — активный сезон;
-    «Все сезоны» = за всё время. При смене сезона догружает таблицы клиентом. */
+/** Рейтинг 1×1 (игроки) / 2×2 (команды) с выбором сезона, по умолчанию - текущий. MMR в каждом
+    сезоне начинается заново, поэтому таблицы «за всё время» нет. */
 export function RatingTabs({
   seasons,
   initialSolo,
@@ -26,7 +26,7 @@ export function RatingTabs({
 }) {
   const active = seasons.find((s) => s.status === "active");
   const [tab, setTab] = React.useState<TournamentMode>("1x1");
-  // "" — активный сезон (как пришло initial с сервера); "all" — за всё время; иначе id.
+  // "" - активный сезон (как пришло initial с сервера); "all" - только если активного нет; иначе id.
   const [seasonSel, setSeasonSel] = React.useState<string>(active ? "" : "all");
   const [solo, setSolo] = React.useState(initialSolo);
   const [duo, setDuo] = React.useState(initialDuo);
@@ -89,7 +89,6 @@ export function RatingTabs({
               {seasons.filter((s) => s.status === "finished").map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
-              <option value="all">Все сезоны</option>
             </select>
           </label>
         )}

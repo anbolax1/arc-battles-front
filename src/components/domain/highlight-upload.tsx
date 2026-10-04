@@ -166,7 +166,7 @@ export function HighlightUpload({
           {tournaments.length > 0 && (
             <div className="space-y-1.5">
               <label htmlFor="hl-tournament" className="text-xs uppercase tracking-wide text-muted">
-                Турнир (необязательно)
+                Матч (необязательно)
               </label>
               <select
                 id="hl-tournament"
@@ -177,7 +177,7 @@ export function HighlightUpload({
                 <option value="">— без привязки —</option>
                 {tournaments.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.title || "Турнир"}
+                    {t.title || "Матч"}
                   </option>
                 ))}
               </select>
