@@ -26,8 +26,37 @@ export function totalScore(st: MatchState, participantId?: string | null): numbe
   return st.scores.filter((s) => s.participantId === participantId).reduce((sum, s) => sum + s.points, 0);
 }
 
+/** Велся ли счёт: у матчей, перенесённых из таблицы, известен только победитель. */
+export function hasScore(st: MatchState): boolean {
+  return st.tasks.length > 0 || st.scores.some((s) => s.points !== 0);
+}
+
 export function manualPoints(st: MatchState, round: number, participantId: string): number {
   return st.manual.find((s) => s.roundNumber === round && s.participantId === participantId)?.points ?? 0;
+}
+
+/** Очки за чужое задание - столько же даёт сервер (ContractCrossPoints). */
+export const CROSS_POINTS = 1;
+
+export interface RoundBreakdown {
+  tasks: number;
+  cross: number;
+  manual: number;
+  legendary: number;
+}
+
+/** Из чего сложились очки стороны в раунде: свои задания, задания соперника, ручные и легендарки. */
+export function roundBreakdown(st: MatchState, round: number, participantId: string): RoundBreakdown {
+  const out: RoundBreakdown = { tasks: 0, cross: 0, manual: manualPoints(st, round, participantId), legendary: 0 };
+  for (const t of st.tasks) {
+    if (t.roundNumber !== round || t.completedBy !== participantId) continue;
+    if (t.participantId === participantId) out.tasks += t.points;
+    else out.cross += CROSS_POINTS;
+  }
+  for (const l of st.legendary) {
+    if (l.roundNumber === round && l.participantId === participantId) out.legendary += l.points ?? 0;
+  }
+  return out;
 }
 
 export function stageLabel(stage: MatchStage, round: number, total: number): string {

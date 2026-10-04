@@ -1,27 +1,80 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getHighlights, getMatch } from "@/lib/queries";
+import { getHighlights, getMatch, getMatchup } from "@/lib/queries";
 import { tournamentName } from "@/lib/display";
 import { HighlightsGrid } from "@/components/domain/highlights-grid";
+import { HeadToHead, MatchupPanel } from "@/components/domain/matchup-panel";
 import { TournamentStatusPill } from "@/components/domain/tournament-status-pill";
-import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { Panel } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
-import { ArrowLeftIcon, CheckIcon, TrophyIcon } from "@/components/icons";
+import { ArrowLeftIcon, CheckIcon } from "@/components/icons";
 import { StreamButtons } from "@/components/domain/stream-buttons";
 import { fmtDate, fmtTime } from "@/lib/format";
 import {
+  CROSS_POINTS,
+  hasScore,
   isShowMatch,
   loadoutLabel,
   mapImage,
   matchSides,
+  roundBreakdown,
   roundScore,
   roundsLabel,
   taskDescription,
   taskKindLabel,
   taskTitle,
-  totalScore,
 } from "@/lib/match";
+import type { MatchState, Participant } from "@/lib/types";
+
+/** Что сторона набрала в раунде: из чего сложились очки, задания с наградой и легендарки. */
+function RoundSide({ st, round, p, i }: { st: MatchState; round: number; p: Participant; i: number }) {
+  const b = roundBreakdown(st, round, p.id);
+  const parts = [
+    b.tasks && `задания +${b.tasks}`,
+    b.cross && `задания соперника +${b.cross}`,
+    b.manual && `ноки и ручные ${b.manual > 0 ? "+" : ""}${b.manual}`,
+    b.legendary && `легендарка +${b.legendary}`,
+  ].filter(Boolean);
+  const tasks = st.tasks.filter((x) => x.roundNumber === round && x.participantId === p.id);
+  const legendary = st.legendary.filter((l) => l.roundNumber === round && l.participantId === p.id);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className={`font-display text-xs uppercase ${i === 0 ? "text-primary-2" : "text-accent"}`}>{p.name}</span>
+        <span className="font-display text-lg tnum">{roundScore(st, round, p.id)}</span>
+      </div>
+      <p className="text-xs text-muted">{parts.length ? parts.join(" · ") : "очков пока нет"}</p>
+      {tasks.map((x) => {
+        const own = x.completedBy === x.participantId;
+        const byOpp = !!x.completedBy && !own;
+        return (
+          <div key={x.id} className={`flex gap-2.5 text-sm ${x.completedBy ? "" : "text-muted"}`}>
+            <span
+              className={`w-9 flex-none pt-0.5 text-right font-display text-xs tnum ${own ? "text-ok" : byOpp ? "text-accent" : "text-muted"}`}
+            >
+              {own ? `+${x.points}` : byOpp ? <CheckIcon className="ml-auto h-3.5 w-3.5" /> : x.points}
+            </span>
+            <div className="min-w-0">
+              <span className="mr-1 text-[0.65rem] uppercase text-muted">{taskKindLabel(x)}</span>«{taskTitle(x)}»
+              {taskDescription(x) && <span className="text-muted"> — {taskDescription(x)}</span>}
+              {byOpp && <span className="text-accent"> — выполнил соперник, +{CROSS_POINTS} ему</span>}
+            </div>
+          </div>
+        );
+      })}
+      {legendary.map((l) => (
+        <div key={l.id} className="flex gap-2.5 text-sm">
+          <span className="w-9 flex-none pt-0.5 text-right font-display text-xs tnum text-gold">+{l.points ?? 0}</span>
+          <div className="min-w-0">
+            <span className="mr-1 text-[0.65rem] uppercase text-gold">Легендарка</span>
+            {l.legendaryText ? `«${l.legendaryText}»` : ""}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default async function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,15 +82,14 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   if (!st) notFound();
   const t = st.tournament;
 
-  const { items: highlights } = await getHighlights({ tournamentId: id, limit: 6 });
+  const [{ items: highlights }, matchup] = await Promise.all([getHighlights({ tournamentId: id, limit: 6 }), getMatchup(id)]);
 
   const sides = matchSides(st);
   const rounds = [...(t.rounds ?? [])].sort((a, b) => a.number - b.number);
-  const winner = t.winnerParticipantId ? (t.participants ?? []).find((p) => p.id === t.winnerParticipantId) : null;
-  const mmrByPid = new Map((t.mmrChanges ?? []).map((c) => [c.participantId, c]));
   const time = fmtTime(t.startsAt);
   const played = t.status === "finished" || t.status === "live";
   const hasTasks = st.tasks.length > 0;
+  const scored = hasScore(st);
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-8 px-6 py-12 sm:py-16">
@@ -66,6 +118,11 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           <span>
             Тип игроков: <span className="text-fg">{t.playerType.toUpperCase()}</span>
           </span>
+          {matchup?.season && (
+            <span>
+              В зачёт: <span className="text-fg">{matchup.season.name}</span>
+            </span>
+          )}
         </div>
         {t.status === "upcoming" &&
           (isShowMatch(t) ? (
@@ -94,42 +151,9 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
         </Panel>
       )}
 
-      <Panel className="p-6">
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          {sides.map((p, i) => {
-            if (!p) return null;
-            const c = mmrByPid.get(p.id);
-            return (
-              <div key={p.id} className={`flex min-w-0 flex-1 items-center gap-4 ${i === 1 ? "flex-row-reverse text-right" : ""}`}>
-                <Avatar name={p.name} tone={toneByIndex(i)} />
-                <div className="min-w-0">
-                  <div className={`truncate font-display text-xl uppercase ${i === 0 ? "text-primary-2" : "text-accent"}`}>
-                    {p.name}
-                    {winner?.id === p.id && <TrophyIcon className="ml-2 inline h-5 w-5 text-gold" />}
-                  </div>
-                  {p.members?.length ? <div className="text-xs text-muted">{p.members.map((m) => m.name).join(" · ")}</div> : null}
-                  {c && (
-                    <div className="text-sm tnum text-muted">
-                      MMR {c.after}{" "}
-                      <span className={c.delta >= 0 ? "text-accent" : "text-danger"}>
-                        ({c.delta >= 0 ? "+" : ""}
-                        {c.delta})
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {played && (
-          <div className="mt-4 text-center font-display text-5xl leading-none tnum">
-            <span className="text-primary-2">{totalScore(st, sides[0]?.id)}</span>
-            <span className="mx-3 text-2xl text-muted">:</span>
-            <span className="text-accent">{totalScore(st, sides[1]?.id)}</span>
-          </div>
-        )}
-      </Panel>
+      <MatchupPanel st={st} matchup={matchup} />
+
+      <HeadToHead st={st} matchup={matchup} />
 
       {played && rounds.length > 0 && (
         <section className="space-y-4">
@@ -148,11 +172,12 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
                       <div className="font-display text-xs uppercase text-primary-2">
                         Раунд {r.number}
                         {rounds.length > 1 ? ` · ${loadoutLabel(r.number)}` : ""}
+                        {r.status === "live" ? " · идёт" : ""}
                       </div>
                       <div className="font-display text-lg uppercase">{r.map || "Карта не указана"}</div>
                     </div>
                     <span className="font-display text-3xl tnum">
-                      {r.status === "pending"
+                      {r.status === "pending" || !scored
                         ? "—"
                         : `${roundScore(st, r.number, sides[0]?.id)} : ${roundScore(st, r.number, sides[1]?.id)}`}
                     </span>
@@ -164,34 +189,18 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
                   </p>
                 )}
                 {hasTasks && r.status !== "pending" && (
-                  <div className="grid gap-3 p-4 sm:grid-cols-2">
-                    {sides.map((p, i) =>
-                      p ? (
-                        <div key={p.id} className="space-y-1.5">
-                          <div className={`font-display text-xs uppercase ${i === 0 ? "text-primary-2" : "text-accent"}`}>{p.name}</div>
-                          {st.tasks
-                            .filter((x) => x.roundNumber === r.number && x.participantId === p.id)
-                            .map((x) => {
-                              const done = !!x.completedBy;
-                              const own = x.completedBy === x.participantId;
-                              return (
-                                <div key={x.id} className={`text-sm ${done ? "" : "text-muted"}`}>
-                                  <span className="mr-1 text-[0.65rem] uppercase text-muted">{taskKindLabel(x)}</span>
-                                  {done && <CheckIcon className={`mr-1 inline h-3.5 w-3.5 ${own ? "text-ok" : "text-accent"}`} />}
-                                  «{taskTitle(x)}»
-                                  {taskDescription(x) && <span className="text-muted"> — {taskDescription(x)}</span>}
-                                  {done && !own && <span className="text-accent"> (выполнил соперник)</span>}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      ) : null,
-                    )}
+                  <div className="grid gap-5 p-4 sm:grid-cols-2">
+                    {sides.map((p, i) => (p ? <RoundSide key={p.id} st={st} round={r.number} p={p} i={i} /> : null))}
                   </div>
                 )}
               </div>
             ))}
           </div>
+          {hasTasks && (
+            <p className="text-xs text-muted">
+              Слева у задания — сколько очков оно даёт. Задание соперника тоже можно выполнить: это +{CROSS_POINTS}.
+            </p>
+          )}
         </section>
       )}
 

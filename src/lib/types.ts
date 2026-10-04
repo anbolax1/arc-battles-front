@@ -678,6 +678,40 @@ export interface MatchState {
   log: MatchLogEntry[];
 }
 
+/** Сторона матча для его страницы. У сыгранного матча mmr - рейтинг перед ним, у остальных - текущий,
+    вместе с местом и счётом в сезоне и тем, сколько MMR стоит на кону. */
+export interface MatchupSide {
+  participantId: string;
+  teamKey?: string;
+  players: TeamMember[];
+  /** 0 - неизвестен: матч не менял рейтинг. */
+  mmr: number;
+  place?: number;
+  wins: number;
+  losses: number;
+  isNew: boolean;
+  /** Шанс победы по MMR, проценты. */
+  winChance?: number;
+  winGain?: number;
+  lossDrop?: number;
+}
+
+/** Другая сыгранная встреча тех же сторон. winner: 0 - A, 1 - B, -1 - ничья. */
+export interface HeadToHeadMatch {
+  tournamentId: string;
+  date?: string | null;
+  winner: number;
+  map?: string;
+  games: number;
+}
+
+/** GET /api/tournaments/{id}/matchup: противостояние сторон для страницы матча. */
+export interface Matchup {
+  season?: { id: string; name: string; kFactor: number };
+  sides: MatchupSide[];
+  headToHead: { wins: [number, number]; draws: number; matches: HeadToHeadMatch[] };
+}
+
 /** GET /api/matches/current: идущий матч или, если никто не играет, последний сыгранный. */
 export interface CurrentMatchResponse {
   current: MatchState | null;

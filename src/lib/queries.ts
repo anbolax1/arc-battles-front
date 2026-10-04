@@ -11,6 +11,7 @@ import type {
   CurrentMatchResponse,
   MapInfo,
   MatchState,
+  Matchup,
   LeaderboardResponse,
   LeaderboardRow,
   TeamLeaderboardResponse,
@@ -213,6 +214,11 @@ export async function getMatch(id: string): Promise<MatchState | null> {
     console.warn(`[queries] match(${id}): ${e instanceof Error ? e.message : e}`);
     return null;
   }
+}
+
+/** Рейтинг сторон матча, что стоит на кону, и личные встречи. null - страница обойдётся без них. */
+export function getMatchup(id: string): Promise<Matchup | null> {
+  return safe(`matchup(${id})`, serverFetch<Matchup>(`/tournaments/${encodeURIComponent(id)}/matchup`), null);
 }
 
 /** Справочник карт с превью. */
