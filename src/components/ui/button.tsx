@@ -10,6 +10,7 @@ const buttonVariants = cva("btn", {
       cyan: "btn-cyan",
       danger: "btn-danger",
       twitch: "btn-twitch",
+      youtube: "btn-youtube",
     },
     size: { md: "", sm: "btn-sm" },
   },

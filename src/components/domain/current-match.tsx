@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
-import { TwitchIcon } from "@/components/icons";
-import { STREAM_URL } from "@/lib/links";
+import { StreamButtons } from "@/components/domain/stream-buttons";
 import { mapImage, matchSides, roundScore, stageLabel, totalScore } from "@/lib/match";
 import type { MatchState } from "@/lib/types";
 
@@ -80,12 +79,7 @@ export function CurrentMatch({ st, live, organizer }: { st: MatchState; live: bo
         <Link href={`/tournament/${t.id}`} className="btn btn-ghost btn-sm">
           <span>Страница матча</span>
         </Link>
-        {live && (
-          <a href={STREAM_URL} target="_blank" rel="noreferrer" className="btn btn-twitch btn-sm">
-            <TwitchIcon />
-            <span>Смотреть эфир</span>
-          </a>
-        )}
+        {live && <StreamButtons small />}
       </div>
     </Panel>
   );

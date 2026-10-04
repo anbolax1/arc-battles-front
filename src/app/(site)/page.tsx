@@ -13,9 +13,8 @@ import {
   PlayIcon,
   ScrollIcon,
   TrophyIcon,
-  TwitchIcon,
 } from "@/components/icons";
-import { STREAM_URL } from "@/lib/links";
+import { StreamButtons } from "@/components/domain/stream-buttons";
 import type { Tournament } from "@/lib/types";
 
 function byStartAsc(a: Tournament, b: Tournament): number {
@@ -69,10 +68,7 @@ export default async function HomePage() {
           <Link href="/join" className="btn btn-primary">
             <span>Записаться</span>
           </Link>
-          <a href={STREAM_URL} target="_blank" rel="noreferrer" className="btn btn-twitch">
-            <TwitchIcon />
-            <span>Смотреть эфир</span>
-          </a>
+          <StreamButtons />
         </div>
       </section>
 

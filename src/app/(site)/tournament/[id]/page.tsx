@@ -7,8 +7,8 @@ import { TournamentStatusPill } from "@/components/domain/tournament-status-pill
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { Panel } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
-import { ArrowLeftIcon, CheckIcon, TrophyIcon, TwitchIcon } from "@/components/icons";
-import { STREAM_URL } from "@/lib/links";
+import { ArrowLeftIcon, CheckIcon, TrophyIcon } from "@/components/icons";
+import { StreamButtons } from "@/components/domain/stream-buttons";
 import { fmtDate, fmtTime } from "@/lib/format";
 import {
   loadoutLabel,
@@ -79,10 +79,9 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
             <span className="live-dot" aria-hidden />
             <span className="font-display uppercase">Матч идёт в эфире</span>
           </div>
-          <a href={STREAM_URL} target="_blank" rel="noreferrer" className="btn btn-twitch btn-sm">
-            <TwitchIcon />
-            <span>Смотреть эфир</span>
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <StreamButtons small />
+          </div>
         </Panel>
       )}
 
