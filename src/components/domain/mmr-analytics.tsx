@@ -70,7 +70,7 @@ export function MapBreakdown({ maps }: { maps: MapStat[] }) {
       {maps.map((m) => (
         <div key={m.map} className="flex items-center gap-4 px-4 py-3">
           <div className="min-w-0 flex-1">
-            <div className="truncate font-display text-sm uppercase">{m.map || "Карта не указана"}</div>
+            <div className="truncate font-display text-sm uppercase">{m.map}</div>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
               <span className="block h-full rounded-full bg-[var(--primary-2)]" style={{ width: `${(m.games / max) * 100}%` }} />
             </div>

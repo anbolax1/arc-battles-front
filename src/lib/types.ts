@@ -205,6 +205,12 @@ export interface OpponentStat {
   losses: number;
 }
 
+/** Разбивка матчей одного сезона по картам и соперникам. */
+export interface SeasonAnalytics {
+  maps: MapStat[];
+  opponents: OpponentStat[];
+}
+
 /** Краткая карточка команды игрока (список команд в профиле). */
 export interface TeamSummary {
   teamKey: string;
@@ -546,8 +552,8 @@ export interface PlayerProfile {
   history: PlayerHistoryItem[];
   mmr1x1: MmrStats;
   timeline1x1: MmrPoint[];
-  maps1x1: MapStat[];
-  opponents1x1: OpponentStat[];
+  /** По картам и соперникам: ключ - id сезона, пусто - матчи вне сезонов. */
+  analytics1x1: Record<string, SeasonAnalytics>;
   teams: TeamSummary[];
 }
 

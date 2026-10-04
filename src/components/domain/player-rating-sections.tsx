@@ -44,9 +44,9 @@ function seasonStats(points: MmrPoint[], start: number): MmrStats {
 }
 
 /** Секции рейтинга, аналитики и команд игрока - общие для публичного профиля и личного кабинета.
-    В каждом сезоне MMR начинается заново, поэтому график и сводка - за выбранный сезон. */
+    В каждом сезоне MMR начинается заново, поэтому график, сводка и аналитика - за выбранный сезон. */
 export function PlayerRatingSections({ profile, seasons }: { profile: PlayerProfile; seasons: Season[] }) {
-  const { mmr1x1, timeline1x1, maps1x1, opponents1x1, teams } = profile;
+  const { mmr1x1, timeline1x1, analytics1x1, teams } = profile;
   const bySeason = React.useMemo(() => {
     const m = new Map<string, MmrPoint[]>();
     for (const p of timeline1x1) {
@@ -70,6 +70,7 @@ export function PlayerRatingSections({ profile, seasons }: { profile: PlayerProf
   const stats = current ? { ...base, currentMmr: mmr1x1.currentMmr, place: mmr1x1.place } : base;
   const played = timeline1x1.some((p) => !p.correction);
   const choices = options.length + (bySeason.has("") ? 1 : 0);
+  const analytics = analytics1x1?.[sel];
 
   return (
     <>
@@ -105,17 +106,19 @@ export function PlayerRatingSections({ profile, seasons }: { profile: PlayerProf
         </section>
       )}
 
-      {mmr1x1.games > 0 && (
+      {played && (
         <section className="space-y-4">
-          <h3 className="text-xl">Аналитика матчей 1×1</h3>
+          <h3 className="text-xl">
+            Аналитика матчей 1×1 <span className="text-muted">· {season ? season.name : "вне сезонов"}</span>
+          </h3>
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-3">
               <h4 className="font-display text-sm uppercase tracking-wide text-muted">По картам</h4>
-              <MapBreakdown maps={maps1x1} />
+              <MapBreakdown maps={analytics?.maps ?? []} />
             </div>
             <div className="space-y-3">
               <h4 className="font-display text-sm uppercase tracking-wide text-muted">Против кого играл</h4>
-              <HeadToHead opponents={opponents1x1} />
+              <HeadToHead opponents={analytics?.opponents ?? []} />
             </div>
           </div>
         </section>
