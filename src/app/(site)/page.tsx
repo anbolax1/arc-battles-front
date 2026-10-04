@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentMatch, getHighlights, getLeaderboard, getMe, getTournaments } from "@/lib/queries";
+import { getCurrentMatch, getHighlights, getLeaderboard, getMatchup, getMe, getTournaments } from "@/lib/queries";
 import { roleAtLeast } from "@/lib/roles";
 import { CurrentMatch } from "@/components/domain/current-match";
 import { HighlightsWall } from "@/components/domain/highlights-wall";
@@ -39,6 +39,7 @@ export default async function HomePage() {
     getMe(),
   ]);
   const shows = upcoming.filter(isShowMatch).sort(byStartAsc);
+  const showMatchup = shows[0] ? await getMatchup(shows[0].id) : null;
   const organizer = !!me && roleAtLeast(me.role, "superadmin");
 
   return (
@@ -72,6 +73,8 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {shows[0] && <ShowMatchCard t={shows[0]} matchup={showMatchup} more={shows.length - 1} />}
+
       {!match.current && match.last && <CurrentMatch st={match.last} live={false} organizer={organizer} />}
 
       {hl.items.length > 0 && <HighlightsWall items={hl.items} />}
@@ -90,14 +93,6 @@ export default async function HomePage() {
         />
         <LeaderboardTable rows={top} kind="1x1" compact limit={5} />
       </section>
-
-      {/* Запланированный шоу-матч */}
-      {shows[0] && (
-        <section>
-          <SectionHead eyebrow="Скоро" title="Шоу-матч" />
-          <ShowMatchCard t={shows[0]} more={shows.length - 1} />
-        </section>
-      )}
 
       {/* Куда дальше */}
       <section>

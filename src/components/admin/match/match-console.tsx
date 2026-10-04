@@ -15,6 +15,7 @@ import { VetoBoard } from "@/components/admin/match/veto-board";
 import { MatchLog, OverlayStatus, RoundConsole } from "@/components/admin/match/round-console";
 import { MatchResult } from "@/components/admin/match/match-result";
 import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
+import { putShowPreview } from "@/components/admin/match/show-preview";
 import type { CatalogLegendary, LiveState, MapInfo, MatchState } from "@/lib/types";
 
 type Confirm = "finish" | "early" | "cancel" | null;
@@ -125,14 +126,14 @@ export function MatchConsole({
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
-  function send(path: string, body?: unknown) {
+  function send(request: () => Promise<MatchState>) {
     actions.current++;
     setErr("");
     setLiveId("");
     setPending((n) => n + 1);
     return enqueue(async () => {
       try {
-        const next = await api.post<MatchState>(path, body);
+        const next = await request();
         setSt(next);
         return next;
       } catch (e) {
@@ -150,17 +151,19 @@ export function MatchConsole({
   }
 
   // Ход матча - раз за нажатие: второй «Следующий раунд» перескочил бы раунд. Гасит только свои кнопки.
-  async function run(path: string, body?: unknown) {
+  async function step(request: () => Promise<MatchState>) {
     if (stepping.current) return null;
     stepping.current = true;
     setBusy(true);
     try {
-      return await send(path, body);
+      return await send(request);
     } finally {
       stepping.current = false;
       setBusy(false);
     }
   }
+
+  const run = (path: string, body?: unknown) => step(() => api.post<MatchState>(path, body));
 
   // Зачёт кнопки не гасит: два нока подряд - это два «+3». Повтор по тому же заданию, пока первый
   // запрос не вернулся, отбрасываем - иначе задание попало бы в журнал дважды.
@@ -168,7 +171,7 @@ export function MatchConsole({
     if (key && inFlight.current.has(key)) return null;
     if (key) inFlight.current.add(key);
     try {
-      return await send(path, body);
+      return await send(() => api.post<MatchState>(path, body));
     } finally {
       if (key) inFlight.current.delete(key);
     }
@@ -266,6 +269,9 @@ export function MatchConsole({
           onStart={() => run(`/tournaments/${id}/start`)}
           onReschedule={(iso) => run(`/tournaments/${id}/schedule`, { startsAt: iso })}
           onCancel={() => setConfirm("cancel")}
+          onPrize={(prize) => run(`/tournaments/${id}/prize`, { prize })}
+          onPreview={(src) => step(() => putShowPreview(id, src))}
+          onPreviewRemove={() => step(() => api.del<MatchState>(`/tournaments/${id}/preview`))}
         />
       )}
 

@@ -7,6 +7,13 @@ import { api, ApiError, errorText } from "@/lib/api";
 import { initials } from "@/lib/format";
 import { Panel } from "@/components/ui/card";
 import { PlayerPicker } from "@/components/admin/match/player-picker";
+import {
+  MAX_PRIZE,
+  PreviewImage,
+  PreviewPicker,
+  putShowPreview,
+  useChosenPreview,
+} from "@/components/admin/match/show-preview";
 import type { MatchFormat, MatchPlayer, MatchState, PlayerType, Registration, User } from "@/lib/types";
 
 const PLAYER_TYPES: Array<[PlayerType, string]> = [
@@ -97,9 +104,13 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
   const [second, setSecond] = React.useState<MatchPlayer | null>(null);
   const [playerType, setPlayerType] = React.useState<PlayerType>("pvp");
   const [mult, setMult] = React.useState(1);
+  const [prize, setPrize] = React.useState("");
+  const [preview, choosePreview] = useChosenPreview();
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
   const [liveId, setLiveId] = React.useState("");
+  // Шоу-матч создан, а превью не загрузилось: повторное создание дало бы второй такой же матч.
+  const [createdId, setCreatedId] = React.useState("");
 
   React.useEffect(() => {
     api.get<MatchPlayer[]>("/match-players").then(setPlayers).catch(() => setErr("Не удалось загрузить игроков."));
@@ -157,8 +168,19 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
         ratingMultiplier: mult,
         format,
         startsAt: show ? new Date(startsAt).toISOString() : undefined,
+        prize: show ? prize.trim() : undefined,
         sides: [{ userId: sideA.id }, { userId: sideB.id }],
       });
+      if (show && preview) {
+        try {
+          await putShowPreview(st.tournament.id, preview.src);
+        } catch (e) {
+          setCreatedId(st.tournament.id);
+          setErr(`Шоу-матч создан, но превью не загрузилось (${errorText(e)}). Загрузите его в пульте матча.`);
+          setBusy(false);
+          return;
+        }
+      }
       router.push(`/admin/matches/${st.tournament.id}`);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
@@ -241,6 +263,45 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
         </div>
       </Panel>
 
+      {show && (
+        <Panel className="grid gap-5 p-5 lg:grid-cols-2">
+          <div className="space-y-4">
+            <h3 className="font-display text-lg uppercase">Анонс на главной</h3>
+            <label className="block space-y-1.5">
+              <span className="field-label">Приз</span>
+              <input
+                className="input"
+                maxLength={MAX_PRIZE}
+                placeholder="Например: 5000 ₽ и роль в Discord"
+                value={prize}
+                onChange={(e) => setPrize(e.target.value)}
+              />
+              <span className="block text-xs text-muted">Необязательно. Покажем крупно в анонсе.</span>
+            </label>
+            <div className="space-y-1.5">
+              <span className="field-label">Превью</span>
+              {preview ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm text-muted">{"file" in preview.src ? preview.src.file.name : "Картинка по ссылке"}</span>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => choosePreview(null)}>
+                    <span>Выбрать другую</span>
+                  </button>
+                </div>
+              ) : (
+                <PreviewPicker onPick={choosePreview} />
+              )}
+            </div>
+          </div>
+          {preview ? (
+            <PreviewImage src={preview.shown} />
+          ) : (
+            <div className="flex aspect-video items-center justify-center rounded-md border border-dashed border-[var(--border-strong)] px-4 text-center text-sm text-muted">
+              Здесь будет картинка анонса
+            </div>
+          )}
+        </Panel>
+      )}
+
       <div className="flex flex-col gap-4 lg:flex-row">
         <SideCard
           title="Игрок A"
@@ -305,6 +366,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           <div className="text-sm text-muted">
             {show ? "Шоу-матч · " : ""}1×1 · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · {show ? "3 раунда" : "2 раунда"} ·
             рейтинг ×{mult}
+            {show && prize.trim() ? ` · приз: ${prize.trim()}` : ""}
           </div>
           <div className="text-xs text-muted">
             {show
@@ -312,7 +374,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
               : "Название соберётся из ников, матч сразу станет текущим"}
           </div>
         </div>
-        <button type="button" className="btn btn-primary" disabled={!sideA || !sideB || busy} onClick={create}>
+        <button type="button" className="btn btn-primary" disabled={!sideA || !sideB || busy || !!createdId} onClick={create}>
           <span>{busy ? "Создаём…" : show ? "Запланировать шоу-матч →" : "Создать и перейти к пикам →"}</span>
         </button>
       </Panel>
@@ -323,6 +385,11 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           {liveId && (
             <Link href={`/admin/matches/${liveId}`} className="text-accent underline">
               Открыть текущий матч
+            </Link>
+          )}
+          {createdId && (
+            <Link href={`/admin/matches/${createdId}`} className="text-accent underline">
+              Открыть пульт шоу-матча
             </Link>
           )}
         </p>

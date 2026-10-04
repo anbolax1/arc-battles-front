@@ -81,6 +81,10 @@ export interface Tournament {
   ratingMultiplier: number; // жетон «×2 рейтинга»: 1 — обычный матч, 2 — считается за два (двойное Elo, W/L +2)
   maps: string[];
   startsAt?: string | null;
+  /** Приз шоу-матча. */
+  prize?: string;
+  /** Картинка анонса шоу-матча (same-origin /media/...). */
+  previewUrl?: string;
   winnerParticipantId?: string | null;
   createdAt: string;
   updatedAt: string;

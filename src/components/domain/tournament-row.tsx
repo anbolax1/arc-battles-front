@@ -21,6 +21,11 @@ export function TournamentRow({ t }: { t: Tournament }) {
         </span>
       </div>
 
+      {t.previewUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- картинка из нашего хранилища медиа
+        <img src={t.previewUrl} alt="" className="hidden h-14 w-24 flex-none rounded object-cover sm:block" />
+      )}
+
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-display text-base uppercase sm:text-lg">{name}</h3>
         <div className="mt-1 truncate text-sm text-muted">
@@ -32,6 +37,7 @@ export function TournamentRow({ t }: { t: Tournament }) {
               <span className="tnum">{fmtTime(t.startsAt)}</span> МСК
             </>
           )}
+          {t.prize && <span className="text-gold"> · приз: {t.prize}</span>}
         </div>
       </div>
 

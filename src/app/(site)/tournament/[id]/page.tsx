@@ -7,7 +7,7 @@ import { HeadToHead, MatchupPanel } from "@/components/domain/matchup-panel";
 import { TournamentStatusPill } from "@/components/domain/tournament-status-pill";
 import { Panel } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
-import { ArrowLeftIcon, CheckIcon } from "@/components/icons";
+import { ArrowLeftIcon, CheckIcon, TrophyIcon } from "@/components/icons";
 import { StreamButtons } from "@/components/domain/stream-buttons";
 import { fmtDate, fmtTime } from "@/lib/format";
 import {
@@ -97,46 +97,63 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
         <ArrowLeftIcon className="h-4 w-4" /> Все матчи
       </Link>
 
-      <header className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <TournamentStatusPill status={t.status} />
-          {isShowMatch(t) && <Chip cyan>Шоу-матч</Chip>}
-          <Chip dot>{t.mode}</Chip>
-          <Chip cyan dot>
-            {roundsLabel(rounds.length || t.totalRounds)}
-          </Chip>
-          {t.ratingMultiplier === 2 && <Chip dot>рейтинг ×2</Chip>}
-        </div>
-        <h1 className="text-3xl sm:text-4xl">{tournamentName(t).replace(/^\[история\]\s*/, "")}</h1>
-        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-muted">
-          {t.startsAt && (
+      <header className={t.previewUrl ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start" : ""}>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <TournamentStatusPill status={t.status} />
+            {isShowMatch(t) && <Chip cyan>Шоу-матч</Chip>}
+            <Chip dot>{t.mode}</Chip>
+            <Chip cyan dot>
+              {roundsLabel(rounds.length || t.totalRounds)}
+            </Chip>
+            {t.ratingMultiplier === 2 && <Chip dot>рейтинг ×2</Chip>}
+          </div>
+          <h1 className="text-3xl sm:text-4xl">{tournamentName(t).replace(/^\[история\]\s*/, "")}</h1>
+          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-muted">
+            {t.startsAt && (
+              <span>
+                Дата: <span className="text-fg">{fmtDate(t.startsAt)}</span>
+                {time && <span className="text-fg"> · {time} МСК</span>}
+              </span>
+            )}
             <span>
-              Дата: <span className="text-fg">{fmtDate(t.startsAt)}</span>
-              {time && <span className="text-fg"> · {time} МСК</span>}
+              Тип игроков: <span className="text-fg">{t.playerType.toUpperCase()}</span>
             </span>
+            {matchup?.season && (
+              <span>
+                В зачёт: <span className="text-fg">{matchup.season.name}</span>
+              </span>
+            )}
+          </div>
+          {t.prize && (
+            <div className="inline-flex items-center gap-3 rounded-md bg-[rgba(255,197,61,0.08)] px-4 py-2.5 shadow-[inset_0_0_0_1px_rgba(255,197,61,0.4)]">
+              <TrophyIcon className="h-6 w-6 flex-none text-gold" />
+              <span className="field-label text-gold">Приз</span>
+              <span className="font-display uppercase text-gold">{t.prize}</span>
+            </div>
           )}
-          <span>
-            Тип игроков: <span className="text-fg">{t.playerType.toUpperCase()}</span>
-          </span>
-          {matchup?.season && (
-            <span>
-              В зачёт: <span className="text-fg">{matchup.season.name}</span>
-            </span>
-          )}
+          {t.status === "upcoming" &&
+            (isShowMatch(t) ? (
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <StreamButtons />
+                <span className="text-sm text-muted">Шоу-матч пройдёт в эфире у Дениса Блима.</span>
+              </div>
+            ) : (
+              <div className="pt-1">
+                <Link href="/join" className="btn btn-primary">
+                  <span>Записаться на турнир</span>
+                </Link>
+              </div>
+            ))}
         </div>
-        {t.status === "upcoming" &&
-          (isShowMatch(t) ? (
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <StreamButtons />
-              <span className="text-sm text-muted">Шоу-матч пройдёт в эфире у Дениса Блима.</span>
-            </div>
-          ) : (
-            <div className="pt-1">
-              <Link href="/join" className="btn btn-primary">
-                <span>Записаться на турнир</span>
-              </Link>
-            </div>
-          ))}
+        {t.previewUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- картинка из нашего хранилища медиа
+          <img
+            src={t.previewUrl}
+            alt={`Анонс шоу-матча ${t.title}`}
+            className="w-full rounded-lg shadow-[0_0_0_1px_var(--border),0_18px_50px_rgba(0,0,0,0.5)]"
+          />
+        )}
       </header>
 
       {t.status === "live" && (
