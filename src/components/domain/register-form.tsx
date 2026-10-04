@@ -19,11 +19,6 @@ export function RegisterForm({ user }: { user: User }) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!hasEmbark) {
-      setStatus("error");
-      setError("Сначала укажи Embark ID в профиле.");
-      return;
-    }
     setStatus("sending");
     setError("");
     try {
@@ -49,7 +44,7 @@ export function RegisterForm({ user }: { user: User }) {
         <div className="space-y-2">
           <h3 className="font-display text-lg uppercase text-ok">Заявка в пуле</h3>
           <p className="text-sm text-muted">
-            Ты в общем списке участников. Организатор позовёт тебя на подходящий турнир —
+            Ты в общем списке участников. Организатор позовёт тебя на матч —
             статус появится в твоём профиле.
           </p>
           <button
@@ -73,15 +68,13 @@ export function RegisterForm({ user }: { user: User }) {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-2 bg-surface-2 p-3 shadow-[inset_0_0_0_1px_rgba(255,106,26,0.35)]">
-                <p className="text-sm">
-                  Чтобы подать заявку, укажи свой <span className="font-display">Embark ID</span> в профиле —
-                  он нужен организатору для лобби в Arc Raiders.
-                </p>
-                <Link href="/profile" className="btn btn-cyan btn-sm">
-                  <span>Заполнить профиль</span>
+              <p className="text-sm text-muted">
+                Не указан — заявку можно подать и так. Организатору он нужен для лобби в Arc Raiders:{" "}
+                <Link href="/profile" className="text-accent transition hover:underline">
+                  добавить в профиле
                 </Link>
-              </div>
+                , он сам подставится в заявку.
+              </p>
             )}
           </div>
 
@@ -100,7 +93,7 @@ export function RegisterForm({ user }: { user: User }) {
 
           {status === "error" && <p className="text-sm text-danger">{error}</p>}
 
-          <button type="submit" className="btn btn-primary" disabled={!hasEmbark || status === "sending"}>
+          <button type="submit" className="btn btn-primary" disabled={status === "sending"}>
             <span>{status === "sending" ? "Отправляем…" : "Подать заявку"}</span>
           </button>
         </form>

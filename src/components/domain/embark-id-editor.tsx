@@ -10,8 +10,8 @@ const fieldCls =
 // Формат Embark ID: ник, решётка, ровно 4 цифры — напр. «Istwood#1234».
 const EMBARK_RE = /^[^#]+#\d{4}$/;
 
-/** Редактор Embark ID текущего пользователя (PATCH /api/me). */
-export function EmbarkIdEditor({ initial }: { initial: string }) {
+/** Редактор Embark ID текущего пользователя (PATCH /api/me); compact - в одну строку для шапки профиля. */
+export function EmbarkIdEditor({ initial, compact = false }: { initial: string; compact?: boolean }) {
   const [value, setValue] = React.useState(initial);
   const [saved, setSaved] = React.useState(initial);
   const [status, setStatus] = React.useState<"idle" | "saving" | "ok" | "error">("idle");
@@ -38,6 +38,41 @@ export function EmbarkIdEditor({ initial }: { initial: string }) {
       setStatus("error");
       setError(err instanceof ApiError ? err.body || err.message : "Не удалось сохранить.");
     }
+  }
+
+  if (compact) {
+    return (
+      <form onSubmit={onSubmit} className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="eid" className="text-xs uppercase tracking-wide text-muted">
+            Embark ID
+          </label>
+          <input
+            id="eid"
+            className={`${fieldCls} w-44 flex-1 py-2`}
+            placeholder="Ник#1234"
+            aria-invalid={invalid}
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              if (status !== "idle") setStatus("idle");
+            }}
+          />
+          <button type="submit" className="btn btn-primary btn-sm" disabled={!dirty || status === "saving" || invalid}>
+            <span>{status === "saving" ? "…" : "Сохранить"}</span>
+          </button>
+        </div>
+        <p className={`text-xs ${invalid || status === "error" ? "text-danger" : status === "ok" && !dirty ? "text-ok" : "text-muted"}`}>
+          {invalid
+            ? "Формат: Ник#1234 — ник, решётка и 4 цифры."
+            : status === "error"
+              ? error
+              : status === "ok" && !dirty
+                ? "Сохранено"
+                : "Для лобби в Arc Raiders, подставится в заявки."}
+        </p>
+      </form>
+    );
   }
 
   return (

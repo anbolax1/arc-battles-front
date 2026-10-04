@@ -89,6 +89,7 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
 
   const last = points[n - 1];
   const netFromStart = last.mmr - start;
+  const matches = points.reduce((sum, p) => sum + (p.correction ? 0 : Math.max(p.games || 1, 1)), 0);
   const hp = hover != null ? points[hover] : null;
   const todayIndex = canProject && haveDates ? (n - 1) + perDay * Math.max(0, (nowMs - times[n - 1]) / DAY) : null;
 
@@ -111,7 +112,7 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="font-display text-sm uppercase tracking-wide text-muted">Динамика MMR</span>
         <span className="text-xs text-muted">
-          {n} матч(ей) ·{" "}
+          {matches} матч(ей) ·{" "}
           <span className={netFromStart >= 0 ? "text-primary-2" : "text-danger"}>
             {netFromStart >= 0 ? "+" : ""}{netFromStart} с начала
           </span>
@@ -122,6 +123,9 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--accent)" }} /> победа</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--danger)" }} /> поражение</span>
+        {points.some((p) => p.correction) && (
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rotate-45" style={{ background: "var(--gold)" }} /> сверка рейтинга</span>
+        )}
         <span className="inline-flex items-center gap-1"><span className="inline-block h-0.5 w-4" style={{ background: "var(--accent)" }} /> тренд/прогноз</span>
         <span>наведи на точку — детали матча</span>
       </div>
@@ -169,10 +173,15 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
             </>
           )}
 
-          {points.map((p, i) => (
-            <circle key={p.tournamentId + i} cx={X(i)} cy={Y(p.mmr)} r={n > 40 ? 2.5 : 3.5}
-              fill={p.win ? "var(--accent)" : "var(--danger)"} stroke="var(--bg)" strokeWidth="1" />
-          ))}
+          {points.map((p, i) =>
+            p.correction ? (
+              <rect key={"c" + i} x={X(i) - 3.5} y={Y(p.mmr) - 3.5} width="7" height="7" transform={`rotate(45 ${X(i)} ${Y(p.mmr)})`}
+                fill="var(--gold)" stroke="var(--bg)" strokeWidth="1" />
+            ) : (
+              <circle key={p.tournamentId + i} cx={X(i)} cy={Y(p.mmr)} r={n > 40 ? 2.5 : 3.5}
+                fill={p.win ? "var(--accent)" : "var(--danger)"} stroke="var(--bg)" strokeWidth="1" />
+            ),
+          )}
 
           {points[0].date && (
             <text x={X(0)} y={H - 10} textAnchor="start" fontSize="10" fill="var(--muted)">{fmtDate(points[0].date)}</text>
@@ -193,15 +202,27 @@ export function MmrChart({ points, start = 1000 }: { points: MmrPoint[]; start?:
             className="pointer-events-none absolute z-10 min-w-[150px] -translate-x-1/2 -translate-y-[115%] rounded-md border border-[var(--border-strong)] bg-surface-2 px-3 py-2 text-xs shadow-lg"
             style={{ left: `${(X(hover!) / W) * 100}%`, top: `${(Y(hp.mmr) / H) * 100}%` }}
           >
-            <div className={`font-display uppercase ${hp.win ? "text-accent" : "text-danger"}`}>
-              {hp.win ? "Победа" : "Поражение"}{hp.mult > 1 ? ` ×${hp.mult}` : ""}
-            </div>
-            <div className="mt-0.5 text-muted">vs {hp.opponent || "?"}</div>
+            {hp.correction ? (
+              <>
+                <div className="font-display uppercase text-gold">Сверка рейтинга</div>
+                <div className="mt-0.5 text-muted">с официальной таблицей</div>
+              </>
+            ) : (
+              <>
+                <div className={`font-display uppercase ${hp.win ? "text-accent" : "text-danger"}`}>
+                  {hp.win ? "Победа" : "Поражение"}{hp.mult > 1 ? ` ×${hp.mult}` : ""}
+                </div>
+                <div className="mt-0.5 text-muted">vs {hp.opponent || "?"}</div>
+              </>
+            )}
             <div className="tnum">
               MMR <span className="text-primary-2">{hp.mmr}</span>{" "}
               <span className={hp.delta >= 0 ? "text-accent" : "text-danger"}>({hp.delta >= 0 ? "+" : ""}{hp.delta})</span>
             </div>
-            <div className="text-muted">{hp.map || "—"}{hp.date ? ` · ${fmtDate(hp.date)}` : ""}</div>
+            <div className="text-muted">
+              {hp.correction ? "" : `${hp.map || "—"} · `}
+              {hp.date ? fmtDate(hp.date) : ""}
+            </div>
           </div>
         )}
       </div>

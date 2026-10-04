@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { getHighlights, getPlayer } from "@/lib/queries";
+import { getHighlights, getPlayer, getSeasons } from "@/lib/queries";
 import { HighlightsGrid } from "@/components/domain/highlights-grid";
 import { PlayerStatsBlock } from "@/components/domain/player-stats";
 import { PlayerRatingSections } from "@/components/domain/player-rating-sections";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { PublicTags } from "@/components/ui/tag-badge";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
-import { roleBadge } from "@/lib/display";
 import { fmtDate } from "@/lib/format";
 
 export default async function PlayerProfilePage({
@@ -35,13 +35,12 @@ export default async function PlayerProfilePage({
   }
 
   const { user, mmrSolo, mmrDuo, wins, tournaments, stats, history } = profile;
-  const role = roleBadge(user.role);
-  const { items: highlights } = await getHighlights({ userId: user.id, limit: 6 });
+  const [{ items: highlights }, seasons] = await Promise.all([getHighlights({ userId: user.id, limit: 6 }), getSeasons()]);
   const summary = [
     { label: "MMR 1×1", value: mmrSolo },
     { label: "MMR 2×2", value: mmrDuo },
     { label: "Побед", value: wins },
-    { label: "Турниров", value: tournaments },
+    { label: "Матчей", value: tournaments },
   ];
 
   return (
@@ -56,7 +55,7 @@ export default async function PlayerProfilePage({
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
             <span>@{user.login}</span>
             {user.embarkId && <span className="tnum">Embark ID: {user.embarkId}</span>}
-            <Badge kind={role.kind}>{role.label}</Badge>
+            <PublicTags tags={user.tags} />
           </div>
         </div>
       </Panel>
@@ -71,11 +70,11 @@ export default async function PlayerProfilePage({
         ))}
       </div>
 
-      {/* Расширенная статистика — когда есть хотя бы один завершённый турнир */}
+      {/* Расширенная статистика - когда есть хотя бы один сыгранный матч */}
       {tournaments > 0 && <PlayerStatsBlock stats={stats} />}
 
       {/* Рейтинг, динамика MMR, аналитика и команды игрока */}
-      <PlayerRatingSections profile={profile} />
+      <PlayerRatingSections profile={profile} seasons={seasons} />
 
       {/* История */}
       <section className="space-y-4">
@@ -96,7 +95,12 @@ export default async function PlayerProfilePage({
                   </div>
                 </div>
                 <div className="flex flex-none items-center gap-3">
-                  <span className="font-display tnum text-primary-2">{h.points}</span>
+                  {h.mmrDelta != null && h.mmrDelta !== 0 && (
+                    <span className={`font-display text-sm tnum ${h.mmrDelta > 0 ? "text-ok" : "text-danger"}`}>
+                      {h.mmrDelta > 0 ? "+" : ""}
+                      {h.mmrDelta} MMR
+                    </span>
+                  )}
                   {h.status === "finished" ? (
                     h.win ? (
                       <Badge kind="champ">Победа</Badge>
@@ -116,7 +120,7 @@ export default async function PlayerProfilePage({
             ))}
           </div>
         ) : (
-          <EmptyState title="Пока нет участий" hint="Здесь появятся турниры игрока." />
+          <EmptyState title="Пока нет участий" hint="Здесь появятся матчи игрока." />
         )}
       </section>
 

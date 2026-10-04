@@ -28,23 +28,8 @@ function Winrate({ label, wins, played }: { label: string; wins: number; played:
   );
 }
 
-const SOURCES = [
-  { key: "main", label: "Основные", color: "var(--accent)" },
-  { key: "contract", label: "Контракты", color: "var(--ok)" },
-  { key: "legendary", label: "Легендарные", color: "var(--gold)" },
-  { key: "base", label: "Корректировка", color: "var(--primary-2)" },
-] as const;
-
-/** Блок расширенной статистики игрока: винрейт по режимам, источники очков, любимая карта, серия. */
+/** Блок расширенной статистики игрока: винрейт по режимам, любимая карта, серия. */
 export function PlayerStatsBlock({ stats }: { stats: PlayerStats }) {
-  const sources = [
-    { ...SOURCES[0], value: stats.mainPoints },
-    { ...SOURCES[1], value: stats.contractPoints },
-    { ...SOURCES[2], value: stats.legendaryPoints },
-    { ...SOURCES[3], value: stats.basePoints },
-  ].filter((s) => s.value > 0);
-  const positive = sources.reduce((a, s) => a + s.value, 0);
-
   const streakText =
     stats.streakKind === "win"
       ? `${stats.streakLen} ${plural(stats.streakLen, "победа", "победы", "побед")} подряд`
@@ -61,31 +46,6 @@ export function PlayerStatsBlock({ stats }: { stats: PlayerStats }) {
         <Winrate label="Винрейт 2×2" wins={stats.duoWins} played={stats.duoPlayed} />
       </div>
 
-      <Panel className="space-y-3 p-5">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-muted">Источники очков</span>
-        </div>
-        {positive > 0 ? (
-          <>
-            <div className="flex h-3 overflow-hidden rounded-full bg-[var(--border)]">
-              {sources.map((s) => (
-                <div key={s.key} style={{ width: `${(s.value / positive) * 100}%`, background: s.color }} />
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-              {sources.map((s) => (
-                <span key={s.key} className="flex items-center gap-2 text-sm">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                  <span className="text-muted">{s.label}</span>
-                  <span className="font-display tnum">{s.value}</span>
-                </span>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-muted">Очки пока не начислены.</p>
-        )}
-      </Panel>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Panel className="space-y-1 p-5">

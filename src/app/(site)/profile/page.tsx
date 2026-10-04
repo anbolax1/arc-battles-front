@@ -1,14 +1,15 @@
-import { getMe, getMyRegistrations, getPlayer } from "@/lib/queries";
+import { getMe, getMyRegistrations, getPlayer, getSeasons } from "@/lib/queries";
 import { PlayerRatingSections } from "@/components/domain/player-rating-sections";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { PublicTags } from "@/components/ui/tag-badge";
 import { StatusPill } from "@/components/ui/pill";
 import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import { EmbarkIdEditor } from "@/components/domain/embark-id-editor";
+import { TagSettings } from "@/components/domain/tag-settings";
 import Link from "next/link";
-import { registrationPill, roleBadge } from "@/lib/display";
+import { registrationPill } from "@/lib/display";
 import { fmtDate } from "@/lib/format";
 
 export const metadata = {
@@ -40,38 +41,32 @@ export default async function ProfilePage() {
     );
   }
 
-  const [regs, playerProfile] = await Promise.all([getMyRegistrations(), getPlayer(user.login)]);
-  const role = roleBadge(user.role);
+  const [regs, playerProfile, seasons] = await Promise.all([getMyRegistrations(), getPlayer(user.login), getSeasons()]);
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-8 px-6 py-12 sm:py-16">
       <SectionHead eyebrow="Личный кабинет" title="Профиль" />
 
-      {/* Идентичность */}
-      <Panel glow className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
-        <Avatar name={user.displayName || user.login} src={user.avatarUrl} size="lg" />
-        <div className="space-y-2">
-          <h2 className="text-2xl">{user.displayName || user.login}</h2>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
-            <span>@{user.login}</span>
-            <Badge kind={role.kind}>{role.label}</Badge>
+      {/* Идентичность и Embark ID - сразу наверху, чтобы не листать до него */}
+      <Panel glow className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center">
+        <div className="flex min-w-0 flex-1 flex-col gap-5 sm:flex-row sm:items-center">
+          <Avatar name={user.displayName || user.login} src={user.avatarUrl} size="lg" />
+          <div className="min-w-0 space-y-2">
+            <h2 className="truncate text-2xl">{user.displayName || user.login}</h2>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
+              <span>@{user.login}</span>
+              <PublicTags tags={user.tags} />
+            </div>
+            <TagSettings />
           </div>
+        </div>
+        <div className="w-full lg:w-[24rem]">
+          <EmbarkIdEditor initial={user.embarkId ?? ""} compact />
         </div>
       </Panel>
 
       {/* Статистика, рейтинг и команды (как в публичном профиле) */}
-      {playerProfile && <PlayerRatingSections profile={playerProfile} />}
-
-      {/* Embark ID */}
-      <Panel className="space-y-4 p-6">
-        <div>
-          <h3 className="font-display text-lg uppercase">Игровой профиль</h3>
-          <p className="mt-1 text-sm text-muted">
-            Embark ID нужен для лобби в Arc Raiders. Он подставится в заявки на турниры.
-          </p>
-        </div>
-        <EmbarkIdEditor initial={user.embarkId ?? ""} />
-      </Panel>
+      {playerProfile && <PlayerRatingSections profile={playerProfile} seasons={seasons} />}
 
       {/* Мои заявки */}
       <section className="space-y-4">

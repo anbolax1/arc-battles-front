@@ -17,7 +17,7 @@ function Tile({ label, value, sub, tone }: { label: string; value: React.ReactNo
 }
 
 /** Сетка ключевых показателей MMR (одинакова для игрока и команды). */
-export function MmrStatsGrid({ stats }: { stats: MmrStats }) {
+export function MmrStatsGrid({ stats, final = false }: { stats: MmrStats; final?: boolean }) {
   const streak =
     stats.currentStreakLen > 0 && stats.currentStreakKind
       ? {
@@ -29,7 +29,11 @@ export function MmrStatsGrid({ stats }: { stats: MmrStats }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Tile label="Текущий MMR" value={stats.currentMmr} sub={stats.place > 0 ? `#${stats.place} в таблице` : "вне рейтинга"} />
+      {final ? (
+        <Tile label="MMR в конце сезона" value={stats.currentMmr} sub="итог сезона" />
+      ) : (
+        <Tile label="Текущий MMR" value={stats.currentMmr} sub={stats.place > 0 ? `#${stats.place} в таблице` : "вне рейтинга"} />
+      )}
       <Tile label="Пик MMR" value={stats.peakMmr} tone="accent" />
       <Tile label="Винрейт" value={`${stats.winrate}%`} sub={`${stats.wins}–${stats.losses}`} />
       <Tile label="Матчей" value={stats.games} sub={stats.firstMatch ? `с ${fmtDate(stats.firstMatch)}` : ""} tone="muted" />
