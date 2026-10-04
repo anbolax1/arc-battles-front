@@ -69,17 +69,17 @@ function Side({
         </div>
         {(mmr > 0 || focused) && (
           <div
-            className={`mt-1 flex items-center gap-2.5 text-[0.7rem] font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
+            className={`mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
           >
             {mmr > 0 && (
-              <span className="tnum">
-                {mmr} MMR
+              <span className="whitespace-nowrap text-sm tnum text-fg/85 sm:text-base">
+                {mmr}
                 {delta !== 0 && (
                   <span className={delta > 0 ? "text-ok" : "text-danger"}> {delta > 0 ? `▲${delta}` : `▼${-delta}`}</span>
                 )}
               </span>
             )}
-            {focused && <span className={t.text}>● в рейде</span>}
+            {focused && <span className={`whitespace-nowrap text-[0.7rem] ${t.text}`}>● в рейде</span>}
           </div>
         )}
       </div>
