@@ -5,17 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError, errorText } from "@/lib/api";
 import { useOverlayFeed } from "@/lib/ws";
-import { isShowMatch, matchSides, roundScore, stageLabel, totalScore } from "@/lib/match";
+import { isShowMatch, matchSides, stageLabel, totalScore } from "@/lib/match";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ArrowLeftIcon, CheckIcon } from "@/components/icons";
 import { OverlayStage } from "@/components/overlay/overlay-stage";
 import { VetoBoard } from "@/components/admin/match/veto-board";
-import { RoundConsole } from "@/components/admin/match/round-console";
+import { MatchLog, OverlayStatus, RoundConsole } from "@/components/admin/match/round-console";
 import { MatchResult } from "@/components/admin/match/match-result";
 import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
-import type { CatalogLegendary, MapInfo, MatchState } from "@/lib/types";
+import type { CatalogLegendary, LiveState, MapInfo, MatchState } from "@/lib/types";
 
 type Confirm = "finish" | "early" | "cancel" | null;
 
@@ -27,6 +27,33 @@ function stepIndex(stage: MatchState["stage"]): number {
   if (stage === "veto" || stage === "ready") return 1;
   if (stage === "round") return 2;
   return 3;
+}
+
+/** Что сейчас видят зрители; во время раунда связь с оверлеем показана на табло, здесь не повторяем. */
+function OverlayPeek({ state, matchId, status, pageLink }: { state: LiveState | null; matchId: string; status: boolean; pageLink: boolean }) {
+  return (
+    <Panel className="space-y-3 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-display text-base uppercase">Оверлей сейчас</h3>
+        <Link href="/admin/overlay" className="text-xs text-accent hover:underline">
+          Редактор оверлея →
+        </Link>
+      </div>
+      {status && <OverlayStatus online={!!state} />}
+      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
+        {state ? (
+          <OverlayStage state={state} mode="preview" bgImage="/preview-bg.jpg" />
+        ) : (
+          <div className="flex aspect-video items-center justify-center text-sm text-muted">Оверлей пуст</div>
+        )}
+      </div>
+      {pageLink && (
+        <Link href={`/tournament/${matchId}`} className="btn btn-ghost btn-sm w-full">
+          <span>Публичная страница матча</span>
+        </Link>
+      )}
+    </Panel>
+  );
 }
 
 /** Матч, который уже идёт в эфире: сервер присылает его id в ответе 409. */
@@ -57,7 +84,11 @@ export function MatchConsole({
   const [gone, setGone] = React.useState(false);
   const [liveId, setLiveId] = React.useState("");
   const [confirm, setConfirm] = React.useState<Confirm>(null);
+  const [pending, setPending] = React.useState(0);
   const actions = React.useRef(0);
+  const queue = React.useRef<Promise<unknown>>(Promise.resolve());
+  const inFlight = React.useRef(new Set<string>());
+  const stepping = React.useRef(false);
   const feed = useOverlayFeed();
   const id = st.tournament.id;
   const sides = matchSides(st);
@@ -66,17 +97,27 @@ export function MatchConsole({
   const focusId =
     feed.state?.tournamentId === id ? (feed.state?.currentParticipantId ?? a?.id ?? null) : (a?.id ?? null);
 
+  // Запросы к матчу уходят строго по одному, в порядке нажатий: иначе «+3» и «Следующий раунд»
+  // сервер мог бы обработать наоборот, а ответ на старый запрос перетёр бы новый счёт.
+  const enqueue = React.useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
+    const next = queue.current.then(task);
+    queue.current = next.catch(() => undefined);
+    return next;
+  }, []);
+
   // Матч могли вести из другой вкладки: при возврате к пульту подтягиваем свежее состояние.
   // Ответ, пришедший после нового действия ведущего, устарел - его отбрасываем.
-  const refresh = React.useCallback(async () => {
+  const refresh = React.useCallback(() => {
     const at = actions.current;
-    try {
-      const next = await api.get<MatchState>(`/tournaments/${id}/match`);
-      if (at === actions.current) setSt(next);
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 404) setGone(true);
-    }
-  }, [id]);
+    return enqueue(async () => {
+      try {
+        const next = await api.get<MatchState>(`/tournaments/${id}/match`);
+        if (at === actions.current) setSt(next);
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) setGone(true);
+      }
+    });
+  }, [id, enqueue]);
 
   React.useEffect(() => {
     const onFocus = () => void refresh();
@@ -84,41 +125,71 @@ export function MatchConsole({
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
-  async function run(path: string, body?: unknown) {
+  function send(path: string, body?: unknown) {
     actions.current++;
-    setBusy(true);
     setErr("");
     setLiveId("");
-    try {
-      const next = await api.post<MatchState>(path, body);
-      setSt(next);
-      return next;
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 404) setGone(true);
-      else {
-        setErr(errorText(e));
-        setLiveId(conflictMatchId(e));
-        void refresh();
+    setPending((n) => n + 1);
+    return enqueue(async () => {
+      try {
+        const next = await api.post<MatchState>(path, body);
+        setSt(next);
+        return next;
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) setGone(true);
+        else {
+          setErr(errorText(e));
+          setLiveId(conflictMatchId(e));
+          void refresh();
+        }
+        return null;
+      } finally {
+        setPending((n) => n - 1);
       }
-      return null;
+    });
+  }
+
+  // Ход матча - раз за нажатие: второй «Следующий раунд» перескочил бы раунд. Гасит только свои кнопки.
+  async function run(path: string, body?: unknown) {
+    if (stepping.current) return null;
+    stepping.current = true;
+    setBusy(true);
+    try {
+      return await send(path, body);
     } finally {
+      stepping.current = false;
       setBusy(false);
     }
   }
 
+  // Зачёт кнопки не гасит: два нока подряд - это два «+3». Повтор по тому же заданию, пока первый
+  // запрос не вернулся, отбрасываем - иначе задание попало бы в журнал дважды.
+  async function act(path: string, body?: unknown, key?: string) {
+    if (key && inFlight.current.has(key)) return null;
+    if (key) inFlight.current.add(key);
+    try {
+      return await send(path, body);
+    } finally {
+      if (key) inFlight.current.delete(key);
+    }
+  }
+
   async function creditLegendary(legendaryId: string, participantId: string) {
-    const next = await run(`/tournaments/${id}/legendary`, { legendaryId, participantId });
+    const next = await act(`/tournaments/${id}/legendary`, { legendaryId, participantId }, `legendary:${legendaryId}`);
     if (next) setLegendary((xs) => xs.map((l) => (l.id === legendaryId ? { ...l, status: "done" } : l)));
   }
 
   async function cancelMatch() {
+    if (stepping.current) return;
+    stepping.current = true;
     setBusy(true);
     setErr("");
     try {
-      await api.post(`/tournaments/${id}/cancel`);
+      await enqueue(() => api.post(`/tournaments/${id}/cancel`));
       router.push("/admin/matches");
     } catch (e) {
       setErr(errorText(e));
+      stepping.current = false;
       setBusy(false);
     }
   }
@@ -187,122 +258,103 @@ export function MatchConsole({
         })}
       </ol>
 
-      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="min-w-0 space-y-4">
-          {st.stage === "scheduled" && (
-            <ScheduledPanel
-              st={st}
-              sides={sides}
-              busy={busy}
-              onStart={() => run(`/tournaments/${id}/start`)}
-              onReschedule={(iso) => run(`/tournaments/${id}/schedule`, { startsAt: iso })}
-              onCancel={() => setConfirm("cancel")}
-            />
-          )}
+      {st.stage === "scheduled" && (
+        <ScheduledPanel
+          st={st}
+          sides={sides}
+          busy={busy}
+          onStart={() => run(`/tournaments/${id}/start`)}
+          onReschedule={(iso) => run(`/tournaments/${id}/schedule`, { startsAt: iso })}
+          onCancel={() => setConfirm("cancel")}
+        />
+      )}
 
-          {(st.stage === "veto" || st.stage === "ready") && (
-            <VetoBoard
-              st={st}
-              maps={maps}
-              sides={sides}
-              busy={busy}
-              onPick={(code) => run(`/tournaments/${id}/veto`, { mapCode: code })}
-              onUndo={() => run(`/tournaments/${id}/veto/undo`)}
-              onManual={(codes) => run(`/tournaments/${id}/maps`, { maps: codes })}
-              onStart={() => run(`/tournaments/${id}/rounds/next`)}
-            />
-          )}
+      {(st.stage === "veto" || st.stage === "ready") && (
+        <>
+          <VetoBoard
+            st={st}
+            maps={maps}
+            sides={sides}
+            busy={busy}
+            onPick={(code) => run(`/tournaments/${id}/veto`, { mapCode: code })}
+            onUndo={() => run(`/tournaments/${id}/veto/undo`)}
+            onManual={(codes) => run(`/tournaments/${id}/maps`, { maps: codes })}
+            onStart={() => run(`/tournaments/${id}/rounds/next`)}
+          />
+          <div className="flex justify-end">
+            <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => setConfirm("cancel")}>
+              <span>Отменить матч</span>
+            </button>
+          </div>
+        </>
+      )}
 
-          {st.stage === "round" && (
+      {st.stage === "round" && (
+        <RoundConsole
+          st={st}
+          sides={sides}
+          legendary={legendary}
+          focusId={focusId}
+          online={!!feed.state}
+          saving={pending > 0}
+          actions={
             <>
-              <RoundConsole
-                st={st}
-                sides={sides}
-                legendary={legendary}
-                focusId={focusId}
-                busy={busy}
-                onFocus={(pid) => run(`/tournaments/${id}/focus`, { participantId: pid })}
-                onMark={(asg, by) => run(`/round-bonus-tasks/${asg}/mark`, { by })}
-                onReroll={(asg) => run(`/round-bonus-tasks/${asg}/reroll`)}
-                onPoints={(pid, delta, label) => run(`/tournaments/${id}/points`, { participantId: pid, delta, label })}
-                onLegendary={creditLegendary}
-                onUndo={() => run(`/tournaments/${id}/undo`)}
-              />
-              <Panel className="flex flex-wrap items-center gap-3 p-4">
-                <span className="inline-flex items-center gap-2 text-sm text-muted">
-                  <span className={`h-2 w-2 rounded-full ${feed.state ? "bg-ok" : "bg-danger"}`} />
-                  {feed.state ? "Оверлей обновляется сам" : "Оверлей не на связи"}
-                </span>
-                <div className="ml-auto flex flex-wrap gap-2">
-                  <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => setConfirm("cancel")}>
-                    <span>Отменить матч</span>
-                  </button>
-                  {!lastRound && (
-                    <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm("early")}>
-                      <span>Завершить досрочно</span>
-                    </button>
-                  )}
-                  {lastRound ? (
-                    <button type="button" className="btn btn-primary" disabled={busy} onClick={() => setConfirm("finish")}>
-                      <span>Завершить матч</span>
-                    </button>
-                  ) : (
-                    <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run(`/tournaments/${id}/rounds/next`)}>
-                      <span>Следующий раунд →</span>
-                    </button>
-                  )}
-                </div>
-              </Panel>
-            </>
-          )}
-
-          {(st.stage === "veto" || st.stage === "ready") && (
-            <div className="flex justify-end">
               <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => setConfirm("cancel")}>
                 <span>Отменить матч</span>
               </button>
-            </div>
-          )}
-
-          {st.stage === "finished" && <MatchResult st={st} sides={sides} />}
-
-          {err && (
-            <p className="text-sm text-danger">
-              {err}{" "}
-              {liveId && liveId !== id && (
-                <Link href={`/admin/matches/${liveId}`} className="text-accent underline">
-                  Открыть текущий матч
-                </Link>
+              {!lastRound && (
+                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm("early")}>
+                  <span>Завершить досрочно</span>
+                </button>
               )}
-            </p>
-          )}
-        </div>
+              {lastRound ? (
+                <button type="button" className="btn btn-primary" disabled={busy} onClick={() => setConfirm("finish")}>
+                  <span>Завершить матч</span>
+                </button>
+              ) : (
+                <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run(`/tournaments/${id}/rounds/next`)}>
+                  <span>Следующий раунд →</span>
+                </button>
+              )}
+            </>
+          }
+          onFocus={(pid) => act(`/tournaments/${id}/focus`, { participantId: pid })}
+          onMark={(asg, by) => act(`/round-bonus-tasks/${asg}/mark`, { by }, `task:${asg}`)}
+          onReroll={(asg) => act(`/round-bonus-tasks/${asg}/reroll`, undefined, `task:${asg}`)}
+          onPoints={(pid, delta, label) => act(`/tournaments/${id}/points`, { participantId: pid, delta, label })}
+          onLegendary={creditLegendary}
+        />
+      )}
 
-        <aside className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="field-label">Оверлей сейчас</span>
-            <Link href="/admin/overlay" className="text-xs text-accent hover:underline">
-              Редактор оверлея →
-            </Link>
-          </div>
-          <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
-            {feed.state ? (
-              <OverlayStage state={feed.state} mode="preview" bgImage="/preview-bg.jpg" />
-            ) : (
-              <div className="flex aspect-video items-center justify-center text-sm text-muted">Оверлей пуст</div>
+      {st.stage === "finished" && <MatchResult st={st} sides={sides} />}
+
+      {st.stage === "round" ? (
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
+          <MatchLog log={st.log} onUndo={() => act(`/tournaments/${id}/undo`, undefined, "undo")} />
+          <OverlayPeek state={feed.state} matchId={id} status={false} pageLink />
+        </div>
+      ) : (
+        <div className="max-w-[440px]">
+          <OverlayPeek state={feed.state} matchId={id} status pageLink={st.stage !== "finished"} />
+        </div>
+      )}
+
+      {/* Кнопки хода матча вверху, а задания внизу: ошибка держится у нижнего края экрана, чтобы её заметили. */}
+      {err && (
+        <div role="alert" className="sticky bottom-4 z-20">
+          <Panel className="flex flex-wrap items-center gap-3 border-[rgba(255,107,107,0.5)] bg-[#241517] px-4 py-3 text-sm text-danger">
+            <span className="min-w-0 flex-1">{err}</span>
+            {liveId && liveId !== id && (
+              <Link href={`/admin/matches/${liveId}`} className="text-accent underline">
+                Открыть текущий матч
+              </Link>
             )}
-          </div>
-          <Link href={`/tournament/${id}`} className="btn btn-ghost btn-sm w-full">
-            <span>Публичная страница матча</span>
-          </Link>
-          {st.stage === "round" && (
-            <p className="text-xs text-muted">
-              Раунд {st.currentRound}: {roundScore(st, st.currentRound, a?.id)} : {roundScore(st, st.currentRound, b?.id)}
-              {leader ? ` · ведёт ${leader.name}` : " · ничья"}
-            </p>
-          )}
-        </aside>
-      </div>
+            <button type="button" className="text-muted transition hover:text-fg" onClick={() => setErr("")} aria-label="Скрыть ошибку">
+              ×
+            </button>
+          </Panel>
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirm !== null}
