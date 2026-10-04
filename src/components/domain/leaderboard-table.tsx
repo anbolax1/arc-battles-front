@@ -3,10 +3,11 @@ import type { LeaderboardRow } from "@/lib/types";
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PublicTags } from "@/components/ui/tag-badge";
+import { fmtWinrate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-function WinLossBar({ wins, total }: { wins: number; total: number }) {
-  const losses = Math.max(0, total - wins);
+/** Победы и поражения; ничья - ни то, ни другое. */
+function WinLossBar({ wins, losses }: { wins: number; losses: number }) {
   const sum = wins + losses;
   const wPct = sum > 0 ? (wins / sum) * 100 : 0;
   return (
@@ -51,6 +52,7 @@ export function LeaderboardTable({ rows, kind = "1x1", compact = false, limit }:
             <th className="w-14 px-4 py-3 text-center">#</th>
             <th className="px-4 py-3">{kind === "2x2" ? "Состав" : "Игрок"}</th>
             {!compact && <th className="px-4 py-3">Победы</th>}
+            {!compact && <th className="px-4 py-3 text-center">Винрейт</th>}
             {!compact && <th className="px-4 py-3 text-center">Матчей</th>}
             <th className="px-4 py-3 text-right">MMR</th>
           </tr>
@@ -88,8 +90,11 @@ export function LeaderboardTable({ rows, kind = "1x1", compact = false, limit }:
               </td>
               {!compact && (
                 <td className="px-4 py-3">
-                  <WinLossBar wins={r.wins} total={r.tournaments} />
+                  <WinLossBar wins={r.wins} losses={r.losses} />
                 </td>
+              )}
+              {!compact && (
+                <td className="px-4 py-3 text-center font-display tnum">{fmtWinrate(r.wins, r.wins + r.losses)}</td>
               )}
               {!compact && (
                 <td className="px-4 py-3 text-center tnum text-muted">{r.tournaments}</td>

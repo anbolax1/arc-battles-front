@@ -98,6 +98,11 @@ export function fmtTime(iso?: string | null): string {
   return p ? `${p.hh}:${p.mm}` : "";
 }
 
+/** Процент побед: «70%»; без сыгранных матчей - прочерк. */
+export function fmtWinrate(wins: number, games: number): string {
+  return games > 0 ? `${Math.round((wins * 100) / games)}%` : "—";
+}
+
 /** Награда задания: «+2 балла» (fixed) или «+15%» (percent). points — сырое значение. */
 export function taskReward(t: { points: number; valueType: "fixed" | "percent" }): string {
   return t.valueType === "percent" ? `+${t.points}%` : `+${pointsLabel(t.points)}`;

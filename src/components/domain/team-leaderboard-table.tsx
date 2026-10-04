@@ -3,6 +3,7 @@ import type { TeamLeaderboardRow } from "@/lib/types";
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PublicTags } from "@/components/ui/tag-badge";
+import { fmtWinrate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 function WinLossBar({ wins, total }: { wins: number; total: number }) {
@@ -41,6 +42,7 @@ export function TeamLeaderboardTable({ rows }: { rows: TeamLeaderboardRow[] }) {
             <th className="w-14 px-4 py-3 text-center">#</th>
             <th className="px-4 py-3">Состав</th>
             <th className="px-4 py-3">Победы</th>
+            <th className="px-4 py-3 text-center">Винрейт</th>
             <th className="px-4 py-3 text-center">Матчей</th>
             <th className="px-4 py-3 text-right">MMR</th>
           </tr>
@@ -78,6 +80,7 @@ export function TeamLeaderboardTable({ rows }: { rows: TeamLeaderboardRow[] }) {
               <td className="px-4 py-3">
                 <WinLossBar wins={r.wins} total={r.games} />
               </td>
+              <td className="px-4 py-3 text-center font-display tnum">{fmtWinrate(r.wins, r.games)}</td>
               <td className="px-4 py-3 text-center tnum text-muted">{r.games}</td>
               <td className="px-4 py-3 text-right">
                 <span className="font-display text-base tnum text-primary-2">{r.mmr}</span>

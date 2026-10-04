@@ -126,7 +126,8 @@ export interface LeaderboardRow {
   mmr: number; // рейтинг по исходам (старт 1000, сквозной по сезонам)
   points: number; // сумма набранных баллов за сезон (вторично)
   wins: number;
-  tournaments: number;
+  losses: number; // без ничьих
+  tournaments: number; // матчей, вместе с ничьими
   tags?: UserTag[]; // теги, видные на сайте
 }
 
