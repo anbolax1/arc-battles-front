@@ -16,6 +16,8 @@ import {
 import { StreamButtons } from "@/components/domain/stream-buttons";
 import { isShowMatch } from "@/lib/match";
 import type { Tournament } from "@/lib/types";
+import { getDesign } from "@/lib/design";
+import { SurfaceHome } from "@/components/surface/pages/home";
 
 function byStartAsc(a: Tournament, b: Tournament): number {
   if (!a.startsAt) return 1;
@@ -31,6 +33,7 @@ const QUICK = [
 ];
 
 export default async function HomePage() {
+  if ((await getDesign()) === "surface") return <SurfaceHome />;
   const [match, top, upcoming, hl, me] = await Promise.all([
     getCurrentMatch(),
     getLeaderboard("1x1"),
