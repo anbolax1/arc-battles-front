@@ -1,0 +1,177 @@
+/* Профиль игрока в новом дизайне: дополнения к общим стилям пропуска и графика. */
+
+.pf-top {
+  padding-bottom: clamp(40px, 6vw, 72px);
+}
+.pf-lead {
+  margin-top: 18px;
+}
+.pf-namerow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 20px;
+}
+.pf-name {
+  min-width: 0;
+}
+.pf-name .sf-id-name {
+  margin: 0;
+  padding-right: 0;
+  text-transform: none;
+}
+.pf-login {
+  margin: 8px 0 0;
+  font: 600 12px/1.3 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  color: var(--sf-ink-2);
+}
+.pf-stamps {
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 230px;
+  padding-top: 4px;
+}
+/* пропуск - бумага на ночном фоне: цвет тега темнеет, чтобы читался */
+.pf-card .sf-tag {
+  color: color-mix(in oklab, var(--tag, #9a5b00) 62%, #2a1300);
+  background: rgba(245, 238, 223, 0.7);
+}
+@media (max-width: 640px) {
+  .pf-stamps {
+    flex-direction: row;
+    align-items: flex-start;
+    max-width: none;
+  }
+}
+
+.pf-main {
+  padding-top: clamp(40px, 5vw, 64px);
+}
+.pf-head {
+  margin-bottom: 20px;
+}
+.pf-head .sf-h-mid {
+  margin-bottom: 0;
+}
+.pf-tabs {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.pf-tabs button {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+.sf-stats dd.pf-sub {
+  margin-top: 6px;
+  font: 600 11px/1.3 var(--sf-ff-m);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+
+.pf-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  margin-top: 26px;
+  font: 600 10px/1.3 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.pf-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.pf-legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--sf-ink);
+}
+.pf-legend i.w {
+  background: var(--sf-ink);
+}
+.pf-legend i.l {
+  background: var(--sf-paper);
+}
+.pf-legend i.c {
+  background: var(--sf-amber);
+}
+.pf-legend i.st {
+  width: 18px;
+  height: 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 2px dashed var(--sf-ink-2);
+}
+.pf-legend-hint {
+  margin-left: auto;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+@media (pointer: coarse) {
+  .pf-legend-hint {
+    display: none;
+  }
+}
+.sf-chart-box .pf-start {
+  stroke: var(--sf-ink-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+  opacity: 0.55;
+}
+.sf-chart-box .pf-end {
+  font: 600 12px var(--sf-ff-m);
+  fill: var(--sf-ink);
+}
+.sf-chart-box svg {
+  touch-action: pan-y;
+}
+
+.pf-segs {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+.pf-segs i {
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 1px;
+}
+.pf-segs i.w {
+  background: var(--sf-win-ink);
+}
+.pf-segs i.l {
+  background: var(--sf-loss-ink);
+}
+.pf-noimg {
+  width: 64px;
+  height: 40px;
+  border-radius: 2px;
+  background: var(--sf-paper-3);
+}
+.pf-hint {
+  margin: 14px 0 0;
+  font: 600 10px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.pf-toggle {
+  margin-top: 18px;
+}
+.sf-res.pf-live {
+  background: var(--sf-amber);
+  color: var(--sf-ink);
+}
+.pf-teams {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}

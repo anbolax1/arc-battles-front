@@ -11,6 +11,8 @@ import { StatusPill } from "@/components/ui/pill";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import { fmtDate } from "@/lib/format";
+import { getDesign } from "@/lib/design";
+import { SurfaceProfile } from "@/components/surface/pages/profile";
 
 export default async function PlayerProfilePage({
   params,
@@ -18,6 +20,7 @@ export default async function PlayerProfilePage({
   params: Promise<{ login: string }>;
 }) {
   const { login } = await params;
+  if ((await getDesign()) === "surface") return <SurfaceProfile login={login} />;
   const profile = await getPlayer(login);
 
   if (!profile) {

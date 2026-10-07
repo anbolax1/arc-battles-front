@@ -6,7 +6,7 @@ import { MmrChart } from "./mmr-chart";
 import { MmrStatsGrid, MapBreakdown, HeadToHead, TeamsList } from "./mmr-analytics";
 
 /** Сводка по матчам одного сезона; сверка рейтинга - не матч, в победы и серии не идёт. */
-function seasonStats(points: MmrPoint[], start: number): MmrStats {
+export function seasonStats(points: MmrPoint[], start: number): MmrStats {
   const st: MmrStats = {
     currentMmr: start,
     peakMmr: start,
