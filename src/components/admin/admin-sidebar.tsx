@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/admin/tags", label: "Теги" },
   { href: "/admin/registrations", label: "Заявки" },
   { href: "/admin/highlights", label: "Хайлайты" },
+  { href: "/admin/design", label: "Дизайн сайта" },
 ];
 
 /* Разделы старого пульта (один раунд, протоколы-штрафы) - для правок прошлых матчей. */
