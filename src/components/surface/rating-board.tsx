@@ -14,6 +14,8 @@ import type {
 import { SearchGlyph, SfAvatar, SfEmpty, TagChips } from "@/components/surface/ui";
 import { CountUp } from "@/components/surface/motion";
 import { dayMonth, winrate } from "@/components/surface/fmt";
+import { PatchArt } from "@/components/surface/patch-art";
+import { PATCH_INFO } from "@/components/surface/patch-meta";
 
 type SortKey = "mmr" | "wr" | "m";
 
@@ -108,6 +110,14 @@ function SoloRows({ rows, place }: { rows: LeaderboardRow[]; place: Map<string, 
                 {(r.tags?.length ?? 0) > 0 && (
                   <span className="sf-tagline">
                     <TagChips tags={r.tags} />
+                  </span>
+                )}
+                {r.patches && r.patches.length > 0 && (
+                  <span className="pt-mini" title={`Нашивки сезона: ${r.patches.map((c) => PATCH_INFO[c].name).join(", ")}`}>
+                    {r.patches.map((c) => (
+                      <PatchArt key={c} code={c} />
+                    ))}
+                    {(r.patchCount ?? 0) > r.patches.length && <small>+{(r.patchCount ?? 0) - r.patches.length}</small>}
                   </span>
                 )}
               </span>

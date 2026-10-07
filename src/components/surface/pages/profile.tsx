@@ -1,7 +1,7 @@
 import Link from "next/link";
 import "./profile.css";
 import { getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
-import type { PlayerProfile, Season } from "@/lib/types";
+import type { PlayerPatch, PlayerProfile, Season } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack, TagStamps } from "@/components/surface/ui";
 import { SurfaceHighlights } from "@/components/surface/highlights";
@@ -9,6 +9,8 @@ import { ProfileSeasons } from "@/components/surface/profile-seasons";
 import { ProfileHistory } from "@/components/surface/profile-history";
 import { fullDate, winrate } from "@/components/surface/fmt";
 import { initials } from "@/lib/format";
+import { PatchArt } from "@/components/surface/patch-art";
+import { PATCH_ORDER } from "@/components/surface/patch-meta";
 
 function NotFound({ login }: { login: string }) {
   return (
@@ -96,6 +98,19 @@ function IdCard({ profile, season }: { profile: PlayerProfile; season?: Season }
   );
 }
 
+/** Три самые редкие нашивки текущего сезона, а пока в нём нет ни одной - последнего сезона с нашивками. */
+function rarestPatches(profile: PlayerProfile, seasons: Season[], active?: Season): { items: PlayerPatch[]; count: number } {
+  const order = [active, ...[...seasons].sort((a, b) => b.startedAt.localeCompare(a.startedAt))].filter((s): s is Season => !!s);
+  for (const s of order) {
+    const own = (profile.patches1x1?.[s.id]?.items ?? []).filter((p) => !p.provisional);
+    if (own.length) {
+      const items = [...own].sort((a, b) => a.holders - b.holders || PATCH_ORDER.indexOf(a.code) - PATCH_ORDER.indexOf(b.code));
+      return { items: items.slice(0, 3), count: own.length };
+    }
+  }
+  return { items: [], count: 0 };
+}
+
 /** Профиль игрока в новом дизайне: пропуск рейдера, рейтинг по сезонам, матчи, команды и клипы. */
 export async function SurfaceProfile({ login }: { login: string }) {
   const profile = await getPlayer(login);
@@ -106,6 +121,7 @@ export async function SurfaceProfile({ login }: { login: string }) {
   const active = seasons.find((s) => s.status === "active");
   const played = timeline1x1.some((p) => !p.correction);
   const name = user.displayName || user.login;
+  const sewn = rarestPatches(profile, seasons, active);
 
   return (
     <>
@@ -117,7 +133,21 @@ export async function SurfaceProfile({ login }: { login: string }) {
             Таблица лидеров
           </Link>
           <p className="sf-eyebrow">Профиль игрока{active ? ` · ${active.name}` : ""}</p>
-          <IdCard profile={profile} season={active} />
+          <div className={`pt-idwrap ${sewn.items.length ? "sewn" : ""}`}>
+            <IdCard profile={profile} season={active} />
+            {sewn.items.length > 0 && (
+              <a className="pt-sewn" href="#patches" aria-label={`Нашивки ${name}: ${sewn.count} из ${PATCH_ORDER.length}`}>
+                <span>
+                  {sewn.items.map((p) => (
+                    <PatchArt key={p.code} code={p.code} tier={p.tier} night />
+                  ))}
+                </span>
+                <small>
+                  {sewn.count} из {PATCH_ORDER.length} нашивок ↓
+                </small>
+              </a>
+            )}
+          </div>
         </div>
       </section>
 

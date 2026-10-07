@@ -140,6 +140,8 @@ export interface LeaderboardRow {
   losses: number; // без ничьих
   tournaments: number; // матчей, вместе с ничьими
   tags?: UserTag[]; // теги, видные на сайте
+  patches?: PatchCode[]; // самые редкие нашивки сезона, до трёх
+  patchCount?: number; // всего нашивок в сезоне
 }
 
 /** Игрок в составе команды 2×2 (для командного лидерборда). */
@@ -231,6 +233,88 @@ export interface KnockStats {
   best: number; // больше всего ноков за один матч
   bestMatch?: string;
   bestOpponent?: string;
+}
+
+/* ---------- нашивки: выдаются сами по матчам 1×1 ---------- */
+
+export type PatchCode =
+  | "top1" | "belt" | "regicide"
+  | "streak" | "flawless" | "david" | "comeback" | "double" | "photo" | "shutout" | "revenge"
+  | "hunter" | "clear" | "topknock" | "pacifist" | "king"
+  | "first" | "final" | "marathon" | "veteran";
+
+/** Подробности нашивки для подписи; набор полей свой у каждой. */
+export interface PatchDetail {
+  opp?: string;
+  score?: [number, number];
+  n?: number;
+  best?: number;
+  wins?: number;
+  knocks?: number;
+  map?: string;
+  maps?: string[];
+  games?: number;
+  mmr?: number;
+  reigns?: number;
+  defenses?: number;
+}
+
+export interface PlayerPatch {
+  seasonId: string;
+  code: PatchCode;
+  tier: number;
+  matchId?: string;
+  earnedAt: string;
+  /** Сезон идёт: итоговая нашивка закрепится при его закрытии. */
+  provisional?: boolean;
+  detail: PatchDetail;
+  /** Сколько рейдеров сезона носят эту нашивку. */
+  holders: number;
+}
+
+export interface PatchSeason {
+  /** Сколько рейдеров играло в сезоне: от этого редкость. */
+  players: number;
+  final: boolean;
+  items: PlayerPatch[];
+}
+
+export interface PatchHolder {
+  login: string;
+  displayName: string;
+  tier: number;
+  provisional?: boolean;
+}
+
+export interface PatchStat {
+  code: PatchCode;
+  holders: number;
+  /** Сколько рейдеров на каждой ступени, начиная с первой. */
+  tiers?: number[];
+  /** Владельцы по месту в таблице сезона. */
+  top: PatchHolder[];
+}
+
+export interface PatchCatalog {
+  season: Season;
+  players: number;
+  patches: PatchStat[];
+}
+
+export interface MatchPatch {
+  participantId: string;
+  code: PatchCode;
+  tier: number;
+  detail: PatchDetail;
+}
+
+/** Нашивка, полученная в идущем матче: оверлей показывает её плашкой. */
+export interface PatchFlash {
+  id: string;
+  name: string;
+  code: PatchCode;
+  tier: number;
+  detail: PatchDetail;
 }
 
 /** Краткая карточка команды игрока (список команд в профиле). */
@@ -446,6 +530,8 @@ export interface LiveState {
   currentMap?: string;
   stage?: MatchStage;
   veto?: LiveVeto[];
+  /** Нашивки, полученные в идущем матче: каждая новая показывается плашкой. */
+  patchFlashes?: PatchFlash[];
 }
 
 /** Контракт стороны в оверлее (виджет «Контракты»). */
@@ -577,6 +663,8 @@ export interface PlayerProfile {
   /** По картам и соперникам: ключ - id сезона, пусто - матчи вне сезонов. */
   analytics1x1: Record<string, SeasonAnalytics>;
   teams: TeamSummary[];
+  /** Нашивки по сезонам: ключ - id сезона. */
+  patches1x1?: Record<string, PatchSeason>;
 }
 
 /** Пользователь + агрегаты участия: GET /api/users/overview (кабинет, раздел «Пользователи»). */
@@ -854,6 +942,8 @@ export interface MatchState {
   manual: RoundScore[]; // вместе с очками за ноки
   knocks: RoundKnocks[];
   log: MatchLogEntry[];
+  /** Нашивки, полученные в этом матче. */
+  patches?: MatchPatch[];
 }
 
 /** Сторона матча для его страницы. У сыгранного матча mmr - рейтинг перед ним, у остальных - текущий,

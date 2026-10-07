@@ -5,8 +5,9 @@ import Link from "next/link";
 import { seasonStats } from "@/components/domain/player-rating-sections";
 import { mapImage } from "@/lib/match";
 import { fmtAverage } from "@/lib/format";
-import type { KnockStats, MapStat, MmrPoint, MmrStats, OpponentStat, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
+import type { KnockStats, MapStat, MmrPoint, MmrStats, OpponentStat, PatchCode, PlayerPatch, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
 import { ProfileChart, type ChartSegment } from "@/components/surface/profile-chart";
+import { ProfilePatches } from "@/components/surface/profile-patches";
 import { fullDate, matchesWord } from "@/components/surface/fmt";
 
 /** Вкладка «все сезоны»: id сезона таким не бывает. */
@@ -173,6 +174,33 @@ export function ProfileSeasons({
   }
 
   const mapInfo = (name: string) => maps.find((m) => norm(m.name) === norm(name));
+  const mapName = (name: string) => mapInfo(name)?.name ?? name;
+
+  // Нашивки - за сезон; во «всех сезонах» - коллекция: высшая ступень и в скольких сезонах получена.
+  const patchSeasons = profile.patches1x1 ?? {};
+  let patchItems: PlayerPatch[] = [];
+  let patchPlayers = 0;
+  let held: Partial<Record<PatchCode, number>> | undefined;
+  if (sel === ALL) {
+    const merged = new Map<PatchCode, PlayerPatch>();
+    held = {};
+    for (const s of [...seasons].sort((a, b) => a.startedAt.localeCompare(b.startedAt))) {
+      for (const it of patchSeasons[s.id]?.items ?? []) {
+        if (it.provisional) continue;
+        held[it.code] = (held[it.code] ?? 0) + 1;
+        const cur = merged.get(it.code);
+        if (!cur || it.tier >= cur.tier) merged.set(it.code, it);
+      }
+    }
+    patchItems = [...merged.values()];
+    patchPlayers = patchSeasons[active?.id ?? ""]?.players ?? 0;
+  } else {
+    patchItems = patchSeasons[sel]?.items ?? [];
+    patchPlayers = patchSeasons[sel]?.players ?? 0;
+  }
+  const bestMap = [...(analytics?.maps ?? [])].filter((m) => m.wins > 0).sort((a, b) => b.wins - a.wins || a.losses - b.losses)[0];
+  const cardSeason = sel === ALL ? active : seasonOf(sel);
+
   const streak =
     stats.currentStreakLen > 0 && stats.currentStreakKind
       ? { v: stats.currentStreakLen, s: stats.currentStreakKind === "win" ? "побед подряд" : "поражений подряд" }
@@ -249,6 +277,30 @@ export function ProfileSeasons({
       <ProfileChart key={sel} segments={segments} />
 
       {analytics?.knocks?.matches ? <Knocks k={analytics.knocks} all={sel === ALL} /> : null}
+
+      {sel !== "" && (
+        <ProfilePatches
+          user={{ name: profile.user.displayName || profile.user.login, login: profile.user.login, avatarUrl: profile.user.avatarUrl || undefined }}
+          season={cardSeason}
+          seasonLabel={sel === ALL ? "Все сезоны" : labelOf(sel)}
+          items={patchItems}
+          players={patchPlayers}
+          active={current}
+          seasonsHeld={held}
+          stats={{
+            mmr: stats.currentMmr,
+            place: current ? stats.place : 0,
+            wins: stats.wins,
+            losses: stats.losses,
+            peak: stats.peakMmr,
+            bestStreak: stats.bestWinStreak,
+            games: stats.games,
+            knocks: analytics?.knocks?.knocks ?? 0,
+            bestMap: bestMap ? mapName(bestMap.map) : "",
+          }}
+          mapName={mapName}
+        />
+      )}
 
       <div className="sf-prof-cols">
         <div>

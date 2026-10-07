@@ -28,6 +28,7 @@ import { CountUp, FlipCountdown } from "@/components/surface/motion";
 import { MmrMove, Odds, SHOW_ORDER, VetoOrder } from "@/components/surface/home-parts";
 import { SurfaceHighlights } from "@/components/surface/highlights";
 import { MatchVeto } from "@/components/surface/match-veto";
+import { MatchPatches } from "@/components/surface/match-patches";
 import { fullDate, hhmm } from "@/components/surface/fmt";
 
 const SIDE_COLOR = ["var(--sf-a)", "var(--sf-b)"] as const;
@@ -360,7 +361,8 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const hasH2h = !!h2h && h2h.wins[0] + h2h.wins[1] + h2h.draws > 0;
   const showRounds = (finished || live) && rounds.length > 0;
   const showElo = finished && a && b && ca && cb;
-  const paper = st.veto.length > 0 || showRounds || showElo || hasH2h;
+  const patches = st.patches ?? [];
+  const paper = st.veto.length > 0 || showRounds || showElo || hasH2h || patches.length > 0;
 
   const streams = (
     <>
@@ -482,6 +484,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
             {st.veto.length > 0 && <MatchVeto maps={allMaps} veto={st.veto} nameA={a?.name ?? "A"} nameB={b?.name ?? "B"} />}
             {showRounds && <Rounds st={st} rounds={rounds} sides={sides} finished={finished} />}
             {showElo && <EloBlock a={a} b={b} ca={ca} cb={cb} k={matchup?.season?.kFactor} mult={mult} />}
+            {patches.length > 0 && <MatchPatches patches={patches} sides={sides} live={live} />}
             {hasH2h && h2h && <HeadToHead h={h2h} a={a?.name ?? "A"} b={b?.name ?? "B"} />}
           </div>
         </section>

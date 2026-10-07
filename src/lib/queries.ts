@@ -30,6 +30,7 @@ import type {
   User,
   UserOverview,
   Highlight,
+  PatchCatalog,
 } from "@/lib/types";
 
 async function safe<T>(label: string, p: Promise<T>, fallback: T): Promise<T> {
@@ -237,4 +238,10 @@ export function getMatchup(id: string): Promise<Matchup | null> {
 /** Справочник карт с превью. */
 export function getMaps(): Promise<MapInfo[]> {
   return safe("maps", serverFetch<MapInfo[]>("/maps"), []);
+}
+
+/** Каталог нашивок сезона: кто какие носит. Без season - текущий сезон. null - бэкенд недоступен. */
+export function getPatchCatalog(season?: string): Promise<PatchCatalog | null> {
+  const q = season ? `?season=${encodeURIComponent(season)}` : "";
+  return safe(`patches(${season ?? ""})`, serverFetch<PatchCatalog>(`/patches${q}`), null);
 }
