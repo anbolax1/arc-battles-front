@@ -121,7 +121,7 @@ export function LiveMatch({ st, matchup, organizer }: { st: MatchState; matchup:
               )}
               <a className={`sf-btn ${organizer ? "sf-btn-line" : "sf-btn-amber"}`} href={STREAM_URL} target="_blank" rel="noopener noreferrer">
                 <TwitchIcon />
-                Смотреть эфир
+                Twitch
               </a>
               <a className="sf-btn sf-btn-line" href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
                 <YouTubeIcon />

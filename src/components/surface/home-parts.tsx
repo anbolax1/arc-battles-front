@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { TelegramIcon, TwitchIcon } from "@/components/icons";
+import { TelegramIcon, TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
 import { mapImage, matchSides, roundsLabel, stageLabel } from "@/lib/match";
 import type { LeaderboardRow, MatchState, Matchup, MatchupSide, Season, Tournament, VetoStep } from "@/lib/types";
@@ -104,7 +104,11 @@ export function Hero({
             </Link>
             <a className="sf-btn sf-btn-line" href={STREAM_URL} target="_blank" rel="noopener noreferrer">
               <TwitchIcon />
-              Смотреть эфир
+              Twitch
+            </a>
+            <a className="sf-btn sf-btn-line" href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
+              <YouTubeIcon />
+              YouTube
             </a>
           </div>
           {season && (
@@ -381,9 +385,11 @@ export function ShowSection({ t, matchup, order }: { t: Tournament; matchup: Mat
             </div>
             <div className="sf-btn-row">
               <a className="sf-btn sf-btn-amber" href={STREAM_URL} target="_blank" rel="noopener noreferrer">
-                Смотреть на Twitch
+                <TwitchIcon />
+                Twitch
               </a>
               <a className="sf-btn sf-btn-line" href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
+                <YouTubeIcon />
                 YouTube
               </a>
               <Link className="sf-btn sf-btn-line" href={`/tournament/${t.id}`}>
