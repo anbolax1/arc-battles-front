@@ -13,7 +13,7 @@ const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 const pad = (n: number) => String(n).padStart(2, "0");
 const POP_W = 304;
-const POP_H = 380;
+const POP_H = 380; // примерная высота поповера, пока он ещё не отрисован
 
 type Parts = { y: number; mo: number; d: number; hh: number; mm: number };
 
@@ -58,10 +58,14 @@ export function DateTimePicker({
     const el = triggerRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
+    const h = popRef.current?.offsetHeight ?? POP_H;
     const left = Math.max(8, Math.min(r.left, window.innerWidth - POP_W - 8));
     let top = r.bottom + 6;
-    if (top + POP_H > window.innerHeight && r.top - POP_H - 6 > 0) top = r.top - POP_H - 6;
-    setPos({ top, left });
+    if (top + h > window.innerHeight) {
+      // Не влез ни снизу, ни сверху - прижимаем к низу экрана, пусть и поверх поля: так видно «Готово».
+      top = r.top - h - 6 > 0 ? r.top - h - 6 : Math.max(8, window.innerHeight - h - 8);
+    }
+    setPos((p) => (p && p.top === top && p.left === left ? p : { top, left }));
   }, []);
 
   React.useEffect(() => {
@@ -82,6 +86,11 @@ export function DateTimePicker({
       document.removeEventListener("mousedown", onDoc);
     };
   }, [open, place]);
+
+  // Высота зависит от числа недель в месяце, поэтому место пересчитываем по уже отрисованному поповеру.
+  React.useLayoutEffect(() => {
+    if (open && pos) place();
+  }, [open, pos, view, place]);
 
   const hh = parsed?.hh ?? 12;
   const mm = parsed?.mm ?? 0;
