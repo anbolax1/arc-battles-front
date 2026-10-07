@@ -3,13 +3,23 @@ import { BoostyIcon, DiscordIcon, TelegramIcon, TwitchIcon, YouTubeIcon } from "
 import { BOOSTY_URL, STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
 import { Mark } from "@/components/surface/stripes";
 
-const LINKS = [
-  { href: "/schedule", label: "Расписание" },
-  { href: "/rating", label: "Рейтинг" },
-  { href: "/archive", label: "Архив" },
-  { href: "/highlights", label: "Хайлайты" },
-  { href: "/rules", label: "Правила" },
-];
+/** Сезон для ссылки на его итоги: идущий, а между сезонами - последний. */
+export interface FooterSeason {
+  number: number;
+  active: boolean;
+}
+
+function links(season?: FooterSeason | null) {
+  return [
+    { href: "/schedule", label: "Расписание" },
+    { href: "/rating", label: "Рейтинг" },
+    ...(season ? [{ href: `/season/${season.number}`, label: season.active ? "Сезон в цифрах" : "Итоги сезона" }] : []),
+    { href: "/patches", label: "Нашивки" },
+    { href: "/archive", label: "Архив" },
+    { href: "/highlights", label: "Хайлайты" },
+    { href: "/rules", label: "Правила" },
+  ];
+}
 
 const SOCIALS = [
   { label: "Twitch", href: STREAM_URL, Icon: TwitchIcon },
@@ -19,7 +29,7 @@ const SOCIALS = [
   { label: "Boosty", href: BOOSTY_URL, Icon: BoostyIcon },
 ];
 
-export function SurfaceFooter() {
+export function SurfaceFooter({ season }: { season?: FooterSeason | null }) {
   return (
     <footer className="sf-foot">
       <div className="sf-wrap">
@@ -29,7 +39,7 @@ export function SurfaceFooter() {
             <b>Битва за Респект</b>
           </Link>
           <nav className="sf-foot-links" aria-label="Разделы сайта">
-            {LINKS.map((l) => (
+            {links(season).map((l) => (
               <Link key={l.href} href={l.href}>
                 {l.label}
               </Link>
