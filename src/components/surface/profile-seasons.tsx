@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { seasonStats } from "@/components/domain/player-rating-sections";
 import { mapImage } from "@/lib/match";
-import type { MapStat, MmrPoint, MmrStats, OpponentStat, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
+import { fmtAverage } from "@/lib/format";
+import type { KnockStats, MapStat, MmrPoint, MmrStats, OpponentStat, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
 import { ProfileChart, type ChartSegment } from "@/components/surface/profile-chart";
 import { fullDate, matchesWord } from "@/components/surface/fmt";
 
@@ -34,11 +35,22 @@ function Segs({ wins, losses }: { wins: number; losses: number }) {
   );
 }
 
-/** Сводка по картам и соперникам за несколько сезонов: одинаковые записи складываются. */
+/** Сводка по картам, соперникам и нокам за несколько сезонов: одинаковые записи складываются. */
 function mergeAnalytics(list: SeasonAnalytics[]): SeasonAnalytics {
   const maps = new Map<string, MapStat>();
   const opps = new Map<string, OpponentStat>();
+  const knocks: KnockStats = { matches: 0, knocks: 0, best: 0 };
   for (const a of list) {
+    if (a.knocks) {
+      knocks.matches += a.knocks.matches;
+      knocks.knocks += a.knocks.knocks;
+      // сезоны идут по порядку: при равенстве рекордом остаётся первый
+      if (a.knocks.best > knocks.best) {
+        knocks.best = a.knocks.best;
+        knocks.bestMatch = a.knocks.bestMatch;
+        knocks.bestOpponent = a.knocks.bestOpponent;
+      }
+    }
     for (const m of a.maps) {
       const k = norm(m.map);
       const cur = maps.get(k);
@@ -63,7 +75,38 @@ function mergeAnalytics(list: SeasonAnalytics[]): SeasonAnalytics {
     }
   }
   const byGames = <T extends { games: number }>(x: T, y: T) => y.games - x.games;
-  return { maps: [...maps.values()].sort(byGames), opponents: [...opps.values()].sort(byGames) };
+  return { maps: [...maps.values()].sort(byGames), opponents: [...opps.values()].sort(byGames), knocks };
+}
+
+/** Ноки игрока: среднее - только по матчам, где ноки записаны, иначе нули занизили бы его. */
+function Knocks({ k, all }: { k: KnockStats; all: boolean }) {
+  return (
+    <div className="pf-knocks">
+      <h3 className="sf-h-mid">ноки<span className="sf-dot">.</span></h3>
+      <dl className="sf-stats">
+        <div>
+          <dt>Ноков</dt>
+          <dd>{k.knocks}</dd>
+          <dd className="pf-sub">{all ? "за все сезоны" : "за сезон"}</dd>
+        </div>
+        <div>
+          <dt>В среднем за матч</dt>
+          <dd>{fmtAverage(k.knocks, k.matches)}</dd>
+          <dd className="pf-sub">
+            {k.matches} {matchesWord(k.matches)} с ноками
+          </dd>
+        </div>
+        <div>
+          <dt>Рекорд за матч</dt>
+          <dd>{k.best}</dd>
+          <dd className="pf-sub">
+            {k.bestMatch ? <Link href={`/tournament/${k.bestMatch}`}>против {k.bestOpponent}</Link> : "ноков пока не было"}
+          </dd>
+        </div>
+      </dl>
+      <p className="pf-hint">Считаются матчи, где ноки записаны хотя бы одному игроку.</p>
+    </div>
+  );
 }
 
 interface Tab {
@@ -204,6 +247,8 @@ export function ProfileSeasons({
         <span className="pf-legend-hint">наведи на точку — детали матча</span>
       </div>
       <ProfileChart key={sel} segments={segments} />
+
+      {analytics?.knocks?.matches ? <Knocks k={analytics.knocks} all={sel === ALL} /> : null}
 
       <div className="sf-prof-cols">
         <div>

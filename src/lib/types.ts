@@ -217,10 +217,20 @@ export interface OpponentStat {
   losses: number;
 }
 
-/** Разбивка матчей одного сезона по картам и соперникам. */
+/** Разбивка матчей одного сезона по картам и соперникам и ноки игрока. */
 export interface SeasonAnalytics {
   maps: MapStat[];
   opponents: OpponentStat[];
+  knocks: KnockStats;
+}
+
+/** Ноки игрока за сезон - только по матчам, где ноки записаны хотя бы одной стороне. */
+export interface KnockStats {
+  matches: number;
+  knocks: number;
+  best: number; // больше всего ноков за один матч
+  bestMatch?: string;
+  bestOpponent?: string;
 }
 
 /** Краткая карточка команды игрока (список команд в профиле). */

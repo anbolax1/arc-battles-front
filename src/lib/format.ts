@@ -48,6 +48,11 @@ export function knocksLabel(n: number): string {
   return `${n} ${pluralKnocks(n)}`;
 }
 
+/** Среднее с одним знаком после запятой: «2,5»; делить не на что - прочерк. */
+export function fmtAverage(sum: number, count: number): string {
+  return count > 0 ? (sum / count).toFixed(1).replace(".", ",") : "—";
+}
+
 /** Склонение «минута / минуты / минут» по числу. */
 export function pluralMinutes(n: number): string {
   const a = Math.abs(n) % 100;

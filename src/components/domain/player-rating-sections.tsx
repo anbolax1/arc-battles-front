@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { MmrPoint, MmrStats, PlayerProfile, Season } from "@/lib/types";
 import { MmrChart } from "./mmr-chart";
-import { MmrStatsGrid, MapBreakdown, HeadToHead, TeamsList } from "./mmr-analytics";
+import { MmrStatsGrid, KnockStatsGrid, MapBreakdown, HeadToHead, TeamsList } from "./mmr-analytics";
 
 /** Сводка по матчам одного сезона; сверка рейтинга - не матч, в победы и серии не идёт. */
 export function seasonStats(points: MmrPoint[], start: number): MmrStats {
@@ -111,6 +111,7 @@ export function PlayerRatingSections({ profile, seasons }: { profile: PlayerProf
           <h3 className="text-xl">
             Аналитика матчей 1×1 <span className="text-muted">· {season ? season.name : "вне сезонов"}</span>
           </h3>
+          {analytics?.knocks?.matches ? <KnockStatsGrid knocks={analytics.knocks} /> : null}
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-3">
               <h4 className="font-display text-sm uppercase tracking-wide text-muted">По картам</h4>

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { MmrStats, MapStat, OpponentStat, TeamSummary } from "@/lib/types";
-import { fmtDate } from "@/lib/format";
+import type { KnockStats, MmrStats, MapStat, OpponentStat, TeamSummary } from "@/lib/types";
+import { fmtAverage, fmtDate } from "@/lib/format";
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -41,6 +41,38 @@ export function MmrStatsGrid({ stats, final = false }: { stats: MmrStats; final?
       <Tile label="Лучший вин-стрик" value={stats.bestWinStreak} tone="accent" />
       <Tile label="Худший луз-стрик" value={stats.bestLossStreak} tone="danger" />
       <Tile label="Первый матч" value={stats.firstMatch ? fmtDate(stats.firstMatch) : "—"} tone="muted" />
+    </div>
+  );
+}
+
+/** Ноки игрока за сезон: среднее - только по матчам, где ноки записаны, иначе нули занизили бы его. */
+export function KnockStatsGrid({ knocks }: { knocks: KnockStats }) {
+  return (
+    <div className="space-y-3">
+      <h4 className="font-display text-sm uppercase tracking-wide text-muted">Ноки</h4>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Tile label="Ноков за сезон" value={knocks.knocks} />
+        <Tile
+          label="В среднем за матч"
+          value={fmtAverage(knocks.knocks, knocks.matches)}
+          sub={`матчей с ноками: ${knocks.matches}`}
+          tone="accent"
+        />
+        <Tile
+          label="Рекорд за матч"
+          value={knocks.best}
+          sub={
+            knocks.bestMatch ? (
+              <Link href={`/tournament/${knocks.bestMatch}`} className="underline underline-offset-2 hover:text-fg">
+                против {knocks.bestOpponent}
+              </Link>
+            ) : (
+              "ноков пока не было"
+            )
+          }
+        />
+      </div>
+      <p className="text-xs text-muted">Считаются матчи, где ноки записаны хотя бы одному игроку.</p>
     </div>
   );
 }

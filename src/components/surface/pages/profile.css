@@ -72,6 +72,18 @@
   text-transform: uppercase;
   color: var(--sf-ink-2);
 }
+.sf-stats dd.pf-sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sf-stats dd.pf-sub a:hover {
+  color: var(--sf-ink);
+}
+
+.pf-knocks {
+  margin-top: 48px;
+}
 
 .pf-legend {
   display: flex;
