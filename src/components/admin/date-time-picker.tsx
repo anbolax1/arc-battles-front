@@ -32,6 +32,18 @@ function compose(p: Parts, dateOnly: boolean): string {
   return `${p.y}-${pad(p.mo)}-${pad(p.d)}T${pad(p.hh)}:${pad(p.mm)}`;
 }
 
+// ISO-дата → «YYYY-MM-DDTHH:mm» в МСК (формат, который отдаёт/принимает DateTimePicker).
+export function toMskInput(iso?: string | null): string {
+  if (!iso) return "";
+  const parts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Moscow",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date(iso));
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${g("year")}-${g("month")}-${g("day")}T${g("hour")}:${g("minute")}`;
+}
+
 export function DateTimePicker({
   value,
   onChange,

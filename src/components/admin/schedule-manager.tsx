@@ -9,7 +9,7 @@ import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TournamentStatusPill } from "@/components/domain/tournament-status-pill";
 import { StarterTaskBoard } from "@/components/admin/starter-task-board";
-import { DateTimePicker } from "@/components/admin/date-time-picker";
+import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
 import { UserCombobox, type PickedMember } from "@/components/admin/user-combobox";
 import { Avatar } from "@/components/ui/avatar";
 import { registrationMatches, tournamentName } from "@/lib/display";
@@ -28,17 +28,6 @@ const PLAYER_TYPES: Array<{ value: PlayerType; label: string }> = [
   { value: "pvp", label: "PvP" },
   { value: "pvpve", label: "PvPvE" },
 ];
-
-// ISO-дата → «YYYY-MM-DDTHH:mm» в МСК (формат, который отдаёт/принимает DateTimePicker).
-function toMskInput(iso: string): string {
-  const parts = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Moscow",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(new Date(iso));
-  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${g("year")}-${g("month")}-${g("day")}T${g("hour")}:${g("minute")}`;
-}
 
 export function ScheduleManager({
   tournaments,

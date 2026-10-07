@@ -2,18 +2,11 @@
 
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
+import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
 import { MAX_PRIZE, PreviewImage, PreviewPicker, type PreviewSource } from "@/components/admin/match/show-preview";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { roundsLabel } from "@/lib/match";
 import type { MatchState, Participant, VetoStep } from "@/lib/types";
-
-/** Время матча в формате поля datetime-local (по часам ведущего). */
-function toLocalInput(iso?: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 function stepText(s: VetoStep): string {
   if (s.action === "ban") return `бан ${s.side}`;
@@ -46,7 +39,7 @@ export function ScheduledPanel({
 }) {
   const t = st.tournament;
   const [editing, setEditing] = React.useState(false);
-  const [value, setValue] = React.useState(() => toLocalInput(t.startsAt));
+  const [value, setValue] = React.useState(() => toMskInput(t.startsAt));
   const [prize, setPrize] = React.useState<string | null>(null);
   const [picking, setPicking] = React.useState(false);
   const [a, b] = sides;
@@ -66,7 +59,7 @@ export function ScheduledPanel({
             className="btn btn-ghost btn-sm"
             disabled={busy}
             onClick={() => {
-              setValue(toLocalInput(t.startsAt));
+              setValue(toMskInput(t.startsAt));
               setEditing(true);
             }}
           >
@@ -77,13 +70,15 @@ export function ScheduledPanel({
 
       {editing && (
         <div className="flex flex-wrap items-center gap-3">
-          <input type="datetime-local" className="input" value={value} onChange={(e) => setValue(e.target.value)} />
+          <div className="w-60">
+            <DateTimePicker value={value} onChange={setValue} />
+          </div>
           <button
             type="button"
             className="btn btn-primary btn-sm"
             disabled={busy || !value}
             onClick={() => {
-              onReschedule(new Date(value).toISOString());
+              onReschedule(`${value}:00+03:00`);
               setEditing(false);
             }}
           >

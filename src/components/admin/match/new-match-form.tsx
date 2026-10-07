@@ -7,6 +7,7 @@ import { api, ApiError, errorText } from "@/lib/api";
 import { initials } from "@/lib/format";
 import { roundsLabel } from "@/lib/match";
 import { Panel } from "@/components/ui/card";
+import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
 import { PlayerPicker } from "@/components/admin/match/player-picker";
 import {
   MAX_PRIZE,
@@ -85,13 +86,12 @@ function SideCard({
   );
 }
 
-/** Завтра в 20:00 по часам ведущего - в формате поля datetime-local. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Завтра в 20:00 по МСК - в формате DateTimePicker. */
 function defaultShowTime(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(20, 0, 0, 0);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const tomorrow = toMskInput(new Date(Date.now() + DAY_MS).toISOString());
+  return `${tomorrow.slice(0, 10)}T20:00`;
 }
 
 /** Новый матч: стороны, тип игроков и ×2 - и сразу к пикам-банам; шоу-матч - в расписание на дату. */
@@ -171,7 +171,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
         ratingMultiplier: mult,
         format,
         rounds: roundCount,
-        startsAt: show ? new Date(startsAt).toISOString() : undefined,
+        startsAt: show ? `${startsAt}:00+03:00` : undefined,
         prize: show ? prize.trim() : undefined,
         sides: [{ userId: sideA.id }, { userId: sideB.id }],
       });
@@ -224,15 +224,10 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           </div>
         </div>
         {show && (
-          <label className="space-y-1.5">
-            <span className="field-label">Начало</span>
-            <input
-              type="datetime-local"
-              className="input block"
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-            />
-          </label>
+          <div className="w-60 space-y-1.5">
+            <span className="field-label">Начало (МСК)</span>
+            <DateTimePicker value={startsAt} onChange={setStartsAt} />
+          </div>
         )}
         <div className="space-y-1.5">
           <span className="field-label">Режим</span>
