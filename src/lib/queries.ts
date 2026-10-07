@@ -22,6 +22,7 @@ import type {
   Registration,
   RulesResponse,
   Season,
+  SeasonRecap,
   StarterTask,
   Tournament,
   TournamentMode,
@@ -97,6 +98,18 @@ export function getRules(): Promise<RulesResponse> {
 /** Легендарные контракты (глобальный пул со статусом и журналом). */
 export function getLegendary(): Promise<CatalogLegendary[]> {
   return safe("legendary", serverFetch<CatalogLegendary[]>("/legendary"), []);
+}
+
+/** Итоги сезона по номеру; null - сезона нет или бэкенд недоступен. Матч в идущем сезоне меняет
+    итоги, поэтому кэш короткий. */
+export async function getSeasonRecap(number: string): Promise<SeasonRecap | null> {
+  try {
+    return await serverFetch<SeasonRecap>(`/seasons/${encodeURIComponent(number)}/recap`, { revalidate: 60 });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    console.warn(`[queries] seasonRecap(${number}): ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
 }
 
 /** Публичный профиль игрока по логину. null — 404/ошибка. */

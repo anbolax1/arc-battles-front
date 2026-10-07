@@ -644,6 +644,144 @@ export interface Season {
   kFactor: number;
   /** MMR, с которого все начинают сезон. */
   startMmr: number;
+  /** Номер для адреса страницы итогов /season/{номер}. */
+  number?: number | null;
+}
+
+/* ---------- итоги сезона: /api/seasons/{номер}/recap ---------- */
+
+/** Пара [выполнено, выдано]. */
+export type DoneOffered = [number, number];
+
+export interface RecapPlayer {
+  login: string;
+  mmr: number;
+  rank: number;
+  peak: number;
+  peakAt: string;
+  low: number;
+  wins: number;
+  losses: number;
+  matches: number;
+  winStreak: number;
+  lossStreak: number;
+  opponents: number;
+  first: string;
+  tags: string[];
+  /** [время в мс, MMR после, 1 - сверка рейтинга]. */
+  curve: Array<[number, number, number]>;
+}
+
+export interface RecapRound {
+  map: string;
+  played: boolean;
+  points: [number, number];
+  knocks: [number, number];
+}
+
+export interface RecapMatch {
+  id: string;
+  at: string;
+  /** Индексы игроков в players: стороны A и B. */
+  p: [number, number];
+  /** 0 | 1, -1 - ничья. */
+  winner: number;
+  mult: number;
+  games: number;
+  show: boolean;
+  before: [number, number];
+  delta: [number, number];
+  /** У матчей из таблицы организатора счёта нет. */
+  score?: [number, number];
+  rounds: RecapRound[];
+}
+
+export interface RecapDay {
+  date: string;
+  matches: number;
+  new: number;
+  /** Места на конец дня, первый - лидер. */
+  order: number[];
+}
+
+export interface RecapMap {
+  code: string;
+  name: string;
+  ban: number;
+  pick: number;
+  rest: number;
+  rounds: number;
+  points: number;
+  knocks: number;
+  tasksDone: number;
+  tasksOffered: number;
+}
+
+export interface RecapRoundStat {
+  number: number;
+  rounds: number;
+  points: number;
+  knocks: number;
+  tasksDone: number;
+  tasksOffered: number;
+}
+
+export interface RecapTask {
+  name: string;
+  text: string;
+  category: "task" | "protocol";
+  map: string;
+  done: number;
+  offered: number;
+}
+
+export interface SeasonRecap {
+  season: Season;
+  live: boolean;
+  summary: {
+    matches: number;
+    games: number;
+    players: number;
+    oneMatch: number;
+    x2: number;
+    detailed: number;
+    vetoed: number;
+    knocks: number;
+    gameDays: number;
+    first?: string;
+    last?: string;
+    startMmr: number;
+    corrections: Array<{ at: string; players: number }>;
+  };
+  players: RecapPlayer[];
+  matches: RecapMatch[];
+  days: RecapDay[];
+  leaders: Array<{ player: number; from: number; to: number }>;
+  /** Матч, после которого первым стал итоговый лидер; -1 - лидер не менялся. */
+  decisive: number;
+  maps: RecapMap[];
+  rounds: RecapRoundStat[];
+  knockers: Array<{ player: number; knocks: number; matches: number }>;
+  bestKnock?: { match: number; player: number; knocks: number };
+  comebacks: Array<{ match: number; round1: [number, number] }>;
+  tasks: {
+    all: DoneOffered;
+    mapTasks: DoneOffered;
+    general: DoneOffered;
+    protocols: DoneOffered;
+    distinct: number;
+    easy: RecapTask[];
+    hard: RecapTask[];
+    doers: Array<{ player: number; done: number; offered: number }>;
+  };
+  /** Побед фаворита по MMR и матчей, где MMR сторон различался. */
+  favorites: [number, number];
+  upsets: Array<{ match: number; chance: number }>;
+  swings: number[];
+  rivals: Array<{ a: number; b: number; winsA: number; winsB: number }>;
+  weekday: number[];
+  hours: number[];
+  upcoming: Array<{ id: string; title: string; at?: string; format: string; prize: string }>;
 }
 
 /** Карта из справочника: код, название и превью. */
