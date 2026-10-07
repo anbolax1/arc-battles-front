@@ -25,6 +25,8 @@ import {
   taskTitle,
 } from "@/lib/match";
 import type { MatchState, Participant } from "@/lib/types";
+import { getDesign } from "@/lib/design";
+import { SurfaceMatch } from "@/components/surface/pages/match";
 
 /** Что сторона набрала в раунде: из чего сложились очки, задания с наградой и легендарки. */
 function RoundSide({ st, round, p, i }: { st: MatchState; round: number; p: Participant; i: number }) {
@@ -78,6 +80,7 @@ function RoundSide({ st, round, p, i }: { st: MatchState; round: number; p: Part
 
 export default async function TournamentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if ((await getDesign()) === "surface") return <SurfaceMatch id={id} />;
   const st = await getMatch(id);
   if (!st) notFound();
   const t = st.tournament;

@@ -1,0 +1,235 @@
+/* Страница матча в новом дизайне: то, чего нет в общих стилях surface.css. */
+
+.sf-mtags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+.sf-mtags > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 10px/1 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--sf-cream-line);
+  color: var(--sf-cream);
+}
+.sf-mtags > span.hot {
+  background: var(--sf-amber);
+  color: var(--sf-ink);
+  box-shadow: none;
+}
+.sf-mtags > span.done {
+  color: var(--sf-cream-2);
+}
+.sf-mtags .sf-live-pill {
+  box-shadow: none;
+  color: #fff;
+}
+.sf-mh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 18px 0 0;
+  font: 600 11px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sf-cream-2);
+}
+.sf-mh-meta span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sf-mh-meta span::before {
+  content: "";
+  width: 3px;
+  height: 14px;
+  background: var(--sf-stripe-y);
+}
+.sf-mh-meta b {
+  color: var(--sf-cream);
+  font-weight: 600;
+}
+.sf-mh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* стороны на табло */
+.sf-mh-board .sf-side {
+  align-content: start;
+}
+.sf-side-line {
+  font: 600 12px/1.45 var(--sf-ff-m);
+  color: var(--sf-cream-2);
+}
+.sf-side-line b {
+  color: var(--sf-cream);
+  font-weight: 600;
+}
+.sf-side-line b.sf-up {
+  color: var(--sf-win);
+}
+.sf-side-line b.sf-down {
+  color: var(--sf-loss);
+}
+@media (max-width: 520px) {
+  .sf-side-line {
+    font-size: 11px;
+  }
+}
+.sf-side-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font: 700 15px/1.3 var(--sf-ff-d);
+}
+.sf-side.b .sf-side-roster {
+  justify-content: flex-end;
+}
+.sf-side-roster a {
+  color: var(--sf-cream);
+  text-decoration: none;
+}
+.sf-side-roster a:hover {
+  text-decoration: underline;
+}
+.sf-side-roster span {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.sf-mh-board .sf-stamp {
+  justify-self: start;
+}
+.sf-mh-board .sf-side.b .sf-stamp {
+  justify-self: end;
+}
+.sf-mh-board .sf-score {
+  justify-content: center;
+}
+.sf-mh-board .sf-score.vs {
+  font-family: var(--sf-ff-d);
+  letter-spacing: -0.02em;
+}
+.sf-mh-extra > * {
+  min-width: 0;
+}
+.sf-mh-extra .sf-mh-cd {
+  flex: 1 1 300px;
+}
+.sf-mh-extra .sf-mh-order {
+  flex: 1 1 280px;
+}
+.sf-mh-extra .sf-eyebrow {
+  margin-bottom: 10px;
+}
+
+/* пики и баны */
+.sf-veto-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 24px;
+  margin-bottom: 24px;
+}
+.sf-veto-head .sf-h-mid {
+  margin: 0;
+}
+.sf-tile .lab i {
+  font-style: normal;
+  opacity: 0.75;
+}
+.sf-vlog .sf-k {
+  justify-self: start;
+}
+
+/* раунды */
+.sf-rd-art {
+  background: var(--sf-ink);
+}
+.sf-rd-art .sf-round-n {
+  line-height: 1.35;
+}
+.sf-rd-col .sf-k {
+  background: var(--sf-ink);
+}
+.sf-rd-col .sf-k.map {
+  background: var(--sf-ink-2);
+}
+.sf-rd-col .sf-k.pr {
+  background: var(--sf-deep);
+}
+.sf-rd-col .sf-k.leg {
+  background: #9a5b00;
+}
+.sf-mh-extra + .sf-mh-extra {
+  margin-top: 20px;
+}
+.sf-rd-col li .got.miss {
+  color: var(--sf-ink-2);
+}
+.sf-rd-col li em {
+  font-style: normal;
+  color: var(--sf-deep);
+}
+.sf-rd-col li b {
+  font-weight: 700;
+}
+.sf-rd-plain {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.sf-rd-plain .sf-rd-art {
+  min-height: 140px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.sf-rd-foot {
+  margin: 14px 0 0;
+  font: 600 11px/1.5 var(--sf-ff-m);
+  color: var(--sf-ink-2);
+  letter-spacing: 0.04em;
+}
+
+/* что дал матч и личные встречи */
+.sf-elo dd.sf-up {
+  color: var(--sf-win-ink);
+}
+.sf-elo dd.sf-down {
+  color: var(--sf-loss-ink);
+}
+.sf-h2h-score .names {
+  display: block;
+  margin-top: 8px;
+  font: 800 13px/1.3 var(--sf-ff-c);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.sf-h2h-score .names i {
+  font-style: normal;
+  color: var(--sf-ink-2);
+  margin: 0 6px;
+}
+.sf-m-block + .sf-m-block {
+  margin-top: clamp(48px, 6vw, 72px);
+}
+/* победитель встречи в цвете своей стороны (тёмные оттенки - чтобы читался светлый текст) */
+.sf-res.sa {
+  background: #0f6f6a;
+}
+.sf-res.sb {
+  background: #b5382b;
+}
