@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { TelegramIcon, TwitchIcon } from "@/components/icons";
 import { STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
-import { isShowMatch, mapImage, matchSides, roundsLabel, stageLabel, totalScore } from "@/lib/match";
+import { mapImage, matchSides, roundsLabel, stageLabel } from "@/lib/match";
 import type { LeaderboardRow, MatchState, Matchup, MatchupSide, Season, Tournament, VetoStep } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { Arrow, ScheduleIcon, SecHead, TagStamps, signed } from "@/components/surface/ui";
@@ -66,18 +66,14 @@ export function Odds({ a, b, nameA, nameB, label }: { a: number; b: number; name
 
 export function Hero({
   season,
-  live,
   show,
   showMatchup,
   showOrder,
-  organizer,
 }: {
   season?: Season;
-  live: MatchState | null;
   show?: Tournament;
   showMatchup: Matchup | null;
   showOrder: VetoStep[];
-  organizer: boolean;
 }) {
   return (
     <Parallax className="sf-hero sf-night">
@@ -119,67 +115,14 @@ export function Hero({
             </div>
           )}
         </div>
-        <NextCard live={live} show={show} matchup={showMatchup} order={showOrder} organizer={organizer} />
+        <NextCard show={show} matchup={showMatchup} order={showOrder} />
       </div>
     </Parallax>
   );
 }
 
-function NextCard({
-  live,
-  show,
-  matchup,
-  order,
-  organizer,
-}: {
-  live: MatchState | null;
-  show?: Tournament;
-  matchup: Matchup | null;
-  order: VetoStep[];
-  organizer: boolean;
-}) {
-  if (live) {
-    const t = live.tournament;
-    const [a, b] = matchSides(live);
-    const rounds = t.rounds?.length || t.totalRounds;
-    return (
-      <aside className="sf-next" aria-labelledby="next-t">
-        <div className="sf-tags">
-          <span className="live">В эфире</span>
-          {isShowMatch(t) && <span className="hot">Шоу-матч</span>}
-          <span>{t.mode}</span>
-          <span>{roundsLabel(rounds)}</span>
-        </div>
-        <h2 className="sf-next-title" id="next-t">
-          {stageLabel(live.stage, live.currentRound || 1, rounds)}
-        </h2>
-        <div className="sf-live-score" aria-label="Счёт матча">
-          <span className="nm">{a?.name ?? "—"}</span>
-          <b>
-            {totalScore(live, a?.id)}
-            <i>:</i>
-            {totalScore(live, b?.id)}
-          </b>
-          <span className="nm b">{b?.name ?? "—"}</span>
-        </div>
-        <div className="sf-next-actions">
-          <a className="sf-btn sf-btn-amber" href={STREAM_URL} target="_blank" rel="noopener noreferrer">
-            <TwitchIcon />
-            Смотреть эфир
-          </a>
-          <Link className="sf-btn sf-btn-ink-line" href={`/tournament/${t.id}`}>
-            Страница матча
-          </Link>
-          {organizer && (
-            <Link className="sf-btn sf-btn-ink" href={`/admin/matches/${t.id}`}>
-              Открыть пульт
-            </Link>
-          )}
-        </div>
-      </aside>
-    );
-  }
-
+/** Анонс ближайшего шоу-матча. Идущий матч и кнопки организатора живут отдельно: обычный матч может идти, пока шоу-матч ещё впереди. */
+function NextCard({ show, matchup, order }: { show?: Tournament; matchup: Matchup | null; order: VetoStep[] }) {
   if (show?.startsAt) {
     const [a, b] = splitTitle(show.title);
     const [sa, sb] = matchup?.sides ?? [];
@@ -223,11 +166,6 @@ function NextCard({
           <a className="sf-btn sf-btn-ink" href="#show">
             Подробнее о матче
           </a>
-          {organizer && (
-            <Link className="sf-btn sf-btn-ink-line" href="/admin/matches">
-              Матчи в кабинете
-            </Link>
-          )}
         </div>
       </aside>
     );
@@ -236,22 +174,22 @@ function NextCard({
   return (
     <aside className="sf-next" aria-labelledby="next-t">
       <div className="sf-tags">
-        <span>Эфиры</span>
+        <span>Анонс</span>
       </div>
       <h2 className="sf-next-title" id="next-t">
-        Сейчас тихо
+        Шоу-матч не назначен
       </h2>
-      <p className="sf-next-date">Шоу-матч ещё не назначен. Обычные матчи ведущий собирает прямо в эфире — подай заявку, и тебя позовут.</p>
+      <p className="sf-next-date">
+        Анонс появится здесь, как только организатор назначит дату. Обычные матчи ведущий собирает прямо в эфире — подай заявку, и тебя позовут.
+      </p>
       <div className="sf-next-actions">
         <a className="sf-btn sf-btn-ink" href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer">
           <TelegramIcon />
           Анонсы в Telegram
         </a>
-        {organizer && (
-          <Link className="sf-btn sf-btn-ink-line" href="/admin/matches">
-            Новый матч
-          </Link>
-        )}
+        <Link className="sf-btn sf-btn-ink-line" href="/schedule">
+          Расписание
+        </Link>
       </div>
     </aside>
   );

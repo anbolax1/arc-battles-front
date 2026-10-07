@@ -5,6 +5,7 @@ import type { MapInfo, MatchState, Tournament } from "@/lib/types";
 import { byStartAsc } from "@/components/surface/shell";
 import { Hero, JoinCta, Leaders, Schedule, SHOW_ORDER, ShowSection, Ticker } from "@/components/surface/home-parts";
 import { LastMatch } from "@/components/surface/last-match";
+import { LiveMatch, OrganizerBar } from "@/components/surface/live-match";
 import { HowItWorks, type HowCalc, type HowExample } from "@/components/surface/how-it-works";
 import { SurfaceHighlights } from "@/components/surface/highlights";
 import { dayMonth } from "@/components/surface/fmt";
@@ -56,10 +57,11 @@ export async function SurfaceHome() {
   const season = seasons.find((s) => s.status === "active");
   const shows = upcoming.filter(isShowMatch).sort(byStartAsc);
   const show = shows[0];
-  const [showMatchup, showState, lastState] = await Promise.all([
+  const [showMatchup, showState, lastState, liveMatchup] = await Promise.all([
     show ? getMatchup(show.id) : Promise.resolve(null),
     show ? getMatch(show.id) : Promise.resolve(null),
     match.last ? Promise.resolve(match.last) : finished[0] ? getMatch(finished[0].id) : Promise.resolve(null),
+    match.current ? getMatchup(match.current.tournament.id) : Promise.resolve(null),
   ]);
   const order = showState?.vetoOrder?.length ? showState.vetoOrder : SHOW_ORDER;
   const organizer = !!me && roleAtLeast(me.role, "superadmin");
@@ -69,7 +71,8 @@ export async function SurfaceHome() {
 
   return (
     <>
-      <Hero season={season} live={match.current} show={show} showMatchup={showMatchup} showOrder={order} organizer={organizer} />
+      {match.current ? <LiveMatch st={match.current} matchup={liveMatchup} organizer={organizer} /> : organizer && <OrganizerBar />}
+      <Hero season={season} show={show} showMatchup={showMatchup} showOrder={order} />
       <Schedule live={match.current} shows={shows} />
       {show && <ShowSection t={show} matchup={showMatchup} order={order} />}
       {lastState && <LastMatch st={lastState} />}

@@ -12,7 +12,7 @@ export interface RoundTaskView {
   by?: string;
 }
 
-/** Раунд последнего матча: карта и счёт, по нажатию раскрываются задания сторон. */
+/** Раунд матча: карта и счёт, по нажатию раскрываются задания сторон. */
 export function RoundCard({
   n,
   map,
@@ -21,6 +21,7 @@ export function RoundCard({
   scoreB,
   scored,
   tasks,
+  live = false,
 }: {
   n: number;
   map: string;
@@ -29,12 +30,17 @@ export function RoundCard({
   scoreB: number;
   scored: boolean;
   tasks: RoundTaskView[];
+  /** Раунд идёт прямо сейчас. */
+  live?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const id = React.useId();
   const can = tasks.length > 0;
   return (
-    <article className={`sf-round ${can ? "can-open" : ""} ${open ? "open" : ""}`} onClick={(e) => can && !(e.target as Element).closest(".sf-round-tasks") && setOpen((o) => !o)}>
+    <article
+      className={`sf-round ${can ? "can-open" : ""} ${open ? "open" : ""} ${live ? "is-live" : ""}`}
+      onClick={(e) => can && !(e.target as Element).closest(".sf-round-tasks") && setOpen((o) => !o)}
+    >
       <div className="sf-duo">
         {/* eslint-disable-next-line @next/next/no-img-element -- превью карты */}
         {image && <img src={image} alt="" loading="lazy" />}
@@ -49,7 +55,10 @@ export function RoundCard({
         )}
       </span>
       <div className="sf-round-body">
-        <span className="sf-round-n">Раунд {n}</span>
+        <span className="sf-round-n">
+          Раунд {n}
+          {live ? " · идёт" : ""}
+        </span>
         <span className="sf-round-map">{map || "Карта не указана"}</span>
         {can && (
           <button

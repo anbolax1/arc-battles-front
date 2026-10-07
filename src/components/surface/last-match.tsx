@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { hasScore, mapImage, matchSides, roundScore, taskTitle, totalScore } from "@/lib/match";
-import type { MatchState, Participant } from "@/lib/types";
+import type { MatchState, Participant, VetoAction } from "@/lib/types";
 import { SecHead } from "@/components/surface/ui";
 import { CountUp } from "@/components/surface/motion";
 import { RoundCard, type RoundTaskView } from "@/components/surface/round-card";
@@ -24,6 +24,25 @@ export function roundTasks(st: MatchState, round: number, sides: [Participant | 
       result: !t.completedBy ? "miss" : t.completedBy === t.participantId ? "own" : "cross",
       by: t.completedBy && t.completedBy !== t.participantId ? name(t.completedBy) : undefined,
     }));
+}
+
+/** Ходы пиков-банов строкой плашек. */
+export function VetoChips({ veto }: { veto: VetoAction[] }) {
+  if (!veto.length) return null;
+  return (
+    <ol className="sf-veto-chips" aria-label="Пики и баны">
+      {veto.map((v) => (
+        <li key={v.seq}>
+          <span className={`sf-k ${v.action}`}>
+            {ACT[v.action]}
+            {v.side ? ` ${v.side}` : ""}
+          </span>
+          {v.action === "ban" ? <s>{v.mapName}</s> : <span>{v.mapName}</span>}
+          {v.roundNumber ? <span className="s">→ Р{v.roundNumber}</span> : null}
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 /** Последний сыгранный матч: табло, раунды с заданиями и пики-баны. */
@@ -101,20 +120,7 @@ export function LastMatch({ st }: { st: MatchState }) {
             ))}
           </div>
         )}
-        {st.veto.length > 0 && (
-          <ol className="sf-veto-chips" aria-label="Пики и баны">
-            {st.veto.map((v) => (
-              <li key={v.seq}>
-                <span className={`sf-k ${v.action}`}>
-                  {ACT[v.action]}
-                  {v.side ? ` ${v.side}` : ""}
-                </span>
-                {v.action === "ban" ? <s>{v.mapName}</s> : <span>{v.mapName}</span>}
-                {v.roundNumber ? <span className="s">→ Р{v.roundNumber}</span> : null}
-              </li>
-            ))}
-          </ol>
-        )}
+        <VetoChips veto={st.veto} />
         <div className="sf-last-foot">
           <span className="sf-mono">{st.tasks.length ? "Нажми на раунд, чтобы увидеть задания" : ""}</span>
           <Link className="sf-btn sf-btn-ink" href={`/tournament/${t.id}`}>
