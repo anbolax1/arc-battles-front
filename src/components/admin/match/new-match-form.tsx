@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError, errorText } from "@/lib/api";
 import { initials } from "@/lib/format";
+import { roundsLabel } from "@/lib/match";
 import { Panel } from "@/components/ui/card";
 import { PlayerPicker } from "@/components/admin/match/player-picker";
 import {
@@ -104,6 +105,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
   const [second, setSecond] = React.useState<MatchPlayer | null>(null);
   const [playerType, setPlayerType] = React.useState<PlayerType>("pvp");
   const [mult, setMult] = React.useState(1);
+  const [rounds, setRounds] = React.useState<2 | 3>(2);
   const [prize, setPrize] = React.useState("");
   const [preview, choosePreview] = useChosenPreview();
   const [busy, setBusy] = React.useState(false);
@@ -152,6 +154,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
   };
 
   const show = format === "show";
+  const roundCount = show ? 3 : rounds;
   const create = async () => {
     if (!sideA || !sideB) return;
     if (show && !startsAt) {
@@ -167,6 +170,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
         playerType,
         ratingMultiplier: mult,
         format,
+        rounds: roundCount,
         startsAt: show ? new Date(startsAt).toISOString() : undefined,
         prize: show ? prize.trim() : undefined,
         sides: [{ userId: sideA.id }, { userId: sideB.id }],
@@ -247,6 +251,24 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
             {PLAYER_TYPES.map(([v, label]) => (
               <button key={v} type="button" className="seg-btn" aria-pressed={playerType === v} onClick={() => setPlayerType(v)}>
                 <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <span className="field-label">Раунды</span>
+          <div className="seg">
+            {([2, 3] as const).map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={`seg-btn ${show && n === 2 ? "opacity-50" : ""}`}
+                aria-pressed={roundCount === n}
+                disabled={show && n === 2}
+                title={show ? "У шоу-матча всегда три раунда" : n === 3 ? "Пики-баны как в шоу-матче" : undefined}
+                onClick={() => setRounds(n)}
+              >
+                <span>{n}</span>
               </button>
             ))}
           </div>
@@ -364,7 +386,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
             {sideA && sideB ? `${sideA.displayName || sideA.login} vs ${sideB.displayName || sideB.login}` : "Выберите обоих игроков"}
           </div>
           <div className="text-sm text-muted">
-            {show ? "Шоу-матч · " : ""}1×1 · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · {show ? "3 раунда" : "2 раунда"} ·
+            {show ? "Шоу-матч · " : ""}1×1 · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · {roundsLabel(roundCount)} ·
             рейтинг ×{mult}
             {show && prize.trim() ? ` · приз: ${prize.trim()}` : ""}
           </div>
@@ -373,6 +395,9 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
               ? "Появится в расписании; начать его можно из пульта, когда придёт время"
               : "Название соберётся из ников, матч сразу станет текущим"}
           </div>
+          {roundCount === 3 && (
+            <div className="text-xs text-muted">Пики-баны на три раунда: пик A → пик B → бан A → бан B → пик A</div>
+          )}
         </div>
         <button type="button" className="btn btn-primary" disabled={!sideA || !sideB || busy || !!createdId} onClick={create}>
           <span>{busy ? "Создаём…" : show ? "Запланировать шоу-матч →" : "Создать и перейти к пикам →"}</span>

@@ -75,7 +75,7 @@ export interface Tournament {
   mode: TournamentMode;
   playerType: PlayerType; // pve | pvp | pvpve
   status: TournamentStatus;
-  totalRounds: number; // матч 3 сезона - два раунда (рейда), шоу-матч - три
+  totalRounds: number; // обычный матч - два или три раунда (рейда), шоу-матч - три
   /** match - обычный матч, show - шоу-матч из расписания. */
   format?: MatchFormat;
   ratingMultiplier: number; // жетон «×2 рейтинга»: 1 — обычный матч, 2 — считается за два (двойное Elo, W/L +2)
