@@ -33,6 +33,21 @@ export function pointsLabel(n: number): string {
   return `${n} ${pluralPoints(n)}`;
 }
 
+/** Склонение «нок / нока / ноков» по числу. */
+export function pluralKnocks(n: number): string {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return "ноков";
+  if (b === 1) return "нок";
+  if (b >= 2 && b <= 4) return "нока";
+  return "ноков";
+}
+
+/** «1 нок», «4 нока», «12 ноков». */
+export function knocksLabel(n: number): string {
+  return `${n} ${pluralKnocks(n)}`;
+}
+
 /** Склонение «минута / минуты / минут» по числу. */
 export function pluralMinutes(n: number): string {
   const a = Math.abs(n) % 100;

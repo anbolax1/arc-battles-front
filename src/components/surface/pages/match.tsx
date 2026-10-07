@@ -5,6 +5,7 @@ import { TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, YOUTUBE_URL } from "@/lib/links";
 import { getHighlights, getMaps, getMatch, getMatchup } from "@/lib/queries";
 import {
+  breakdownParts,
   CROSS_POINTS,
   hasScore,
   isShowMatch,
@@ -119,13 +120,7 @@ function BoardSide({
 /* ---------- раунды ---------- */
 
 function SideColumn({ st, round, p, other }: { st: MatchState; round: number; p: Participant; other: Participant | null }) {
-  const b = roundBreakdown(st, round, p.id);
-  const parts = [
-    b.tasks && `задания +${b.tasks}`,
-    b.cross && `задания соперника +${b.cross}`,
-    b.manual && `ноки и ручные ${b.manual > 0 ? "+" : ""}${b.manual}`,
-    b.legendary && `легендарка +${b.legendary}`,
-  ].filter(Boolean);
+  const parts = breakdownParts(roundBreakdown(st, round, p.id));
   const tasks = st.tasks.filter((x) => x.roundNumber === round && x.participantId === p.id);
   const legendary = st.legendary.filter((l) => l.roundNumber === round && l.participantId === p.id);
   const score = roundScore(st, round, p.id);

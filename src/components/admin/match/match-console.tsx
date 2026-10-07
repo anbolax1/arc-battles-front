@@ -98,7 +98,7 @@ export function MatchConsole({
   const focusId =
     feed.state?.tournamentId === id ? (feed.state?.currentParticipantId ?? a?.id ?? null) : (a?.id ?? null);
 
-  // Запросы к матчу уходят строго по одному, в порядке нажатий: иначе «+3» и «Следующий раунд»
+  // Запросы к матчу уходят строго по одному, в порядке нажатий: иначе «Нок» и «Следующий раунд»
   // сервер мог бы обработать наоборот, а ответ на старый запрос перетёр бы новый счёт.
   const enqueue = React.useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
     const next = queue.current.then(task);
@@ -165,7 +165,7 @@ export function MatchConsole({
 
   const run = (path: string, body?: unknown) => step(() => api.post<MatchState>(path, body));
 
-  // Зачёт кнопки не гасит: два нока подряд - это два «+3». Повтор по тому же заданию, пока первый
+  // Зачёт кнопки не гасит: два нока подряд - это два нажатия «Нок». Повтор по тому же заданию, пока первый
   // запрос не вернулся, отбрасываем - иначе задание попало бы в журнал дважды.
   async function act(path: string, body?: unknown, key?: string) {
     if (key && inFlight.current.has(key)) return null;
@@ -327,6 +327,7 @@ export function MatchConsole({
           onFocus={(pid) => act(`/tournaments/${id}/focus`, { participantId: pid })}
           onMark={(asg, by) => act(`/round-bonus-tasks/${asg}/mark`, { by }, `task:${asg}`)}
           onReroll={(asg) => act(`/round-bonus-tasks/${asg}/reroll`, undefined, `task:${asg}`)}
+          onKnock={(pid, delta) => act(`/tournaments/${id}/knocks`, { participantId: pid, delta })}
           onPoints={(pid, delta, label) => act(`/tournaments/${id}/points`, { participantId: pid, delta, label })}
           onLegendary={creditLegendary}
         />

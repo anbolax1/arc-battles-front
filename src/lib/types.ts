@@ -661,7 +661,7 @@ export interface MatchLogEntry {
   id: string;
   roundNumber: number;
   participantId?: string | null;
-  kind: "task" | "points" | "legendary";
+  kind: "task" | "points" | "knock" | "legendary";
   text: string;
   delta: number;
   createdAt: string;
@@ -672,6 +672,13 @@ export interface RoundScore {
   roundNumber: number;
   participantId: string;
   points: number;
+}
+
+/** Сколько ноков у стороны за раунд. */
+export interface RoundKnocks {
+  roundNumber: number;
+  participantId: string;
+  knocks: number;
 }
 
 /** Стадия матча: запланирован, пики-баны, карты готовы, идёт раунд, завершён. */
@@ -696,7 +703,8 @@ export interface MatchState {
   tasks: RoundBonusTask[];
   legendary: LegendaryCompletion[];
   scores: RoundScore[];
-  manual: RoundScore[];
+  manual: RoundScore[]; // вместе с очками за ноки
+  knocks: RoundKnocks[];
   log: MatchLogEntry[];
 }
 

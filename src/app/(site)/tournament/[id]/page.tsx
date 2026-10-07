@@ -11,6 +11,7 @@ import { ArrowLeftIcon, CheckIcon, TrophyIcon } from "@/components/icons";
 import { StreamButtons } from "@/components/domain/stream-buttons";
 import { fmtDate, fmtTime } from "@/lib/format";
 import {
+  breakdownParts,
   CROSS_POINTS,
   hasScore,
   isShowMatch,
@@ -30,13 +31,7 @@ import { SurfaceMatch } from "@/components/surface/pages/match";
 
 /** Что сторона набрала в раунде: из чего сложились очки, задания с наградой и легендарки. */
 function RoundSide({ st, round, p, i }: { st: MatchState; round: number; p: Participant; i: number }) {
-  const b = roundBreakdown(st, round, p.id);
-  const parts = [
-    b.tasks && `задания +${b.tasks}`,
-    b.cross && `задания соперника +${b.cross}`,
-    b.manual && `ноки и ручные ${b.manual > 0 ? "+" : ""}${b.manual}`,
-    b.legendary && `легендарка +${b.legendary}`,
-  ].filter(Boolean);
+  const parts = breakdownParts(roundBreakdown(st, round, p.id));
   const tasks = st.tasks.filter((x) => x.roundNumber === round && x.participantId === p.id);
   const legendary = st.legendary.filter((l) => l.roundNumber === round && l.participantId === p.id);
 

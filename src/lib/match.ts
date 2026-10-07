@@ -1,6 +1,7 @@
 /* Расчёты по матчу 3 сезона для пульта, главной и страницы матча: стороны A/B, счёт по раундам,
    подписи стадий и превью карт. */
 
+import { knocksLabel } from "@/lib/format";
 import type { MatchStage, MatchState, Participant, RoundBonusTask, Tournament } from "@/lib/types";
 
 /** Превью карты по коду (картинки лежат в /public/maps). */
@@ -35,19 +36,29 @@ export function manualPoints(st: MatchState, round: number, participantId: strin
   return st.manual.find((s) => s.roundNumber === round && s.participantId === participantId)?.points ?? 0;
 }
 
+export function roundKnocks(st: MatchState, round: number, participantId: string): number {
+  return (st.knocks ?? []).find((k) => k.roundNumber === round && k.participantId === participantId)?.knocks ?? 0;
+}
+
 /** Очки за чужое задание - столько же даёт сервер (ContractCrossPoints). */
 export const CROSS_POINTS = 1;
+
+/** Очки за нок рейдера - столько же даёт сервер (KnockPoints). */
+export const KNOCK_POINTS = 3;
 
 export interface RoundBreakdown {
   tasks: number;
   cross: number;
-  manual: number;
+  knocks: number; // штук, по KNOCK_POINTS очков
+  manual: number; // без очков за ноки
   legendary: number;
 }
 
-/** Из чего сложились очки стороны в раунде: свои задания, задания соперника, ручные и легендарки. */
+/** Из чего сложились очки стороны в раунде: свои задания, задания соперника, ноки, ручные и легендарки. */
 export function roundBreakdown(st: MatchState, round: number, participantId: string): RoundBreakdown {
-  const out: RoundBreakdown = { tasks: 0, cross: 0, manual: manualPoints(st, round, participantId), legendary: 0 };
+  const knocks = roundKnocks(st, round, participantId);
+  const manual = manualPoints(st, round, participantId) - knocks * KNOCK_POINTS;
+  const out: RoundBreakdown = { tasks: 0, cross: 0, knocks, manual, legendary: 0 };
   for (const t of st.tasks) {
     if (t.roundNumber !== round || t.completedBy !== participantId) continue;
     if (t.participantId === participantId) out.tasks += t.points;
@@ -57,6 +68,17 @@ export function roundBreakdown(st: MatchState, round: number, participantId: str
     if (l.roundNumber === round && l.participantId === participantId) out.legendary += l.points ?? 0;
   }
   return out;
+}
+
+/** Разбивка очков раунда словами для страницы матча: «задания +4 · 2 нока +6». */
+export function breakdownParts(b: RoundBreakdown): string[] {
+  return [
+    b.tasks ? `задания +${b.tasks}` : "",
+    b.cross ? `задания соперника +${b.cross}` : "",
+    b.knocks ? `${knocksLabel(b.knocks)} +${b.knocks * KNOCK_POINTS}` : "",
+    b.manual ? `ручные ${b.manual > 0 ? "+" : ""}${b.manual}` : "",
+    b.legendary ? `легендарка +${b.legendary}` : "",
+  ].filter(Boolean);
 }
 
 export function stageLabel(stage: MatchStage, round: number, total: number): string {

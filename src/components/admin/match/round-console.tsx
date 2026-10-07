@@ -5,6 +5,7 @@ import { Panel } from "@/components/ui/card";
 import { CheckIcon } from "@/components/icons";
 import {
   CROSS_POINTS,
+  KNOCK_POINTS,
   loadoutLabel,
   roundBreakdown,
   roundScore,
@@ -15,9 +16,6 @@ import {
   type RoundBreakdown,
 } from "@/lib/match";
 import type { CatalogLegendary, MatchLogEntry, MatchState, Participant, Round, RoundBonusTask } from "@/lib/types";
-
-/** Ручные очки за нок другого рейдера - по правилам 3 сезона. */
-const KNOCK_POINTS = 3;
 
 /** Цвета сторон как на табло: A - оранжевая, B - бирюзовая. */
 const SIDE_STYLE = [
@@ -168,7 +166,7 @@ function TaskRow({
   );
 }
 
-/** Из чего сложились очки стороны в раунде; ручные правятся прямо здесь, на месте своего числа. */
+/** Из чего сложились очки стороны в раунде, кроме ноков; ручные правятся прямо здесь, на месте своего числа. */
 function ScoreParts({
   parts,
   onManual,
@@ -291,6 +289,7 @@ export function RoundConsole({
   onFocus,
   onMark,
   onReroll,
+  onKnock,
   onPoints,
   onLegendary,
 }: {
@@ -306,6 +305,7 @@ export function RoundConsole({
   onFocus: (participantId: string) => void;
   onMark: (id: string, by: "owner" | "opponent" | "none") => void;
   onReroll: (id: string) => void;
+  onKnock: (participantId: string, delta: 1 | -1) => void;
   onPoints: (participantId: string, delta: number, label: string) => void;
   onLegendary: (legendaryId: string, participantId: string) => void;
 }) {
@@ -373,6 +373,7 @@ export function RoundConsole({
           const opp = sides[1 - i];
           const tasks = st.tasks.filter((t) => t.roundNumber === round && t.participantId === p.id);
           const done = tasks.filter((t) => t.completedBy === p.id).length;
+          const parts = roundBreakdown(st, round, p.id);
           return (
             <Panel key={p.id} className={`flex flex-col border-t-[3px] ${style.edge}`}>
               <div className="space-y-3 p-4">
@@ -386,18 +387,26 @@ export function RoundConsole({
                     <div className={`font-display text-4xl leading-none tnum ${style.text}`}>{roundScore(st, round, p.id)}</div>
                   </div>
                 </div>
-                <ScoreParts
-                  parts={roundBreakdown(st, round, p.id)}
-                  onManual={(delta, label) => onPoints(p.id, delta, label)}
-                />
-                {/* Отступ по краям - под скос кнопки, чтобы её углы не вылезали за край плиток с очками. */}
-                <div className="px-1.5">
+                <ScoreParts parts={parts} onManual={(delta, label) => onPoints(p.id, delta, label)} />
+                {/* Отступ справа - под скос кнопки, чтобы её угол не вылезал за край плиток с очками. */}
+                <div className="flex items-center gap-3 pr-1.5">
                   <button
                     type="button"
-                    className={`btn min-h-[44px] w-full ${style.knock}`}
-                    onClick={() => onPoints(p.id, KNOCK_POINTS, "нок рейдера")}
+                    className="flex h-11 w-11 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
+                    disabled={parts.knocks <= 0}
+                    onClick={() => onKnock(p.id, -1)}
+                    title={parts.knocks > 0 ? "Снять ошибочный нок" : "Ноков нет - снимать нечего"}
+                    aria-label="Снять нок"
                   >
-                    <span>+{KNOCK_POINTS} · нок рейдера</span>
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn min-h-[44px] flex-1 ${style.knock}`}
+                    onClick={() => onKnock(p.id, 1)}
+                    title={`Нок рейдера: +${KNOCK_POINTS} очка`}
+                  >
+                    <span>Нок{parts.knocks > 0 ? ` · ${parts.knocks}` : ""}</span>
                   </button>
                 </div>
               </div>
