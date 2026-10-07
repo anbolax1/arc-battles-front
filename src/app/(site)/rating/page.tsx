@@ -1,6 +1,8 @@
 import { getLeaderboard, getTeamLeaderboard, getSeasons } from "@/lib/queries";
 import { RatingTabs } from "@/components/domain/rating-tabs";
 import { SectionHead } from "@/components/ui/section-head";
+import { getDesign } from "@/lib/design";
+import { SurfaceRating } from "@/components/surface/pages/rating";
 
 export const metadata = {
   title: "Рейтинг — Битва за Респект",
@@ -8,6 +10,7 @@ export const metadata = {
 };
 
 export default async function RatingPage() {
+  if ((await getDesign()) === "surface") return <SurfaceRating />;
   // По умолчанию (без season) — активный сезон.
   const [seasons, solo, duo] = await Promise.all([getSeasons(), getLeaderboard("1x1"), getTeamLeaderboard()]);
 

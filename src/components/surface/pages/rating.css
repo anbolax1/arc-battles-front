@@ -1,0 +1,90 @@
+/* Таблица лидеров в новом дизайне: строки команд 2×2, баннер чемпиона и появление строк. */
+
+.sfr-lead {
+  margin-top: 18px;
+}
+.sfr-body {
+  padding-top: 36px;
+}
+
+/* строки выезжают при смене режима или сезона */
+.sfr-rows .sf-tr {
+  animation: sfr-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 18ms);
+}
+@keyframes sfr-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sf-tbl .sf-pl small {
+  margin-top: 2px;
+}
+
+/* состав 2×2: два аватара внахлёст и ники ссылками */
+.sfr-pair {
+  display: flex;
+  flex: none;
+}
+.sf-tr .sfr-pair .sf-ava {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+.sfr-pair .sf-ava + .sf-ava {
+  margin-left: -6px;
+  box-shadow: 0 0 0 2px var(--sf-paper);
+}
+.sfr-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 5px;
+}
+.sfr-member {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font: 600 13px/1.25 var(--sf-ff-d);
+}
+.sf-pl .sfr-member a {
+  color: var(--sf-ink-2);
+}
+.sf-pl .sfr-member a:hover {
+  color: var(--sf-ink);
+}
+
+/* чемпион завершённого сезона */
+.sf-stamp.sfr-gold {
+  color: #9a5b00;
+}
+.sfr-champ-name {
+  color: inherit;
+  text-decoration: none;
+}
+.sfr-champ-name:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.sf-champ-banner .sf-tagline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+@media (max-width: 520px) {
+  .sfr-pair {
+    display: none;
+  }
+  .sf-champ-banner .sf-mono {
+    margin-left: 0;
+  }
+}
