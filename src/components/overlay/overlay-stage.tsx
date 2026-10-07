@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import type { LiveState, OverlayLayout } from "@/lib/types";
 import { DEFAULT_LAYOUT } from "./default-layout";
 import { WIDGET_REGISTRY } from "./widgets/registry";
+import { PatchToasts } from "./patch-toasts";
 
 export const STAGE_W = 1920;
 export const STAGE_H = 1080;
@@ -109,6 +110,7 @@ export function OverlayStage({
             </div>
           );
         })}
+        <PatchToasts flashes={state.patchFlashes} />
         {children}
       </div>
     </div>
