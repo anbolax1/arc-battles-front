@@ -5,6 +5,8 @@ import { SectionHead } from "@/components/ui/section-head";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isShowMatch } from "@/lib/match";
 import type { Tournament } from "@/lib/types";
+import { getDesign } from "@/lib/design";
+import { SurfaceSchedule } from "@/components/surface/pages/schedule";
 
 export const metadata = {
   title: "Расписание — Битва за Респект",
@@ -18,6 +20,7 @@ function byStartAsc(a: Tournament, b: Tournament): number {
 }
 
 export default async function SchedulePage() {
+  if ((await getDesign()) === "surface") return <SurfaceSchedule />;
   const all = await getTournaments();
   const future = all.filter((t) => t.status !== "finished").sort(byStartAsc);
   // Обычные матчи ведущий создаёт прямо в эфире, поэтому в прошлом расписания - только шоу-матчи.

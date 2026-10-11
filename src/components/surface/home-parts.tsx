@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { TelegramIcon, TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
-import { mapImage, matchSides, roundsLabel, stageLabel } from "@/lib/match";
+import { isShowMatch, mapImage, matchSides, roundsLabel, stageLabel } from "@/lib/match";
 import type { LeaderboardRow, MatchState, Matchup, MatchupSide, Season, Tournament, VetoStep } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { Arrow, ScheduleIcon, SecHead, TagStamps, signed } from "@/components/surface/ui";
@@ -201,7 +201,8 @@ function NextCard({ show, matchup, order }: { show?: Tournament; matchup: Matchu
 
 /* ---------- ближайшие эфиры ---------- */
 
-export function Schedule({ live, shows }: { live: MatchState | null; shows: Tournament[] }) {
+/** Строки эфиров: идущий матч, анонсы по дате и обычные матчи, которые ведущий собирает в эфире. */
+export function ScheduleRows({ live, upcoming }: { live: MatchState | null; upcoming: Tournament[] }) {
   const rows: Array<{ key: string; href: string; cls: string; time: ReactNode; icon: ReactNode; title: string; sub: string; when: string }> = [];
   if (live) {
     const t = live.tournament;
@@ -217,15 +218,16 @@ export function Schedule({ live, shows }: { live: MatchState | null; shows: Tour
       when: "сейчас",
     });
   }
-  shows.slice(0, 3).forEach((s, i) => {
+  upcoming.forEach((s, i) => {
+    const show = isShowMatch(s);
     rows.push({
       key: s.id,
       href: `/tournament/${s.id}`,
       cls: i === 0 ? "hot" : "",
       time: s.startsAt ? i === 0 ? <ShortCountdown to={s.startsAt} /> : `${shortDate(s.startsAt)} · ${hhmm(s.startsAt)}` : "скоро",
-      icon: ScheduleIcon.star,
+      icon: show ? ScheduleIcon.star : ScheduleIcon.aim,
       title: s.title,
-      sub: ["Шоу-матч", roundsLabel(s.totalRounds), s.prize ? `приз ${s.prize}` : ""].filter(Boolean).join(" · "),
+      sub: [show ? "Шоу-матч" : `Матч ${s.mode}`, roundsLabel(s.totalRounds), s.prize ? `приз ${s.prize}` : ""].filter(Boolean).join(" · "),
       when: s.startsAt ? `${weekdayDate(s.startsAt)} · ${hhmm(s.startsAt)}` : "",
     });
   });
@@ -241,6 +243,29 @@ export function Schedule({ live, shows }: { live: MatchState | null; shows: Tour
   });
 
   return (
+    <ul className="sf-sched-list">
+      {rows.map((r) => (
+        <li key={r.key}>
+          <Link className={`sf-srow ${r.cls}`} href={r.href}>
+            <span className="sf-srow-time">
+              <i />
+              {r.time}
+            </span>
+            <span className="sf-srow-ico">{r.icon}</span>
+            <span className="sf-srow-main">
+              <b>{r.title}</b>
+              <small>{r.sub}</small>
+            </span>
+            <span className="sf-srow-when">{r.when}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function Schedule({ live, shows }: { live: MatchState | null; shows: Tournament[] }) {
+  return (
     <section className="sf-sched sf-night sf-grain" aria-labelledby="sched-t">
       <div className="sf-wrap">
         <div className="sf-sched-head">
@@ -252,24 +277,7 @@ export function Schedule({ live, shows }: { live: MatchState | null; shows: Tour
             Расписание <Arrow />
           </Link>
         </div>
-        <ul className="sf-sched-list">
-          {rows.map((r) => (
-            <li key={r.key}>
-              <Link className={`sf-srow ${r.cls}`} href={r.href}>
-                <span className="sf-srow-time">
-                  <i />
-                  {r.time}
-                </span>
-                <span className="sf-srow-ico">{r.icon}</span>
-                <span className="sf-srow-main">
-                  <b>{r.title}</b>
-                  <small>{r.sub}</small>
-                </span>
-                <span className="sf-srow-when">{r.when}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ScheduleRows live={live} upcoming={shows.slice(0, 3)} />
       </div>
     </section>
   );

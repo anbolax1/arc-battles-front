@@ -1,0 +1,100 @@
+/* Расписание в новом дизайне: строки эфиров - общие с главной, здесь - шапка и сыгранные шоу-матчи. */
+
+.sch-top {
+  padding-bottom: clamp(48px, 6vw, 80px);
+}
+.sch-lead {
+  margin-top: 18px;
+}
+.sch-list {
+  margin-top: clamp(32px, 4vw, 48px);
+}
+.sch-none {
+  margin: 2px 0 0;
+  padding: 14px 18px;
+  border: 2px dashed var(--sf-cream-line);
+  font: 600 11px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-cream-2);
+}
+
+.sch-past {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 18px;
+}
+.sch-show {
+  display: grid;
+  height: 100%;
+  grid-template-rows: auto 1fr;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--sf-paper-2);
+  box-shadow: 0 0 0 1px var(--sf-ink-line);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.sch-show:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 1px var(--sf-ink-line), 0 18px 32px -20px rgba(26, 14, 30, 0.55);
+}
+.sch-show-art {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--sf-night);
+}
+.sch-show-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sch-show-art .sf-stripes {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.sch-show-body {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+.sch-show-body small {
+  font: 600 10px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.sch-show-body b {
+  font: 800 22px/1.1 var(--sf-ff-d);
+  overflow-wrap: anywhere;
+}
+.sch-show-body b em {
+  font: 700 0.62em/1 var(--sf-ff-c);
+  font-style: normal;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.sch-show-score {
+  font: 900 44px/1 var(--sf-ff-cc);
+  font-variant-numeric: tabular-nums;
+}
+.sch-show-score i {
+  margin: 0 6px;
+  font-style: normal;
+  color: var(--sf-amber);
+}
+.sch-show-res {
+  font: 600 11px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
