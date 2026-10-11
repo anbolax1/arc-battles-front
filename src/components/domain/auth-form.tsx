@@ -18,13 +18,8 @@ const fieldCls =
 const LOGIN_RE = /^[A-Za-z0-9_]{3,32}$/;
 const MIN_PASSWORD = 8;
 
-export function AuthForm({
-  mode,
-  redirectTo,
-}: {
-  mode: "login" | "register";
-  redirectTo?: string;
-}) {
+/** Вход и регистрация: проверки полей, запрос и переход после успеха; общая для обоих дизайнов. */
+export function useAuthForm(mode: "login" | "register", redirectTo?: string) {
   const isRegister = mode === "register";
   const router = useRouter();
   const { refresh } = useAuth();
@@ -77,6 +72,19 @@ export function AuthForm({
       setSending(false);
     }
   }
+
+  return { login, setLogin, password, setPassword, confirm, setConfirm, sending, error, onSubmit };
+}
+
+export function AuthForm({
+  mode,
+  redirectTo,
+}: {
+  mode: "login" | "register";
+  redirectTo?: string;
+}) {
+  const isRegister = mode === "register";
+  const { login, setLogin, password, setPassword, confirm, setConfirm, sending, error, onSubmit } = useAuthForm(mode, redirectTo);
 
   return (
     <Panel glow className="p-6">

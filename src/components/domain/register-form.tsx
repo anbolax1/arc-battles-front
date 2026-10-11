@@ -2,17 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { api, ApiError } from "@/lib/api";
+import { api, errorText } from "@/lib/api";
 import { Panel } from "@/components/ui/card";
 import type { User } from "@/lib/types";
 
 const fieldCls =
   "w-full bg-surface-2 px-3.5 py-2.5 text-sm text-fg shadow-[inset_0_0_0_1px_var(--border)] outline-none transition focus:shadow-[inset_0_0_0_1px_var(--primary)]";
 
-export function RegisterForm({ user }: { user: User }) {
-  // Embark ID берём из профиля (там и редактируется) — в заявке его не вводят.
-  const embarkId = (user.embarkId ?? "").trim();
-  const hasEmbark = embarkId.length > 0;
+/** Заявка в общий пул с удобными датами; общая для обоих дизайнов. */
+export function useJoinRequest() {
   const [note, setNote] = React.useState("");
   const [status, setStatus] = React.useState<"idle" | "sending" | "ok" | "error">("idle");
   const [error, setError] = React.useState("");
@@ -26,11 +24,18 @@ export function RegisterForm({ user }: { user: User }) {
       setStatus("ok");
     } catch (err) {
       setStatus("error");
-      setError(
-        err instanceof ApiError ? err.body || err.message : "Не удалось отправить заявку.",
-      );
+      setError(errorText(err, "Не удалось отправить заявку."));
     }
   }
+
+  return { note, setNote, status, setStatus, error, onSubmit };
+}
+
+export function RegisterForm({ user }: { user: User }) {
+  // Embark ID берём из профиля (там и редактируется) — в заявке его не вводят.
+  const embarkId = (user.embarkId ?? "").trim();
+  const hasEmbark = embarkId.length > 0;
+  const { note, setNote, status, setStatus, error, onSubmit } = useJoinRequest();
 
   return (
     <Panel glow className="p-6">

@@ -1,0 +1,148 @@
+/* Вход, регистрация, запись на матч и активация: заголовок на ночи и карточка-пропуск с формой. */
+
+.au-top {
+  padding-bottom: clamp(56px, 7vw, 104px);
+}
+.au-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: clamp(32px, 6vw, 96px);
+}
+.au-lead {
+  margin-top: 18px;
+}
+.au-card {
+  justify-self: end;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--sf-paper-2);
+  box-shadow: 0 40px 80px -40px #000;
+  animation: sf-cardin 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.au-card-top {
+  height: 8px;
+  background: var(--sf-stripe-x);
+}
+.au-card-in {
+  display: grid;
+  gap: 18px;
+  padding: 26px 28px 28px;
+}
+.au-card-in > .sf-eyebrow {
+  margin: 0;
+}
+.au-form {
+  display: grid;
+  gap: 18px;
+}
+.au-submit {
+  width: 100%;
+}
+.au-switch,
+.au-text {
+  margin: 0;
+  font: 500 15px/1.5 var(--sf-ff-d);
+  color: var(--sf-ink-2);
+}
+.au-switch {
+  text-align: center;
+}
+.au-switch a,
+.au-text a {
+  color: var(--sf-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.au-switch b,
+.au-text b {
+  color: var(--sf-ink);
+}
+.au-embark {
+  font-family: var(--sf-ff-m);
+}
+.au-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.au-done {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+}
+.au-done .sf-h-up {
+  font-size: 28px;
+  text-transform: none;
+}
+.au-ok {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--sf-win-ink);
+  color: var(--sf-paper);
+}
+.au-ok svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* шаги записи на матч */
+.au-steps {
+  list-style: none;
+  display: grid;
+  gap: 18px;
+  max-width: 560px;
+  margin: 32px 0 0;
+  padding: 0;
+}
+.au-steps li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.au-step-n {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--sf-amber);
+  border-radius: 3px;
+  font: 900 20px/1 var(--sf-ff-cc);
+  color: var(--sf-amber);
+  transform: rotate(-4deg);
+}
+.au-steps li:nth-child(even) .au-step-n {
+  transform: rotate(3deg);
+}
+.au-steps b {
+  display: block;
+  font: 800 13px/1.2 var(--sf-ff-c);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.au-steps p {
+  margin: 6px 0 0;
+  color: var(--sf-cream-2);
+  font-size: 15px;
+  line-height: 1.5;
+}
+@media (max-width: 900px) {
+  .au-grid {
+    grid-template-columns: 1fr;
+  }
+  .au-card {
+    justify-self: start;
+  }
+}
+@media (max-width: 640px) {
+  .au-card-in {
+    padding: 22px 18px 22px;
+  }
+}

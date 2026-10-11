@@ -5,6 +5,13 @@
 import type { Registration, Role, Tournament } from "@/lib/types";
 import { matchName } from "@/lib/format";
 
+/** Шаги записи на матч - одинаковые в обоих дизайнах. */
+export const JOIN_STEPS = [
+  { n: 1, title: "Аккаунт", text: "Зарегистрируйся по логину и паролю — так заявка свяжется с твоим профилем." },
+  { n: 2, title: "Embark ID в профиле", text: "Ник вида «ник#0000» задаётся один раз в профиле — он нужен для лобби в Arc Raiders и подставляется в заявку." },
+  { n: 3, title: "Удобные даты", text: "Напиши, в какие даты можешь играть. Организатор позовёт тебя на матч." },
+];
+
 /** Статусы, которые понимает компонент StatusPill. */
 export type PillStatus = "live" | "soon" | "announce" | "done" | "ok" | "no" | "wait";
 

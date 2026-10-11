@@ -3,11 +3,14 @@ import { getClaimInfo } from "@/lib/queries";
 import { ClaimForm } from "@/components/domain/claim-form";
 import { Panel } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/section-head";
+import { getDesign } from "@/lib/design";
+import { SurfaceClaim } from "@/components/surface/pages/auth";
 
 export const metadata = { title: "Активация аккаунта — Битва за Респект" };
 
 export default async function ClaimPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  if ((await getDesign()) === "surface") return <SurfaceClaim token={token} />;
   const info = await getClaimInfo(token);
 
   if (!info) {

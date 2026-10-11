@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api, errorText } from "@/lib/api";
 
-/** Форма активации аккаунта по одноразовой ссылке: игрок задаёт пароль и сразу входит. */
-export function ClaimForm({ token, login }: { token: string; login: string }) {
+/** Активация аккаунта по одноразовой ссылке: проверка пароля, запрос и вход; общая для обоих дизайнов. */
+export function useClaimForm(token: string) {
   const router = useRouter();
   const [password, setPassword] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
@@ -29,10 +29,17 @@ export function ClaimForm({ token, login }: { token: string; login: string }) {
       router.push("/profile");
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.body || err.message : "Не удалось активировать аккаунт.");
+      setError(errorText(err, "Не удалось активировать аккаунт."));
       setBusy(false);
     }
   }
+
+  return { password, setPassword, confirm, setConfirm, busy, error, submit };
+}
+
+/** Форма активации аккаунта по одноразовой ссылке: игрок задаёт пароль и сразу входит. */
+export function ClaimForm({ token, login }: { token: string; login: string }) {
+  const { password, setPassword, confirm, setConfirm, busy, error, submit } = useClaimForm(token);
 
   return (
     <form onSubmit={submit} className="space-y-4">

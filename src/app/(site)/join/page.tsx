@@ -3,19 +3,17 @@ import { getMe } from "@/lib/queries";
 import { RegisterForm } from "@/components/domain/register-form";
 import { SectionHead } from "@/components/ui/section-head";
 import { Panel } from "@/components/ui/card";
+import { JOIN_STEPS as STEPS } from "@/lib/display";
+import { getDesign } from "@/lib/design";
+import { SurfaceJoin } from "@/components/surface/pages/auth";
 
 export const metadata = {
   title: "Записаться — Битва за Респект",
   description: "Войди, укажи Embark ID в профиле и оставь заявку в общий пул участников.",
 };
 
-const STEPS = [
-  { n: 1, title: "Аккаунт", text: "Зарегистрируйся по логину и паролю — так заявка свяжется с твоим профилем." },
-  { n: 2, title: "Embark ID в профиле", text: "Ник вида «ник#0000» задаётся один раз в профиле — он нужен для лобби в Arc Raiders и подставляется в заявку." },
-  { n: 3, title: "Удобные даты", text: "Напиши, в какие даты можешь играть. Организатор позовёт тебя на матч." },
-];
-
 export default async function JoinPage() {
+  if ((await getDesign()) === "surface") return <SurfaceJoin />;
   const user = await getMe();
 
   return (

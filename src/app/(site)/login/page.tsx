@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/queries";
 import { AuthForm } from "@/components/domain/auth-form";
 import { SectionHead } from "@/components/ui/section-head";
+import { getDesign } from "@/lib/design";
+import { SurfaceLogin } from "@/components/surface/pages/auth";
 
 export const metadata = {
   title: "Вход — Битва за Респект",
@@ -33,6 +35,7 @@ export default async function LoginPage({
 
   const sp = await searchParams;
   const redirectTo = safeInternalRedirect(sp.redirect);
+  if ((await getDesign()) === "surface") return <SurfaceLogin redirectTo={redirectTo} />;
 
   return (
     <div className="mx-auto w-full max-w-md space-y-8 px-6 py-12 sm:py-16">
