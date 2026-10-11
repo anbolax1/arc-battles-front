@@ -4508,6 +4508,10 @@ a.sf-tr:hover,
   }
 }
 
+.sf-missing .sf-lead {
+  margin-top: 18px;
+}
+
 /* поиск на бумаге */
 .sf-paper .sf-search input {
   border-color: var(--sf-ink-line);

@@ -257,23 +257,7 @@ export function ProfileSeasons({
         </div>
       </dl>
 
-      <div className="pf-legend" aria-hidden>
-        <span>
-          <i className="w" /> победа
-        </span>
-        <span>
-          <i className="l" /> поражение
-        </span>
-        {segments.some((s) => s.points.some((p) => p.correction)) && (
-          <span>
-            <i className="c" /> сверка рейтинга
-          </span>
-        )}
-        <span>
-          <i className="st" /> старт сезона
-        </span>
-        <span className="pf-legend-hint">наведи на точку — детали матча</span>
-      </div>
+      <ChartLegend corrections={segments.some((s) => s.points.some((p) => p.correction))} />
       <ProfileChart key={sel} segments={segments} />
 
       {analytics?.knocks?.matches ? <Knocks k={analytics.knocks} all={sel === ALL} /> : null}
@@ -302,64 +286,103 @@ export function ProfileSeasons({
         />
       )}
 
-      <div className="sf-prof-cols">
-        <div>
-          <h3 className="sf-h-mid">карты<span className="sf-dot">.</span></h3>
-          {analytics?.maps.length ? (
-            <ul className="sf-maps-list">
-              {analytics.maps.map((m) => {
-                const info = mapInfo(m.map);
-                return (
-                  <li key={m.map}>
-                    {info ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- превью карты
-                      <img src={mapImage(info.code)} alt="" loading="lazy" />
-                    ) : (
-                      <span className="pf-noimg" aria-hidden />
-                    )}
-                    <div>
-                      <b>{info?.name ?? m.map}</b>
-                      <Segs wins={m.wins} losses={m.losses} />
-                    </div>
-                    <span className="sc">
-                      {m.wins}–{m.losses}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="sf-note">Нет данных по картам.</p>
-          )}
-          <p className="pf-hint">Матч на нескольких картах засчитан на каждую.</p>
-        </div>
-        <div>
-          <h3 className="sf-h-mid">соперники<span className="sf-dot">.</span></h3>
-          {analytics?.opponents.length ? (
-            <ul className="sf-hist">
-              {analytics.opponents.map((o, i) => {
-                const href = o.login ? `/profile/${o.login}` : o.teamKey ? `/teams/${encodeURIComponent(o.teamKey)}` : "";
-                const body = (
-                  <>
-                    <span className={`sf-res ${o.wins >= o.losses ? "w" : "l"}`}>
-                      {o.wins}–{o.losses}
-                    </span>
-                    <span>
-                      <b>{o.name || "—"}</b>
-                      <small>
-                        {o.games} {matchesWord(o.games)}
-                      </small>
-                    </span>
-                    <span />
-                  </>
-                );
-                return <li key={(o.login || o.teamKey || o.name) + i}>{href ? <Link href={href}>{body}</Link> : <div>{body}</div>}</li>;
-              })}
-            </ul>
-          ) : (
-            <p className="sf-note">Соперники появятся после первых матчей.</p>
-          )}
-        </div>
+      <MapsAndRivals mapStats={analytics?.maps ?? []} opponents={analytics?.opponents ?? []} maps={maps} />
+    </div>
+  );
+}
+
+/** Легенда графика MMR. */
+export function ChartLegend({ corrections }: { corrections: boolean }) {
+  return (
+    <div className="pf-legend" aria-hidden>
+      <span>
+        <i className="w" /> победа
+      </span>
+      <span>
+        <i className="l" /> поражение
+      </span>
+      {corrections && (
+        <span>
+          <i className="c" /> сверка рейтинга
+        </span>
+      )}
+      <span>
+        <i className="st" /> старт сезона
+      </span>
+      <span className="pf-legend-hint">наведи на точку — детали матча</span>
+    </div>
+  );
+}
+
+/** Карты и соперники: победы и поражения на каждой карте и против каждого соперника. */
+export function MapsAndRivals({
+  mapStats,
+  opponents,
+  maps,
+}: {
+  mapStats: MapStat[];
+  opponents: OpponentStat[];
+  maps: Array<{ code: string; name: string }>;
+}) {
+  const mapInfo = (name: string) => maps.find((m) => norm(m.name) === norm(name));
+  return (
+    <div className="sf-prof-cols">
+      <div>
+        <h3 className="sf-h-mid">карты<span className="sf-dot">.</span></h3>
+        {mapStats.length ? (
+          <ul className="sf-maps-list">
+            {mapStats.map((m) => {
+              const info = mapInfo(m.map);
+              return (
+                <li key={m.map}>
+                  {info ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- превью карты
+                    <img src={mapImage(info.code)} alt="" loading="lazy" />
+                  ) : (
+                    <span className="pf-noimg" aria-hidden />
+                  )}
+                  <div>
+                    <b>{info?.name ?? m.map}</b>
+                    <Segs wins={m.wins} losses={m.losses} />
+                  </div>
+                  <span className="sc">
+                    {m.wins}–{m.losses}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="sf-note">Нет данных по картам.</p>
+        )}
+        <p className="pf-hint">Матч на нескольких картах засчитан на каждую.</p>
+      </div>
+      <div>
+        <h3 className="sf-h-mid">соперники<span className="sf-dot">.</span></h3>
+        {opponents.length ? (
+          <ul className="sf-hist">
+            {opponents.map((o, i) => {
+              const href = o.login ? `/profile/${o.login}` : o.teamKey ? `/teams/${encodeURIComponent(o.teamKey)}` : "";
+              const body = (
+                <>
+                  <span className={`sf-res ${o.wins >= o.losses ? "w" : "l"}`}>
+                    {o.wins}–{o.losses}
+                  </span>
+                  <span>
+                    <b>{o.name || "—"}</b>
+                    <small>
+                      {o.games} {matchesWord(o.games)}
+                    </small>
+                  </span>
+                  <span />
+                </>
+              );
+              return <li key={(o.login || o.teamKey || o.name) + i}>{href ? <Link href={href}>{body}</Link> : <div>{body}</div>}</li>;
+            })}
+          </ul>
+        ) : (
+          <p className="sf-note">Соперники появятся после первых матчей.</p>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,50 @@
+/* Команда 2×2 в новом дизайне: пропуск на двоих. Остальное - общие стили профиля. */
+
+.tm-photos {
+  display: flex;
+  gap: 10px;
+  padding: 20px 0 20px 20px;
+}
+.tm-photos .sf-id-photo {
+  margin: 0;
+  width: clamp(92px, 10vw, 128px);
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+.tm-photos .sf-id-photo:hover {
+  transform: translateY(-2px);
+}
+.tm-photos .sf-id-photo b {
+  font-size: clamp(34px, 4.2vw, 52px);
+}
+.tm-card .sf-id-body {
+  gap: 16px;
+}
+.tm-name {
+  margin: 0;
+  padding-right: 0;
+  font-size: clamp(32px, 4.4vw, 56px);
+  text-transform: none;
+}
+.tm-roster {
+  margin: 8px 0 0;
+  font: 600 12px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  color: var(--sf-ink-2);
+}
+.tm-roster a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tm-roster a:hover {
+  color: var(--sf-ink);
+}
+.tm-card .sf-id-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 640px) {
+  .tm-photos {
+    padding: 20px 20px 0;
+  }
+}

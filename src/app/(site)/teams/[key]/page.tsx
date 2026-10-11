@@ -5,9 +5,12 @@ import { MmrStatsGrid, MapBreakdown, HeadToHead } from "@/components/domain/mmr-
 import { Avatar, toneByIndex } from "@/components/ui/avatar";
 import { Panel } from "@/components/ui/card";
 import { SectionHead } from "@/components/ui/section-head";
+import { getDesign } from "@/lib/design";
+import { SurfaceTeam } from "@/components/surface/pages/team";
 
 export default async function TeamPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
+  if ((await getDesign()) === "surface") return <SurfaceTeam teamKey={key} />;
   const team = await getTeam(key);
 
   if (!team) {
