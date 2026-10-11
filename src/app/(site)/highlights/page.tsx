@@ -1,6 +1,8 @@
 import { getHighlights, getTournaments } from "@/lib/queries";
 import { SectionHead } from "@/components/ui/section-head";
 import { HighlightsGallery } from "@/components/domain/highlights-gallery";
+import { getDesign } from "@/lib/design";
+import { SurfaceHighlightsPage } from "@/components/surface/pages/highlights";
 
 export const metadata = {
   title: "Хайлайты — Битва за Респект",
@@ -10,6 +12,7 @@ export const metadata = {
 const PAGE_SIZE = 12;
 
 export default async function HighlightsPage() {
+  if ((await getDesign()) === "surface") return <SurfaceHighlightsPage />;
   const [{ items, total }, tournaments] = await Promise.all([
     getHighlights({ limit: PAGE_SIZE, offset: 0 }),
     getTournaments(),

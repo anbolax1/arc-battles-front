@@ -1,28 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, errorText } from "@/lib/api";
 import { Panel } from "@/components/ui/card";
 
 const fieldCls =
   "w-full bg-surface-2 px-3.5 py-2.5 text-sm text-fg shadow-[inset_0_0_0_1px_var(--border)] outline-none transition focus:shadow-[inset_0_0_0_1px_var(--primary)]";
 
-/* Форма добавления хайлайта (только для авторизованных). Два режима: ссылка на твич-клип
-   (скачивается к нам в фоне) или загрузка своего видео-файла. После отправки — на модерацию. */
-export function HighlightUpload({
-  tournaments = [],
-  defaultTournamentId = "",
-  onDone,
-}: {
-  tournaments?: { id: string; title: string }[];
-  defaultTournamentId?: string;
-  onDone?: () => void;
-}) {
+/** Отправка хайлайта на модерацию: ссылкой на твич-клип или своим файлом; общая для обоих дизайнов. */
+export function useHighlightUpload({ defaultTournamentId = "", onDone }: { defaultTournamentId?: string; onDone?: () => void }) {
   const [mode, setMode] = React.useState<"link" | "file">("link");
   const [url, setUrl] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
-  const [dragOver, setDragOver] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [title, setTitle] = React.useState("");
   const [tournamentId, setTournamentId] = React.useState(defaultTournamentId);
   const [status, setStatus] = React.useState<"idle" | "sending" | "ok" | "error">("idle");
@@ -53,7 +42,7 @@ export function HighlightUpload({
           body: fd,
           credentials: "include",
         });
-        if (!res.ok) throw new Error((await res.text().catch(() => "")) || "Не удалось загрузить файл.");
+        if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""));
       }
       setStatus("ok");
       setUrl("");
@@ -62,15 +51,28 @@ export function HighlightUpload({
       onDone?.();
     } catch (err) {
       setStatus("error");
-      setError(
-        err instanceof ApiError
-          ? err.body || err.message
-          : err instanceof Error
-            ? err.message
-            : "Не удалось отправить.",
-      );
+      setError(err instanceof ApiError ? errorText(err, "Не удалось отправить.") : err instanceof Error ? err.message : "Не удалось отправить.");
     }
   }
+
+  return { mode, setMode, url, setUrl, file, setFile, title, setTitle, tournamentId, setTournamentId, status, error, submit };
+}
+
+/* Форма добавления хайлайта (только для авторизованных). Два режима: ссылка на твич-клип
+   (скачивается к нам в фоне) или загрузка своего видео-файла. После отправки — на модерацию. */
+export function HighlightUpload({
+  tournaments = [],
+  defaultTournamentId = "",
+  onDone,
+}: {
+  tournaments?: { id: string; title: string }[];
+  defaultTournamentId?: string;
+  onDone?: () => void;
+}) {
+  const { mode, setMode, url, setUrl, file, setFile, title, setTitle, tournamentId, setTournamentId, status, error, submit } =
+    useHighlightUpload({ defaultTournamentId, onDone });
+  const [dragOver, setDragOver] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
     <Panel className="space-y-4 p-5">
