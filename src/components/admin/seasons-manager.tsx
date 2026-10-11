@@ -343,7 +343,10 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
               </div>
             </div>
           </div>
-          <p className="text-xs text-muted">Дату окончания можно оставить пустой.</p>
+          <p className="text-xs text-muted">
+            Когда наступит дата окончания (в 00:00 МСК), первое место таблицы 1×1 получит тег чемпиона сезона. Дату можно
+            оставить пустой — тогда тега нет, а если её убрать, тег снимется.
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <RuleField label="K-фактор Эло" value={eK} min={K_MIN} max={K_MAX} onChange={setEK} />
             <RuleField label="Стартовый MMR" value={eStartMmr} min={START_MIN} max={START_MAX} onChange={setEStartMmr} />
