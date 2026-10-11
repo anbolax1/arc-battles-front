@@ -3097,23 +3097,24 @@ a.sf-side-name:hover {
 }
 .sf-hl-play {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  inset: 0;
   z-index: 2;
-  width: 38px;
-  height: 38px;
+  width: 52px;
+  height: 52px;
+  margin: auto;
   border-radius: 50%;
   background: var(--sf-amber);
   color: var(--sf-ink);
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.7);
   display: grid;
   place-items: center;
   transform: scale(0.85);
   transition: transform 0.25s;
 }
 .sf-hl-play svg {
-  width: 14px;
-  height: 14px;
-  margin-left: 2px;
+  width: 18px;
+  height: 18px;
+  margin-left: 3px;
 }
 .sf-hl:hover .sf-hl-play {
   transform: scale(1);
@@ -3176,6 +3177,19 @@ a.sf-side-name:hover {
 @media (max-width: 900px) {
   .sf-hl-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* по две плитки на телефоне - кнопка меньше и над подписью, иначе закрыла бы название */
+@media (max-width: 540px) {
+  .sf-hl-row .sf-hl-play {
+    bottom: 34px;
+    width: 36px;
+    height: 36px;
+  }
+  .sf-hl-row .sf-hl-play svg {
+    width: 13px;
+    height: 13px;
+    margin-left: 2px;
   }
 }
 
