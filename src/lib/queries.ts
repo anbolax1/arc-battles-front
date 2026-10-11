@@ -29,6 +29,7 @@ import type {
   TournamentStatus,
   User,
   UserOverview,
+  UserTag,
   Highlight,
   PatchCatalog,
 } from "@/lib/types";
@@ -212,6 +213,11 @@ export function getMyRegistrations(): Promise<Registration[]> {
     serverFetch<Registration[]>("/me/registrations", { auth: true }),
     [],
   );
+}
+
+/** Свои теги вместе со скрытыми - для настройки профиля. [] - аноним/ошибка. */
+export function getMyTags(): Promise<UserTag[]> {
+  return safe("me/tags", serverFetch<UserTag[]>("/me/tags", { auth: true }), []);
 }
 
 /** Идущий матч (или последний сыгранный, если сейчас никто не играет) - для главной и кабинета. */

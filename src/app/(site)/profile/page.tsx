@@ -11,12 +11,15 @@ import { TagSettings } from "@/components/domain/tag-settings";
 import Link from "next/link";
 import { registrationPill } from "@/lib/display";
 import { fmtDate } from "@/lib/format";
+import { getDesign } from "@/lib/design";
+import { SurfaceMyProfile } from "@/components/surface/pages/my-profile";
 
 export const metadata = {
   title: "Профиль — Битва за Респект",
 };
 
 export default async function ProfilePage() {
+  if ((await getDesign()) === "surface") return <SurfaceMyProfile />;
   const user = await getMe();
 
   if (!user) {

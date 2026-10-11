@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import "./profile.css";
 import { getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
@@ -111,11 +112,21 @@ function rarestPatches(profile: PlayerProfile, seasons: Season[], active?: Seaso
   return { items: [], count: 0 };
 }
 
-/** Профиль игрока в новом дизайне: пропуск рейдера, рейтинг по сезонам, матчи, команды и клипы. */
-export async function SurfaceProfile({ login }: { login: string }) {
-  const profile = await getPlayer(login);
-  if (!profile) return <NotFound login={login} />;
-
+/** Профиль игрока в новом дизайне: пропуск рейдера, рейтинг по сезонам, матчи, команды и клипы.
+    Свой профиль добавляет под пропуск настройки, а после матчей - заявки. */
+export async function ProfileView({
+  profile,
+  eyebrow,
+  back = false,
+  settings,
+  extra,
+}: {
+  profile: PlayerProfile;
+  eyebrow: string;
+  back?: boolean;
+  settings?: ReactNode;
+  extra?: ReactNode;
+}) {
   const { user, timeline1x1, history, teams } = profile;
   const [{ items: highlights }, seasons, maps] = await Promise.all([getHighlights({ userId: user.id, limit: 4 }), getSeasons(), getMaps()]);
   const active = seasons.find((s) => s.status === "active");
@@ -128,11 +139,16 @@ export async function SurfaceProfile({ login }: { login: string }) {
       <section className="sf-page-head sf-night sf-grain pf-top">
         <Stripes shape="head" draw />
         <div className="sf-wrap">
-          <Link className="sf-back" href="/rating">
-            <ArrowBack />
-            Таблица лидеров
-          </Link>
-          <p className="sf-eyebrow">Профиль игрока{active ? ` · ${active.name}` : ""}</p>
+          {back && (
+            <Link className="sf-back" href="/rating">
+              <ArrowBack />
+              Таблица лидеров
+            </Link>
+          )}
+          <p className="sf-eyebrow">
+            {eyebrow}
+            {active ? ` · ${active.name}` : ""}
+          </p>
           <div className={`pt-idwrap ${sewn.items.length ? "sewn" : ""}`}>
             <IdCard profile={profile} season={active} />
             {sewn.items.length > 0 && (
@@ -148,6 +164,7 @@ export async function SurfaceProfile({ login }: { login: string }) {
               </a>
             )}
           </div>
+          {settings}
         </div>
       </section>
 
@@ -192,10 +209,17 @@ export async function SurfaceProfile({ login }: { login: string }) {
               )}
             </div>
           </div>
+          {extra}
         </div>
       </section>
 
       <SurfaceHighlights items={highlights} title="хайлайты игрока" eyebrow={`Клипы с эфиров · ${name}`} />
     </>
   );
+}
+
+export async function SurfaceProfile({ login }: { login: string }) {
+  const profile = await getPlayer(login);
+  if (!profile) return <NotFound login={login} />;
+  return <ProfileView profile={profile} eyebrow="Профиль игрока" back />;
 }

@@ -8,7 +8,7 @@ const fieldCls =
   "w-full bg-surface-2 px-3.5 py-2.5 text-sm text-fg shadow-[inset_0_0_0_1px_var(--border)] outline-none transition focus:shadow-[inset_0_0_0_1px_var(--primary)]";
 
 // Формат Embark ID: ник, решётка, ровно 4 цифры — напр. «Istwood#1234».
-const EMBARK_RE = /^[^#]+#\d{4}$/;
+export const EMBARK_RE = /^[^#]+#\d{4}$/;
 
 /** Редактор Embark ID текущего пользователя (PATCH /api/me); compact - в одну строку для шапки профиля. */
 export function EmbarkIdEditor({ initial, compact = false }: { initial: string; compact?: boolean }) {
