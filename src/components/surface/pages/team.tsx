@@ -1,38 +1,28 @@
 import Link from "next/link";
 import "./profile.css";
 import "./team.css";
-import { getMaps, getSeasons, getTeam } from "@/lib/queries";
-import type { MmrPoint, Season, TeamProfile } from "@/lib/types";
+import { getMaps, getSeasons, getTeam, getTeamLeaderboard } from "@/lib/queries";
+import type { MmrStats, Season, TeamProfile } from "@/lib/types";
 import { initials } from "@/lib/format";
+import { seasonStats } from "@/lib/mmr-stats";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack } from "@/components/surface/ui";
 import { SurfaceMissing } from "@/components/surface/missing";
-import { ProfileChart, type ChartSegment } from "@/components/surface/profile-chart";
-import { ChartLegend, MapsAndRivals } from "@/components/surface/profile-seasons";
+import { TeamSeasons } from "@/components/surface/team-seasons";
 import { fullDate } from "@/components/surface/fmt";
 
-/** Отрезки графика по сезонам: у каждого сезона свой стартовый MMR. */
-function segmentsBySeason(timeline: MmrPoint[], seasons: Season[]): ChartSegment[] {
-  const groups = new Map<string, MmrPoint[]>();
-  for (const p of timeline) groups.set(p.season ?? "", [...(groups.get(p.season ?? "") ?? []), p]);
-  return [...groups.entries()].map(([id, points]) => {
-    const s = seasons.find((x) => x.id === id);
-    return { label: s?.name ?? "Вне сезонов", start: s?.startMmr ?? 1000, points };
-  });
-}
-
-/** Пропуск команды: оба игрока, название и главные цифры. */
-function TeamCard({ team, name, season }: { team: TeamProfile; name: string; season?: Season }) {
-  const { members, stats } = team;
+/** Пропуск команды: оба игрока, название и цифры сезона, в котором команда играла последним. */
+function TeamCard({ team, name, season, stats, final }: { team: TeamProfile; name: string; season?: Season; stats: MmrStats; final: boolean }) {
+  const { members } = team;
   const no = season?.name.match(/\d+/)?.[0] ?? "0";
   const code = members.map((m) => m.login.toUpperCase().replace(/[^A-Z0-9]/g, "<")).join("<<");
   const fields = [
     { k: "Место 2×2", v: stats.place > 0 ? `#${stats.place}` : "вне рейтинга" },
-    { k: "MMR 2×2", v: String(stats.currentMmr) },
+    { k: final ? "MMR в конце" : "MMR 2×2", v: String(stats.currentMmr) },
     { k: "Пик MMR", v: stats.peakMmr ? String(stats.peakMmr) : "—" },
     { k: "Победы", v: stats.games ? `${stats.wins} из ${stats.games} · ${stats.winrate}%` : "нет матчей" },
     { k: "Лучшая серия", v: stats.bestWinStreak ? `${stats.bestWinStreak} подряд` : "—" },
-    { k: "Первый матч", v: stats.firstMatch ? fullDate(stats.firstMatch) : "—" },
+    { k: "Первый матч", v: team.stats.firstMatch ? fullDate(team.stats.firstMatch) : "—" },
   ];
   return (
     <article className="sf-idcard pf-card tm-card" aria-label={`Команда ${name}`}>
@@ -40,7 +30,7 @@ function TeamCard({ team, name, season }: { team: TeamProfile; name: string; sea
         <span>
           Пропуск команды<span className="sf-hide-sm"> · Speranza</span>
         </span>
-        <span className="sf-hide-sm">{season?.name ?? "Вне сезона"}</span>
+        <span className="sf-hide-sm">{season ? `${season.name}${final ? " · итог" : ""}` : "Вне сезона"}</span>
         <Stripes shape="badge" />
       </div>
       <div className="tm-photos">
@@ -101,12 +91,24 @@ export async function SurfaceTeam({ teamKey }: { teamKey: string }) {
   const active = seasons.find((s) => s.status === "active");
   const roster = team.members.map((m) => m.displayName || m.login).join(" & ");
   const name = team.name || roster;
-  const { stats } = team;
-  const segments = segmentsBySeason(team.timeline, seasons);
-  const streak =
-    stats.currentStreakLen > 0 && stats.currentStreakKind
-      ? { v: String(stats.currentStreakLen), s: stats.currentStreakKind === "win" ? "побед подряд" : "поражений подряд" }
-      : { v: "—", s: "нет серии" };
+
+  // На пропуске - текущий сезон, а если команда в нём не играла - последний сезон с её матчами и его итог.
+  const played = new Set(team.timeline.map((p) => p.season ?? ""));
+  const playsNow = !!active && played.has(active.id);
+  const season = playsNow ? active : seasons.filter((s) => played.has(s.id)).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+  let stats: MmrStats = team.stats;
+  if (season) {
+    const own = seasonStats(
+      team.timeline.filter((p) => p.season === season.id),
+      season.startMmr,
+    );
+    if (playsNow) {
+      stats = { ...own, currentMmr: team.stats.currentMmr, place: team.stats.place };
+    } else {
+      const rows = await getTeamLeaderboard(season.id);
+      stats = { ...own, place: rows.findIndex((r) => r.teamKey === team.teamKey) + 1 };
+    }
+  }
 
   return (
     <>
@@ -117,59 +119,20 @@ export async function SurfaceTeam({ teamKey }: { teamKey: string }) {
             <ArrowBack />
             Таблица лидеров
           </Link>
-          <p className="sf-eyebrow">Команда 2×2{active ? ` · ${active.name}` : ""}</p>
-          <TeamCard team={team} name={name} season={active} />
+          <p className="sf-eyebrow">Команда 2×2</p>
+          <TeamCard team={team} name={name} season={season} stats={stats} final={!playsNow && !!season} />
+          {active && !playsNow && team.timeline.length > 0 && (
+            <p className="tm-note">
+              В текущем сезоне команда пока не играла{season ? ` — на пропуске итог «${season.name}»` : ""}.
+            </p>
+          )}
         </div>
       </section>
 
       <section className="sf-sec sf-paper sf-grain pf-main">
         <div className="sf-wrap">
-          {stats.games > 0 ? (
-            <>
-              <div className="sf-sec-head pf-head">
-                <div>
-                  <p className="sf-eyebrow">Рейтинг 2×2 · у команды свой MMR</p>
-                  <h2 className="sf-h-mid">
-                    рейтинг команды<span className="sf-dot">.</span>
-                  </h2>
-                </div>
-              </div>
-              <dl className="sf-stats">
-                <div>
-                  <dt>MMR сейчас</dt>
-                  <dd>{stats.currentMmr}</dd>
-                  <dd className="pf-sub">{stats.place > 0 ? `#${stats.place} в таблице 2×2` : "вне рейтинга"}</dd>
-                </div>
-                <div>
-                  <dt>Пик MMR</dt>
-                  <dd>{stats.peakMmr}</dd>
-                  <dd className="pf-sub">максимум</dd>
-                </div>
-                <div>
-                  <dt>Винрейт</dt>
-                  <dd>
-                    {stats.winrate}
-                    <small>%</small>
-                  </dd>
-                  <dd className="pf-sub">
-                    {stats.wins}–{stats.losses}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Матчей</dt>
-                  <dd>{stats.games}</dd>
-                  <dd className="pf-sub">{stats.firstMatch ? `с ${fullDate(stats.firstMatch)}` : "—"}</dd>
-                </div>
-                <div>
-                  <dt>Серия сейчас</dt>
-                  <dd>{streak.v}</dd>
-                  <dd className="pf-sub">{streak.s}</dd>
-                </div>
-              </dl>
-              <ChartLegend corrections={segments.some((s) => s.points.some((p) => p.correction))} />
-              <ProfileChart segments={segments} />
-              <MapsAndRivals mapStats={team.maps} opponents={team.opponents} maps={maps.map((m) => ({ code: m.code, name: m.name }))} />
-            </>
+          {team.timeline.length > 0 ? (
+            <TeamSeasons team={team} seasons={seasons} maps={maps.map((m) => ({ code: m.code, name: m.name }))} />
           ) : (
             <p className="sf-note">У команды пока нет сыгранных матчей 2×2 — график и разбор по картам появятся после первого.</p>
           )}

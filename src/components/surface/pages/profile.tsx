@@ -199,7 +199,8 @@ export async function ProfileView({
                           {t.place > 0 ? `#${t.place} · ` : ""}
                           {t.wins}–{t.losses}
                         </small>
-                        <em>{t.mmr}</em>
+                        {/* MMR - текущего сезона: у команды, не игравшей в нём, он стартовый и ничего не говорит */}
+                        <em title={t.place > 0 ? undefined : "В текущем сезоне не играла"}>{t.place > 0 ? t.mmr : "—"}</em>
                       </Link>
                     );
                   })}

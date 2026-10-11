@@ -334,10 +334,13 @@ export interface TeamProfile {
   teamKey: string;
   name: string;
   members: TeamMember[];
+  /** Лента - за все сезоны, MMR и место - в текущем сезоне (не игравшая в нём команда - место 0). */
   stats: MmrStats;
   timeline: MmrPoint[];
   maps: MapStat[];
   opponents: OpponentStat[];
+  /** Карты и соперники по сезонам: ключ - id сезона, пусто - матчи вне сезонов. */
+  analytics?: Record<string, SeasonAnalytics>;
 }
 
 export type TaskCategory = "task" | "protocol";

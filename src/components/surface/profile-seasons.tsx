@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { seasonStats } from "@/components/domain/player-rating-sections";
+import { seasonStats } from "@/lib/mmr-stats";
 import { mapImage } from "@/lib/match";
 import { fmtAverage } from "@/lib/format";
 import type { KnockStats, MapStat, MmrPoint, MmrStats, OpponentStat, PatchCode, PlayerPatch, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
@@ -37,7 +37,7 @@ function Segs({ wins, losses }: { wins: number; losses: number }) {
 }
 
 /** Сводка по картам, соперникам и нокам за несколько сезонов: одинаковые записи складываются. */
-function mergeAnalytics(list: SeasonAnalytics[]): SeasonAnalytics {
+export function mergeAnalytics(list: SeasonAnalytics[]): SeasonAnalytics {
   const maps = new Map<string, MapStat>();
   const opps = new Map<string, OpponentStat>();
   const knocks: KnockStats = { matches: 0, knocks: 0, best: 0 };
