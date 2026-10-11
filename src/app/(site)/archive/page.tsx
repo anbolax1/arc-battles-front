@@ -2,6 +2,8 @@ import { getTournaments } from "@/lib/queries";
 import { ArchiveCard } from "@/components/domain/archive-card";
 import { SectionHead } from "@/components/ui/section-head";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getDesign } from "@/lib/design";
+import { SurfaceArchive } from "@/components/surface/pages/archive";
 
 export const metadata = {
   title: "Архив — Битва за Респект",
@@ -9,6 +11,7 @@ export const metadata = {
 };
 
 export default async function ArchivePage() {
+  if ((await getDesign()) === "surface") return <SurfaceArchive />;
   const finished = await getTournaments("finished");
 
   return (
