@@ -704,6 +704,7 @@ a.pt-res:hover {
 .pt-facts {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 18px 48px;
   margin: 36px 0 0;
 }
