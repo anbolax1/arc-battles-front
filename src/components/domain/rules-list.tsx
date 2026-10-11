@@ -8,17 +8,41 @@ import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fmtDate, pointsLabel } from "@/lib/format";
 
-const KIND_LABEL: Record<string, string> = {
+export const KIND_LABEL: Record<string, string> = {
   pve: "PvE",
   pvp: "PvP",
   pvpve: "PvPvE",
 };
 
+/** Номер в справочнике и подпись для показа и поиска: название в кавычках, затем текст. */
+function numbered<T extends { text: string; name?: string }>(items: T[]): Array<T & { num: number; label: string }> {
+  return items.map((t, i) => ({ ...t, num: i + 1, label: t.name ? `«${t.name}» — ${t.text}` : t.text }));
+}
+
 /** Фильтр по номеру (точное/префикс) или подстроке текста. */
-function matches<T extends { text: string }>(it: T & { num: number }, q: string): boolean {
+function matches(it: { num: number; label: string }, q: string): boolean {
   const s = q.trim().toLowerCase();
   if (!s) return true;
-  return String(it.num) === s || String(it.num).startsWith(s) || it.text.toLowerCase().includes(s);
+  return String(it.num) === s || String(it.num).startsWith(s) || it.label.toLowerCase().includes(s);
+}
+
+/** Справочник для показа: задания пула по картам (общие первыми), протоколы и легендарные.
+    Номера идут подряд в порядке показа - по ним ищут задание. */
+export function rulesCatalog(tasks: CatalogTask[], legendary: CatalogLegendary[], maps: MapInfo[], pool: "pvp" | "pve", q: string) {
+  const active = tasks.filter((t) => t.active);
+  const groupOrder = ["", ...maps.map((m) => m.code)];
+  const poolTasks = numbered(
+    active
+      .filter((t) => t.category !== "protocol" && (t.kind === pool || t.kind === "pvpve") && groupOrder.includes(t.mapCode ?? ""))
+      .sort((x, y) => groupOrder.indexOf(x.mapCode ?? "") - groupOrder.indexOf(y.mapCode ?? "")),
+  );
+  return {
+    groups: groupOrder
+      .map((code) => ({ code, items: poolTasks.filter((t) => (t.mapCode ?? "") === code && matches(t, q)) }))
+      .filter((g) => g.items.length),
+    protocols: numbered(active.filter((t) => t.category === "protocol")).filter((t) => matches(t, q)),
+    legendary: numbered(legendary).filter((l) => matches(l, q)),
+  };
 }
 
 function SourceTag({ source, author, title }: { source: string; author?: string; title?: string }) {
@@ -112,26 +136,8 @@ export function RulesList({
 }) {
   const [q, setQ] = React.useState("");
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
-  const active = tasks.filter((t) => t.active);
   const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
-  const groupOrder = ["", ...maps.map((m) => m.code)];
-  // Номера идут подряд в порядке показа (общие, затем по картам), по ним ищут задание.
-  const poolTasks = active
-    .filter(
-      (t) =>
-        t.category !== "protocol" && (t.kind === pool || t.kind === "pvpve") && groupOrder.includes(t.mapCode ?? ""),
-    )
-    .sort((x, y) => groupOrder.indexOf(x.mapCode ?? "") - groupOrder.indexOf(y.mapCode ?? ""))
-    .map((t, i) => ({ ...t, num: i + 1, text: t.name ? `«${t.name}» — ${t.text}` : t.text }));
-  const groups = groupOrder
-    .map((code) => ({ code, items: poolTasks.filter((t) => (t.mapCode ?? "") === code && matches(t, q)) }))
-    .filter((g) => g.items.length);
-  const shownProtocols = active
-    .filter((t) => t.category === "protocol")
-    .map((t, i) => ({ ...t, num: i + 1, text: t.name ? `«${t.name}» — ${t.text}` : t.text }))
-    .filter((t) => matches(t, q));
-  const numLegendary = legendary.map((l, i) => ({ item: l, num: i + 1, text: l.text }));
-  const shownLegendary = numLegendary.filter((l) => matches(l, q));
+  const { groups, protocols: shownProtocols, legendary: shownLegendary } = rulesCatalog(tasks, legendary, maps, pool, q);
 
   return (
     <div className="space-y-5">
@@ -171,7 +177,7 @@ export function RulesList({
                     <CatalogItem
                       key={t.id}
                       num={t.num}
-                      text={t.text}
+                      text={t.label}
                       pts={`+${pointsLabel(t.points)}`}
                       ptsTone="pts-cyan"
                       meta={<SourceTag source={t.source} author={t.author} title={t.title} />}
@@ -196,7 +202,7 @@ export function RulesList({
                 <CatalogItem
                   key={c.id}
                   num={c.num}
-                  text={c.text}
+                  text={c.label}
                   pts={`+${pointsLabel(c.points)}`}
                   ptsTone="pts-orange"
                   meta={<SourceTag source={c.source} author={c.author} title={c.title} />}
@@ -217,7 +223,7 @@ export function RulesList({
         {shownLegendary.length ? (
           <ul>
             {shownLegendary.map((l) => (
-              <LegendaryItem key={l.item.id} num={l.num} item={l.item} />
+              <LegendaryItem key={l.id} num={l.num} item={l} />
             ))}
           </ul>
         ) : (

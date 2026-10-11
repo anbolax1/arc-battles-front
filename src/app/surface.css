@@ -4508,6 +4508,22 @@ a.sf-tr:hover,
   }
 }
 
+/* поиск на бумаге */
+.sf-paper .sf-search input {
+  border-color: var(--sf-ink-line);
+  background: var(--sf-paper-2);
+  color: var(--sf-ink);
+}
+.sf-paper .sf-search input::placeholder {
+  color: var(--sf-ink-2);
+}
+.sf-paper .sf-search input:focus {
+  border-color: var(--sf-ink);
+}
+.sf-paper .sf-search svg {
+  color: var(--sf-ink-2);
+}
+
 /* ---------- поля форм: на ночи и на бумаге ---------- */
 .sf-field {
   display: grid;

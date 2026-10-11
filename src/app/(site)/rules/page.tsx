@@ -3,6 +3,8 @@ import { RulesList } from "@/components/domain/rules-list";
 import { SectionHead } from "@/components/ui/section-head";
 import { Panel } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
+import { getDesign } from "@/lib/design";
+import { SurfaceRules } from "@/components/surface/pages/rules";
 
 export const metadata = {
   title: "Правила — Битва за Респект",
@@ -10,6 +12,7 @@ export const metadata = {
 };
 
 export default async function RulesPage() {
+  if ((await getDesign()) === "surface") return <SurfaceRules />;
   const [{ tasks, legendary }, maps] = await Promise.all([getRules(), getMaps()]);
 
   return (

@@ -1,0 +1,132 @@
+/* Правила в новом дизайне: справочник заданий на бумаге. */
+
+.rl-top {
+  padding-bottom: clamp(40px, 5vw, 64px);
+}
+.rl-lead {
+  margin-top: 18px;
+}
+.rl-cat .sf-sec-head {
+  align-items: flex-end;
+}
+.rl-controls {
+  margin-top: 0;
+}
+.rl-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+}
+.rl-group + .rl-group {
+  margin-top: 32px;
+}
+.rl-group-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 14px;
+  margin: 0 0 6px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--sf-ink);
+}
+.rl-group-head img {
+  grid-row: 1 / span 2;
+  width: 64px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 2px;
+  filter: grayscale(0.3);
+}
+.rl-group-head span {
+  font: 900 24px/1 var(--sf-ff-d);
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+.rl-group-head small,
+.rl-sub {
+  font: 600 10px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.rl-sub {
+  margin: -8px 0 14px;
+}
+.rl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rl-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--sf-ink-line);
+}
+.rl-num {
+  padding-top: 2px;
+  font: 900 17px/1 var(--sf-ff-cc);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--sf-ink-2);
+}
+.rl-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font: 400 15px/1.45 var(--sf-ff-d);
+}
+.rl-body b {
+  font: 800 16px/1.2 var(--sf-ff-d);
+}
+.rl-body small,
+.rl-body em {
+  font: 600 10px/1.4 var(--sf-ff-m);
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.rl-body em.rl-done {
+  color: var(--sf-loss-ink);
+}
+.rl-body em.rl-open {
+  color: var(--sf-win-ink);
+}
+.rl-pts {
+  min-width: 40px;
+  padding: 6px 7px 5px;
+  border-radius: 2px;
+  font: 800 13px/1 var(--sf-ff-c);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--sf-paper);
+  background: var(--sf-ink);
+}
+.rl-pts.proto {
+  color: var(--sf-ink);
+  background: var(--sf-amber);
+}
+/* легендарное - тёмная плашка с лентами снизу */
+.rl-pts.leg {
+  padding-bottom: 8px;
+  background: linear-gradient(var(--sf-ink), var(--sf-ink)) top / 100% calc(100% - 3px) no-repeat, var(--sf-stripe-x);
+}
+.rl-legs {
+  columns: 2;
+  column-gap: clamp(28px, 4vw, 56px);
+}
+.rl-legs .rl-item {
+  break-inside: avoid;
+}
+@media (max-width: 960px) {
+  .rl-cols {
+    grid-template-columns: 1fr;
+  }
+  .rl-legs {
+    columns: 1;
+  }
+}
