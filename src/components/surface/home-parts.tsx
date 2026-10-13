@@ -177,9 +177,7 @@ function NextCard({ show, matchup, order }: { show?: Tournament; matchup: Matchu
       <h2 className="sf-next-title" id="next-t">
         Шоу-матч
       </h2>
-      <p className="sf-next-date">
-        Анонс появится здесь, как только организатор назначит дату. Обычные матчи ведущий собирает прямо в эфире — подай заявку, и тебя позовут.
-      </p>
+      <p className="sf-next-date">Следующий шоу-матч пока не анонсирован. Следите за новостями в наших соц. сетях.</p>
       <div className="sf-next-actions">
         <a className="sf-btn sf-btn-ink" href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer">
           <TelegramIcon />
