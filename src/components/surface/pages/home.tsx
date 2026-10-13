@@ -29,7 +29,7 @@ export async function SurfaceHome() {
     match.last ? Promise.resolve(match.last) : finished[0] ? getMatch(finished[0].id) : Promise.resolve(null),
     match.current ? getMatchup(match.current.tournament.id) : Promise.resolve(null),
   ]);
-  const order = showState?.vetoOrder?.length ? showState.vetoOrder : vetoOrder(3, maps.length);
+  const order = showState?.vetoOrder?.length ? showState.vetoOrder : vetoOrder(3);
   const organizer = !!me && roleAtLeast(me.role, "superadmin");
 
   return (

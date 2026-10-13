@@ -11,6 +11,7 @@ import type { MatchState, Participant, VetoStep } from "@/lib/types";
 function stepText(s: VetoStep): string {
   if (s.action === "ban") return `бан ${s.side}`;
   if (s.action === "pick") return `пик ${s.side}`;
+  if (s.action === "vote") return "выбор чата";
   return "остаток";
 }
 

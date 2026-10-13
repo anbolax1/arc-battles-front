@@ -24,12 +24,20 @@ const PLAYER_TYPES: Array<[PlayerType, string]> = [
   ["pvpve", "PvPvE"],
 ];
 
-/** Кто станет стороной A (первой ходит в пиках-банах): новичок сезона или тот, у кого меньше MMR. */
-function orderSides(a: MatchPlayer, b: MatchPlayer): [MatchPlayer, MatchPlayer] {
-  if (b.isNew && !a.isNew) return [b, a];
-  if (a.isNew === b.isNew && b.mmr < a.mmr) return [b, a];
-  return [a, b];
+/** Кто станет стороной A (первой ходит в пиках-банах), как решит сервер: меньше MMR, при равном - меньше матчей
+    в прошлых сезонах; при полном равенстве сервер бросит жребий, здесь стороны остаются в порядке выбора. */
+function orderSides(a: MatchPlayer, b: MatchPlayer): { sides: [MatchPlayer, MatchPlayer]; why: "mmr" | "games" | "coin" } {
+  if (a.mmr !== b.mmr) return { sides: a.mmr < b.mmr ? [a, b] : [b, a], why: "mmr" };
+  if (a.prevGames !== b.prevGames) return { sides: a.prevGames < b.prevGames ? [a, b] : [b, a], why: "games" };
+  return { sides: [a, b], why: "coin" };
 }
+
+/** Подсказки у карточек сторон: почему A ходит первой. */
+const SIDE_HINTS = {
+  mmr: ["ходит первым: меньше MMR", "больше MMR"],
+  games: ["MMR равный, меньше матчей в прошлых сезонах", "больше матчей в прошлых сезонах"],
+  coin: ["MMR и опыт равны — стороны решит жребий", "MMR и опыт равны — стороны решит жребий"],
+} as const;
 
 function SideCard({
   title,
@@ -120,7 +128,9 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
   }, []);
 
   const applicants = React.useMemo(() => new Set(pool.map((r) => r.userId)), [pool]);
-  const [sideA, sideB] = first && second ? orderSides(first, second) : [first, second];
+  const order = first && second ? orderSides(first, second) : null;
+  const [sideA, sideB] = order ? order.sides : [first, second];
+  const hints = SIDE_HINTS[order?.why ?? "mmr"];
 
   const put = (p: MatchPlayer) => {
     if (!first) setFirst(p);
@@ -142,6 +152,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
         losses: 0,
         isNew: true,
         isPlaceholder: true,
+        prevGames: 0,
       };
       if (!existing) setPlayers((xs) => [...xs, p]);
       if (slot === "first") setFirst(p);
@@ -322,7 +333,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
       <div className="flex flex-col gap-4 lg:flex-row">
         <SideCard
           title="Игрок A"
-          hint="ходит первым: меньше MMR или новичок"
+          hint={hints[0]}
           player={sideA}
           tone="primary"
           applicant={!!sideA && applicants.has(sideA.id)}
@@ -340,7 +351,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
         </SideCard>
         <SideCard
           title="Игрок B"
-          hint="больше MMR"
+          hint={hints[1]}
           player={sideB}
           tone="cyan"
           applicant={!!sideB && applicants.has(sideB.id)}
@@ -392,7 +403,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           </div>
           {roundCount === 3 && (
             <div className="text-xs text-muted">
-              Пики-баны на три раунда: пик A → пик B → баны по очереди до последней карты, она уходит в 3-й раунд
+              Пики-баны на три раунда: бан A → бан B → пик A → пик B, карту 3-го раунда выбирает чат
             </div>
           )}
         </div>

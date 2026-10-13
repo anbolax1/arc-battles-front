@@ -898,7 +898,8 @@ export interface News {
   updatedAt: string;
 }
 
-export type VetoActionKind = "ban" | "pick" | "rest";
+/** vote - карту выбрал чат голосованием, ведущий ставит её сам. */
+export type VetoActionKind = "ban" | "pick" | "rest" | "vote";
 
 /** Ход пиков-банов матча. */
 export interface VetoAction {
@@ -942,7 +943,7 @@ export type MatchFormat = "match" | "show";
 
 /** Ход в порядке пиков-банов: кто ходит, что делает и в какой раунд уходит карта. */
 export interface VetoStep {
-  action: "ban" | "pick" | "rest";
+  action: VetoActionKind;
   side: "A" | "B" | "";
   round?: number;
 }
@@ -1015,6 +1016,8 @@ export interface MatchPlayer {
   /** В текущем сезоне ещё не играл. */
   isNew: boolean;
   isPlaceholder: boolean;
+  /** Матчей в прошлых сезонах: при равном MMR сторона A - у кого меньше. */
+  prevGames: number;
 }
 
 /** Ответ GET /api/rules — ОБЁРНУТ в { tasks (контракты), complications (протоколы), legendary }. */

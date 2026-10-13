@@ -24,6 +24,7 @@
   --sf-s3: #f9cf0a;
   --sf-s4: #f2271c;
   --sf-deep: #1440a8;
+  --sf-chat: #6b3fd4; /* карту выбрал чат голосованием */
   --sf-a: #7fede6;
   --sf-b: #ff5a47;
   --sf-win: #2bef83;
@@ -1983,6 +1984,9 @@ a.sf-side-name:hover {
 .sf-k.rest {
   background: var(--sf-ink-2);
 }
+.sf-k.vote {
+  background: var(--sf-chat);
+}
 .sf-k.pr {
   background: var(--sf-deep);
 }
@@ -3884,6 +3888,15 @@ a.sf-tr:hover,
 }
 .sf-tile.rest .lab {
   background: var(--sf-ink);
+  color: var(--sf-paper);
+  opacity: 1;
+  transform: none;
+}
+.sf-tile.vote {
+  box-shadow: inset 0 0 0 3px var(--sf-chat), 0 12px 30px -16px color-mix(in srgb, var(--sf-chat) 80%, transparent);
+}
+.sf-tile.vote .lab {
+  background: var(--sf-chat);
   color: var(--sf-paper);
   opacity: 1;
   transform: none;

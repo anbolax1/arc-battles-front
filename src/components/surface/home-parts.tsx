@@ -9,7 +9,7 @@ import { Arrow, ScheduleIcon, SecHead, TagStamps, signed } from "@/components/su
 import { AnnounceBar, CountUp, FitLine, FlipCountdown, GrowOnView, Parallax, ShortCountdown, Tilt } from "@/components/surface/motion";
 import { dayMonth, hhmm, shortDate, splitTitle, weekdayDate, weekdayLong, winrate } from "@/components/surface/fmt";
 
-const ACT: Record<VetoStep["action"], string> = { ban: "бан", pick: "пик", rest: "остаток" };
+const ACT: Record<VetoStep["action"], string> = { ban: "бан", pick: "пик", rest: "остаток", vote: "чат" };
 
 /** Порядок ходов чипами в цветах сторон. */
 export function VetoOrder({ steps }: { steps: VetoStep[] }) {

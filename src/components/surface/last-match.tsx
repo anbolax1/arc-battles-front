@@ -8,7 +8,7 @@ import { RoundCard, type RoundTaskView } from "@/components/surface/round-card";
 import { MmrMove } from "@/components/surface/home-parts";
 import { dayMonth } from "@/components/surface/fmt";
 
-const ACT: Record<string, string> = { ban: "бан", pick: "пик", rest: "остаток" };
+const ACT: Record<string, string> = { ban: "бан", pick: "пик", rest: "остаток", vote: "чат" };
 
 /** Задания раунда обеих сторон с итогом: выполнил сам, выполнил соперник или нет. */
 export function roundTasks(st: MatchState, round: number, sides: [Participant | null, Participant | null]): RoundTaskView[] {

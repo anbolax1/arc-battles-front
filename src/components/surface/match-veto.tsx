@@ -5,7 +5,7 @@ import { mapImage } from "@/lib/match";
 import type { VetoAction } from "@/lib/types";
 import { ReplayGlyph } from "@/components/surface/ui";
 
-const ACT: Record<VetoAction["action"], string> = { ban: "бан", pick: "пик", rest: "остаток" };
+const ACT: Record<VetoAction["action"], string> = { ban: "бан", pick: "пик", rest: "остаток", vote: "чат" };
 const STEP_MS = 850;
 
 function useReduced(): boolean {
@@ -113,7 +113,7 @@ export function MatchVeto({
               <span>
                 <b>{s.mapName}</b>
                 <small>
-                  {s.action === "ban" ? "карта вычеркнута" : `уходит в раунд ${s.roundNumber ?? "—"}`}
+                  {s.action === "ban" ? "карта вычеркнута" : `${s.action === "vote" ? "выбор чата, " : ""}уходит в раунд ${s.roundNumber ?? "—"}`}
                   {who(s.side) ? ` · ${who(s.side)}` : ""}
                 </small>
               </span>

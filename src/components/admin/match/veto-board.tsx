@@ -8,6 +8,7 @@ import type { MapInfo, MatchState, Participant, VetoStep } from "@/lib/types";
 function stepLabel(s: VetoStep): string {
   if (s.action === "ban") return `Бан ${s.side}`;
   if (s.action === "pick") return `Пик ${s.side} · раунд ${s.round}`;
+  if (s.action === "vote") return `Чат · раунд ${s.round}`;
   return `Остаток · раунд ${s.round}`;
 }
 
@@ -101,7 +102,9 @@ export function VetoBoard({
           >
             {vetoDone
               ? rounds.map((r) => r.map).join(" · ")
-              : `${cur?.action === "ban" ? "Бан" : "Пик"} — ${nameOf(cur?.side ?? "")} (${cur?.side})`}
+              : cur?.action === "vote"
+                ? "Голосование чата"
+                : `${cur?.action === "ban" ? "Бан" : "Пик"} — ${nameOf(cur?.side ?? "")} (${cur?.side})`}
           </div>
         </div>
         <p className="min-w-0 flex-1 text-sm text-muted">
@@ -109,7 +112,9 @@ export function VetoBoard({
             ? "Задания на эти карты раздадутся сами, когда начнётся раунд."
             : cur?.action === "ban"
               ? "Убирает одну карту из пула."
-              : `Выбирает карту ${cur?.round}-го раунда.${rest ? ` Последняя оставшаяся карта уйдёт в ${rest.round}-й раунд.` : ""}`}
+              : cur?.action === "vote"
+                ? `Карту ${cur.round}-го раунда выбирает чат голосованием: нажмите ту, что победила.`
+                : `Выбирает карту ${cur?.round}-го раунда.${rest ? ` Последняя оставшаяся карта уйдёт в ${rest.round}-й раунд.` : ""}`}
         </p>
       </Panel>
 
@@ -148,7 +153,11 @@ export function VetoBoard({
               type="button"
               disabled={disabled}
               onClick={() => onPick(m.code)}
-              aria-label={v ? `${m.name}: ${banned ? "бан" : `раунд ${round}`}` : `${cur?.action === "ban" ? "Забанить" : "Выбрать"} ${m.name}`}
+              aria-label={
+                v
+                  ? `${m.name}: ${banned ? "бан" : `раунд ${round}`}`
+                  : `${cur?.action === "ban" ? "Забанить" : cur?.action === "vote" ? "Выбор чата:" : "Выбрать"} ${m.name}`
+              }
               className={`group relative h-40 overflow-hidden rounded-lg text-left transition ${
                 round ? "ring-2 ring-[var(--accent)]" : ""
               } ${!disabled ? "hover:-translate-y-1" : ""} ${banned || unused ? "opacity-50" : ""}`}
@@ -166,11 +175,14 @@ export function VetoBoard({
                   </span>
                 ) : round ? (
                   <span className="badge bg-[var(--accent)] text-[#06232a]">
-                    <span>Раунд {round}{v?.action === "pick" ? ` · пик ${nameOf(v.side)}` : ""}</span>
+                    <span>
+                      Раунд {round}
+                      {v?.action === "pick" ? ` · пик ${nameOf(v.side)}` : v?.action === "vote" ? " · выбор чата" : ""}
+                    </span>
                   </span>
                 ) : !vetoDone ? (
                   <span className="badge bg-black/60 text-fg opacity-80 group-hover:opacity-100">
-                    <span>{cur?.action === "ban" ? "Нажмите — бан" : "Нажмите — пик"}</span>
+                    <span>{cur?.action === "ban" ? "Нажмите — бан" : cur?.action === "vote" ? "Нажмите — выбор чата" : "Нажмите — пик"}</span>
                   </span>
                 ) : unused ? (
                   <span className="badge bg-black/60 text-muted">

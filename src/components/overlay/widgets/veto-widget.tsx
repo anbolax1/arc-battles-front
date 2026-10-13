@@ -27,7 +27,7 @@ export function VetoWidget({ state, instance }: WidgetProps) {
                 <span className="absolute bottom-1 left-1.5 right-1.5 text-[0.65rem] font-semibold uppercase leading-tight">
                   <span className={banned ? "line-through" : ""}>{v.mapName}</span>
                   <span className={`block ${banned ? "text-danger" : "text-accent"}`}>
-                    {banned ? `бан ${v.sideName ?? ""}` : `раунд ${v.round ?? ""}`}
+                    {banned ? `бан ${v.sideName ?? ""}` : `${v.action === "vote" ? "чат · " : ""}раунд ${v.round ?? ""}`}
                   </span>
                 </span>
               </div>

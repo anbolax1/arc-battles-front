@@ -9,21 +9,26 @@ export function mapImage(code?: string | null): string {
   return code ? `/maps/${code}.jpg` : "";
 }
 
-/** Порядок пиков-банов, как его строит сервер: два раунда - бан A, бан B, пик A, бан B, бан A, пик B;
-    три раунда - пик A, пик B и баны по очереди до последней карты, она уходит в 3-й раунд. */
-export function vetoOrder(rounds: number, pool: number): VetoStep[] {
+/** Порядок пиков-банов, как его строит сервер: два раунда - бан A, бан B, бан A, бан B, пик B, пик A;
+    три раунда - бан A, бан B, пик A, пик B, а третью карту выбирает чат. */
+export function vetoOrder(rounds: number): VetoStep[] {
   if (rounds !== 3) {
     return [
       { action: "ban", side: "A" },
       { action: "ban", side: "B" },
-      { action: "pick", side: "A", round: 1 },
-      { action: "ban", side: "B" },
       { action: "ban", side: "A" },
-      { action: "pick", side: "B", round: 2 },
+      { action: "ban", side: "B" },
+      { action: "pick", side: "B", round: 1 },
+      { action: "pick", side: "A", round: 2 },
     ];
   }
-  const bans = Array.from({ length: Math.max(0, pool - 3) }, (_, i): VetoStep => ({ action: "ban", side: i % 2 ? "B" : "A" }));
-  return [{ action: "pick", side: "A", round: 1 }, { action: "pick", side: "B", round: 2 }, ...bans, { action: "rest", side: "", round: 3 }];
+  return [
+    { action: "ban", side: "A" },
+    { action: "ban", side: "B" },
+    { action: "pick", side: "A", round: 1 },
+    { action: "pick", side: "B", round: 2 },
+    { action: "vote", side: "", round: 3 },
+  ];
 }
 
 /** Карты, что были в пуле на момент матча: добавленные позже в его пиках-банах не стояли. */

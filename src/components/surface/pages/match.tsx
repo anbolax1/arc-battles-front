@@ -357,7 +357,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const sb = totalScore(st, b?.id);
   const mult = t.ratingMultiplier > 1 ? t.ratingMultiplier : 1;
   const title = finished ? "разбор матча" : live ? "матч в эфире" : show ? "шоу-матч" : "матч скоро";
-  const order = st.vetoOrder?.length ? st.vetoOrder : show ? vetoOrder(3, maps.length) : [];
+  const order = st.vetoOrder?.length ? st.vetoOrder : show ? vetoOrder(3) : [];
   const allMaps = [...mapsAt(maps, t.startsAt)].sort((x, y) => x.sortOrder - y.sortOrder).map((m) => ({ code: m.code, name: m.name }));
   const h2h = matchup?.headToHead;
   const hasH2h = !!h2h && h2h.wins[0] + h2h.wins[1] + h2h.draws > 0;

@@ -75,16 +75,21 @@ function Tween({ value, format = String, ms = 380, replay = 0 }: { value: number
 }
 
 interface PbStep {
-  act: "ban" | "pick" | "rest";
+  act: VetoStep["action"];
   side: "A" | "B" | "";
   code: string;
   round?: number;
 }
 
-const pbLabel = (s: PbStep) => (s.act === "ban" ? `бан ${s.side}` : s.act === "pick" ? `пик ${s.side} · Р${s.round}` : `остаток · Р${s.round}`);
+const pbLabel = (s: PbStep) =>
+  s.act === "ban" ? `бан ${s.side}` : s.act === "pick" ? `пик ${s.side} · Р${s.round}` : `${s.act === "vote" ? "чат" : "остаток"} · Р${s.round}`;
 
 /** Порядок ходов словами: «бан A → бан B → пик A …». */
-const orderText = (order: VetoStep[]) => order.map((s) => (s.action === "rest" ? "остаток" : `${s.action === "ban" ? "бан" : "пик"} ${s.side}`)).join(" → ");
+const orderText = (order: VetoStep[]) =>
+  order.map((s) => (s.action === "rest" ? "остаток" : s.action === "vote" ? "чат" : `${s.action === "ban" ? "бан" : "пик"} ${s.side}`)).join(" → ");
+
+/** Пример - обычный матч на два раунда. */
+const ORDER2 = vetoOrder(2);
 
 /** Какие карты пула берёт пример по ходам: выбор вперемешку, а не подряд по списку. */
 const PB_PICK = [1, 2, 3, 5, 4, 6, 0];
@@ -127,14 +132,13 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
   const [t3N, setT3N] = React.useState(TASKS.length);
   const [calcReplay, setCalcReplay] = React.useState(0);
 
-  const order2 = React.useMemo(() => vetoOrder(2, maps.length), [maps.length]);
   const pb = React.useMemo<PbStep[]>(() => {
-    if (maps.length < order2.length) return [];
+    if (maps.length < ORDER2.length) return [];
     const idx = [...PB_PICK, ...maps.map((_, i) => i)].filter((i, k, all) => i < maps.length && all.indexOf(i) === k);
-    return order2.map((s, k) => ({ act: s.action, side: s.side, code: maps[idx[k]].code, round: s.round }));
-  }, [maps, order2]);
+    return ORDER2.map((s, k) => ({ act: s.action, side: s.side, code: maps[idx[k]].code, round: s.round }));
+  }, [maps]);
   const mapName = (code: string) => maps.find((x) => x.code === code)?.name ?? code;
-  const unused = maps.length - order2.length;
+  const unused = maps.length - ORDER2.length;
   const tileCols = maps.length > 6 ? Math.ceil(maps.length / 2) : 3;
 
   /** Сцена этапа i в положении p (0..1): дискретное - через состояние, плавное - прямо в стили. */
@@ -383,10 +387,10 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
             <div className="sf-how-texts">
               <Panel i={0} step={step} title="пики и баны">
                 <p>
-                  Карты выбирают по очереди: <b>{orderText(order2)}</b>
-                  {unused > 0 ? `, ${unused === 1 ? "оставшаяся карта не играется" : `оставшиеся ${unused} не играются`}` : ""}. Сторона A — игрок с
-                  меньшим MMR или новичок сезона. В шоу-матче три раунда: пик A, пик B, дальше баны по очереди до последней карты — она уходит в третий
-                  раунд.
+                  Карты выбирают по очереди: <b>{orderText(ORDER2)}</b> — первую карту берёт B, вторую A
+                  {unused > 0 ? `, ${unused === 1 ? "оставшаяся не играется" : `оставшиеся ${unused} не играются`}` : ""}. Сторона A — меньший MMR, при
+                  равном — кто меньше играл в прошлых сезонах, у двух новичков — жребий. В шоу-матче: бан A, бан B, пик A, пик B, третью карту выбирает
+                  чат.
                 </p>
                 <Link className="sf-more" href={example ? `/tournament/${example.id}` : "/archive"}>
                   Пики и баны сыгранного матча <Arr />
