@@ -56,8 +56,8 @@ export function SurfaceFooter({ season }: { season?: FooterSeason | null }) {
         </div>
         <div className="sf-foot-bottom">
           <p>
-            © {new Date().getFullYear()} Битва за Респект. Турниры сообщества Arc Raiders в эфире у Дениса Блима. Фанатский турнир, не является
-            официальным продуктом Embark Studios.
+            © {new Date().getFullYear()} Битва за Респект. Турниры сообщества ARC Raiders в эфире у Дениса Блима. Фанатский турнир, не является
+            официальным продуктом Embark Studios AB.
           </p>
           <p>
             Разработка и поддержка — <Link href="/profile/Istwood">Istwood</Link>

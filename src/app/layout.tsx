@@ -29,9 +29,9 @@ const martian = Martian_Mono({ subsets: ["latin", "cyrillic"], variable: "--font
 const surfaceFonts = [sofia, sofiaSemi, sofiaCond, science, martian].map((f) => f.variable).join(" ");
 
 export const metadata: Metadata = {
-  title: "Битва за Респект — турниры по Arc Raiders",
+  title: "Битва за Респект — турниры по ARC Raiders",
   description:
-    "Серия турниров по Arc Raiders в прямом эфире. Ведущий — Денис Блим. Рейтинг, расписание, регистрация и кабинет организатора.",
+    "Серия турниров по ARC Raiders в прямом эфире. Ведущий — Денис Блим. Рейтинг, расписание, регистрация и кабинет организатора.",
 };
 
 export default function RootLayout({

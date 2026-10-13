@@ -10,7 +10,7 @@ import { SurfaceSchedule } from "@/components/surface/pages/schedule";
 
 export const metadata = {
   title: "Матчи — Битва за Респект",
-  description: "Когда ближайшие шоу-матчи по Arc Raiders и какие уже прошли.",
+  description: "Когда ближайшие шоу-матчи по ARC Raiders и какие уже прошли.",
 };
 
 function byStartAsc(a: Tournament, b: Tournament): number {

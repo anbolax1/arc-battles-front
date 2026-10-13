@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { n } = await params;
   return {
     title: `Сезон ${n} в цифрах — Битва за Респект`,
-    description: `Итоги ${n} сезона по Arc Raiders: таблица, гонка за первое место, решающий матч, карты, задания и ноки.`,
+    description: `Итоги ${n} сезона по ARC Raiders: таблица, гонка за первое место, решающий матч, карты, задания и ноки.`,
   };
 }
 

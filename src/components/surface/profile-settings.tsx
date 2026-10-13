@@ -67,7 +67,7 @@ function EmbarkField({ initial }: { initial: string }) {
             ? error
             : done
               ? "Сохранено"
-              : "Для лобби в Arc Raiders, подставится в заявки."}
+              : "Для лобби в ARC Raiders, подставится в заявки."}
       </p>
     </form>
   );

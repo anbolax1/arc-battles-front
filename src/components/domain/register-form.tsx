@@ -74,7 +74,7 @@ export function RegisterForm({ user }: { user: User }) {
               </div>
             ) : (
               <p className="text-sm text-muted">
-                Не указан — заявку можно подать и так. Организатору он нужен для лобби в Arc Raiders:{" "}
+                Не указан — заявку можно подать и так. Организатору он нужен для лобби в ARC Raiders:{" "}
                 <Link href="/profile" className="text-accent transition hover:underline">
                   добавить в профиле
                 </Link>

@@ -69,7 +69,7 @@ export function EmbarkIdEditor({ initial, compact = false }: { initial: string; 
               ? error
               : status === "ok" && !dirty
                 ? "Сохранено"
-                : "Для лобби в Arc Raiders, подставится в заявки."}
+                : "Для лобби в ARC Raiders, подставится в заявки."}
         </p>
       </form>
     );

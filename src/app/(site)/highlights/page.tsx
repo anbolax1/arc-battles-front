@@ -6,7 +6,7 @@ import { SurfaceHighlightsPage } from "@/components/surface/pages/highlights";
 
 export const metadata = {
   title: "Лучшие моменты — Битва за Респект",
-  description: "Лучшие моменты турниров по Arc Raiders: клипы участников.",
+  description: "Лучшие моменты турниров по ARC Raiders: клипы участников.",
 };
 
 const PAGE_SIZE = 12;

@@ -43,8 +43,8 @@ export function SiteFooter() {
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
           <div className="max-w-xl space-y-1.5 text-xs leading-relaxed text-muted">
             <p>
-              © {new Date().getFullYear()} Битва за Респект. Турниры сообщества Arc Raiders в эфире у Дениса Блима.
-              Не является официальным продуктом Embark Studios.
+              © {new Date().getFullYear()} Битва за Респект. Турниры сообщества ARC Raiders в эфире у Дениса Блима.
+              Не является официальным продуктом Embark Studios AB.
             </p>
             <p>
               Разработка и поддержка by{" "}

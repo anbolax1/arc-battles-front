@@ -175,7 +175,7 @@ export function SurfaceJoinForm({ user }: { user: User }) {
           </p>
         ) : (
           <p className="au-text">
-            Не указан — заявку можно подать и так. Организатору он нужен для лобби в Arc Raiders: <Link href="/profile">добавь в профиле</Link>, и он сам подставится
+            Не указан — заявку можно подать и так. Организатору он нужен для лобби в ARC Raiders: <Link href="/profile">добавь в профиле</Link>, и он сам подставится
             в заявку.
           </p>
         )}

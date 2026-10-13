@@ -6,7 +6,7 @@ import { SurfaceRating } from "@/components/surface/pages/rating";
 
 export const metadata = {
   title: "Рейтинг — Битва за Респект",
-  description: "Сезонная таблица лидеров 1×1 и 2×2 по Arc Raiders.",
+  description: "Сезонная таблица лидеров 1×1 и 2×2 по ARC Raiders.",
 };
 
 export default async function RatingPage() {

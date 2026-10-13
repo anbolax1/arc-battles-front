@@ -86,7 +86,7 @@ function Hero({ recap, no, nav }: { recap: SeasonRecap; no: string; nav: Array<[
       <div className="sf-wrap sf-hero-grid">
         <div>
           <p className="sf-eyebrow">
-            Битва за Респект · Arc Raiders{S.first && S.last ? ` · ${dLong(S.first)} – ${dLong(S.last)} ${year}` : ""}
+            Битва за Респект · ARC Raiders{S.first && S.last ? ` · ${dLong(S.first)} – ${dLong(S.last)} ${year}` : ""}
           </p>
           <h1>
             <span className="ln">

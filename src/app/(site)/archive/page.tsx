@@ -7,7 +7,7 @@ import { SurfaceArchive } from "@/components/surface/pages/archive";
 
 export const metadata = {
   title: "Результаты — Битва за Респект",
-  description: "Сыгранные матчи турнира по Arc Raiders: результаты и записи эфиров.",
+  description: "Сыгранные матчи турнира по ARC Raiders: результаты и записи эфиров.",
 };
 
 export default async function ArchivePage() {

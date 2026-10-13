@@ -59,12 +59,12 @@ export default async function HomePage() {
 
       {/* Герой */}
       <section className="space-y-6">
-        <p className="eyebrow">Серия турниров · Arc Raiders · Live</p>
+        <p className="eyebrow">Серия турниров · ARC Raiders · Live</p>
         <h1 className="max-w-3xl text-4xl leading-[1.05] sm:text-6xl">
           Сражайся за <span className="grad">респект</span> в прямом эфире
         </h1>
         <p className="max-w-2xl text-lg text-muted">
-          Матчи 1×1 и 2×2 по Arc Raiders в эфире у Дениса Блима. Два раунда,
+          Матчи 1×1 и 2×2 по ARC Raiders в эфире у Дениса Блима. Два раунда,
           пики-баны карт, задания, протоколы и рейтинг по MMR — выходи на арену
           и забирай звание Чемпиона.
         </p>
