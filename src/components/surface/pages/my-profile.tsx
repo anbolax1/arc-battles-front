@@ -66,7 +66,7 @@ function MyRegistrations({ items }: { items: Registration[] }) {
         <div className="sf-note pf-regs-empty">
           <p>Заявок пока нет. Подай заявку — попадёшь в общий пул, и организатор позовёт тебя на матч.</p>
           <Link className="sf-more" href="/join">
-            Записаться
+            Играть
             <Arrow />
           </Link>
         </div>

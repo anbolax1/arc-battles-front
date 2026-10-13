@@ -398,7 +398,7 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                   Около часа эфира на матч.
                 </p>
                 <Link className="sf-more" href="/archive">
-                  Архив сыгранных матчей <Arr />
+                  Результаты матчей <Arr />
                 </Link>
               </Panel>
               <Panel i={2} step={step} title="задания и очки">

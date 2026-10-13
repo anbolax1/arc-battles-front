@@ -479,6 +479,12 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+.sf-user > span:not(.sf-ava) {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .sf-user:hover {
   opacity: 0.8;
 }
@@ -621,8 +627,20 @@
 .sf-progress i:nth-child(4) {
   background: var(--sf-s4);
 }
-@media (max-width: 1180px) {
+/* Шесть разделов меню рядом с полным названием и плашкой эфира в строку не помещаются: на средней
+   ширине и при плашке от бренда остаётся знак, на узкой плашка прячется. */
+@media (max-width: 1319px) {
   .sf-nav-cta .sf-live-chip {
+    display: none;
+  }
+}
+@media (min-width: 1081px) and (max-width: 1365px) {
+  .sf-nav .sf-brand b {
+    display: none;
+  }
+}
+@media (min-width: 1320px) {
+  .sf-nav:has(.sf-live-chip) .sf-brand b {
     display: none;
   }
 }

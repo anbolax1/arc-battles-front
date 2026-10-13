@@ -11,13 +11,14 @@ export interface FooterSeason {
 
 function links(season?: FooterSeason | null) {
   return [
-    { href: "/schedule", label: "Расписание" },
+    { href: "/news", label: "Новости" },
+    { href: "/schedule", label: "Матчи" },
+    { href: "/archive", label: "Результаты" },
     { href: "/rating", label: "Рейтинг" },
     ...(season ? [{ href: `/season/${season.number}`, label: season.active ? "Сезон в цифрах" : "Итоги сезона" }] : []),
     { href: "/patches", label: "Нашивки" },
-    { href: "/archive", label: "Архив" },
-    { href: "/highlights", label: "Хайлайты" },
     { href: "/rules", label: "Правила" },
+    { href: "/highlights", label: "Лучшие моменты" },
   ];
 }
 

@@ -384,9 +384,9 @@ export async function SurfaceMatch({ id }: { id: string }) {
       <section className="sf-page-head sf-night sf-grain">
         <Stripes shape="corner" draw className="corner" />
         <div className="sf-wrap">
-          <Link className="sf-back" href="/archive">
+          <Link className="sf-back" href={finished ? "/archive" : "/schedule"}>
             <ArrowBack />
-            Все матчи
+            {finished ? "Все результаты" : "Все матчи"}
           </Link>
           <div className={t.previewUrl ? "sf-head-art" : ""}>
             <div>
@@ -421,7 +421,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
               {upcoming && !show && (
                 <div className="sf-mh-actions">
                   <Link className="sf-btn sf-btn-amber" href="/join">
-                    Записаться на матч
+                    Участвовать в лиге
                   </Link>
                 </div>
               )}
@@ -492,7 +492,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
         </section>
       )}
 
-      <SurfaceHighlights items={highlights} title="хайлайты матча" eyebrow="Клипы с этого матча" />
+      <SurfaceHighlights items={highlights} title="лучшие моменты матча" eyebrow="Клипы с этого матча" />
     </>
   );
 }

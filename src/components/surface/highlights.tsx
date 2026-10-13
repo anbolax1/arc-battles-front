@@ -73,7 +73,7 @@ export function SurfaceHighlights({ items, title = "лучшие моменты"
           title={title}
           action={
             <Link className="sf-more" href="/highlights">
-              Все хайлайты <Arrow />
+              Все лучшие моменты <Arrow />
             </Link>
           }
         />

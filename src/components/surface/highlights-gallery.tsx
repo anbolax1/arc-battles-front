@@ -153,13 +153,13 @@ export function SurfaceHighlightsGallery({
         <Stripes shape="corner" className="corner" draw />
         <div className="sf-wrap">
           <p className="sf-eyebrow">
-            Хайлайты · {total} {clipsWord(total)}
+            Лучшие моменты · {total} {clipsWord(total)}
           </p>
           <h1 className="sf-h-big">
-            хайлайты<span className="sf-dot">.</span>
+            лучшие моменты<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead hlp-lead">
-            Лучшие моменты с эфиров. Прислать свой клип может любой, кто вошёл, — после проверки организатором он появится здесь.
+            Клипы с эфиров. Прислать свой клип может любой, кто вошёл, — после проверки организатором он появится здесь.
           </p>
           <div className="sf-controls">
             {user ? (

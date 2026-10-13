@@ -214,7 +214,7 @@ export async function ProfileView({
         </div>
       </section>
 
-      <SurfaceHighlights items={highlights} title="хайлайты игрока" eyebrow={`Клипы с эфиров · ${name}`} />
+      <SurfaceHighlights items={highlights} title="лучшие моменты игрока" eyebrow={`Клипы с эфиров · ${name}`} />
     </>
   );
 }

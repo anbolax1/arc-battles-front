@@ -6,7 +6,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceArchive } from "@/components/surface/pages/archive";
 
 export const metadata = {
-  title: "Архив — Битва за Респект",
+  title: "Результаты — Битва за Респект",
   description: "Сыгранные матчи турнира по Arc Raiders: результаты и записи эфиров.",
 };
 

@@ -101,10 +101,10 @@ export function ArchiveView({ matches }: { matches: ArchiveMatch[] }) {
         <Stripes shape="corner" className="corner" draw />
         <div className="sf-wrap">
           <p className="sf-eyebrow">
-            Архив · {matches.length} {matchesWord(matches.length)}
+            Результаты · {matches.length} {matchesWord(matches.length)}
           </p>
           <h1 className="sf-h-big">
-            архив<span className="sf-dot">.</span>
+            результаты<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead arc-lead">Все сыгранные матчи: счёт, карты и разбор каждого рейда.</p>
           <div className="sf-controls">

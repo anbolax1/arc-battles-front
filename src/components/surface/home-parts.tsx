@@ -72,26 +72,27 @@ export function Hero({
       <Stripes shape="hero" draw />
       <div className="sf-wrap sf-hero-grid">
         <div>
-          <p className="sf-eyebrow">{season ? season.name : "Сезон"} · Arc Raiders · эфиры у Дениса Блима</p>
+          <p className="sf-eyebrow">Денис Блим · ARC Raiders · Турниры</p>
           <h1>
             <span className="ln">
               <span>
-                рейд<i>.</i>
+                лига<i>.</i>
               </span>
             </span>
-            <span className="ln">
-              <span>
-                респект<i>.</i>
+            {season?.number ? (
+              <span className="ln">
+                <span>
+                  {season.number} сезон<i>.</i>
+                </span>
               </span>
-            </span>
+            ) : null}
           </h1>
           <p className="sf-lead">
-            Матчи 1×1 и 2×2 по Arc Raiders в прямом эфире. Пики и баны карт, задания, протоколы и рейтинг по MMR. Выходи на поверхность и забирай
-            звание чемпиона.
+            Матчи 1×1 и 2×2 по ARC Raiders в прямом эфире. Пики и баны карт, задания и рейтинг по MMR. Участвуй в лиге и получи звание чемпиона.
           </p>
           <div className="sf-hero-actions">
             <Link href="/join" className="sf-btn sf-btn-amber">
-              Записаться на матч
+              Участвовать в лиге
             </Link>
             <a className="sf-btn sf-btn-line" href={STREAM_URL} target="_blank" rel="noopener noreferrer">
               <TwitchIcon />
@@ -102,13 +103,15 @@ export function Hero({
               YouTube
             </a>
           </div>
-          {season && (
-            <div className="sf-hero-meta">
-              <span>{season.name} с {dayMonth(season.startedAt)}</span>
-              <span>Эло K = {season.kFactor}</span>
-              <span>Старт {season.startMmr} MMR</span>
-            </div>
-          )}
+          <div className="sf-hero-meta">
+            {season && (
+              <span>
+                с {dayMonth(season.startedAt)}
+                {season.endedAt ? ` до ${dayMonth(season.endedAt)}` : ""}
+              </span>
+            )}
+            <span>бесплатное участие</span>
+          </div>
         </div>
         <NextCard show={show} matchup={showMatchup} order={showOrder} />
       </div>
@@ -172,7 +175,7 @@ function NextCard({ show, matchup, order }: { show?: Tournament; matchup: Matchu
         <span>Анонс</span>
       </div>
       <h2 className="sf-next-title" id="next-t">
-        Шоу-матч не назначен
+        Шоу-матч
       </h2>
       <p className="sf-next-date">
         Анонс появится здесь, как только организатор назначит дату. Обычные матчи ведущий собирает прямо в эфире — подай заявку, и тебя позовут.
@@ -183,7 +186,7 @@ function NextCard({ show, matchup, order }: { show?: Tournament; matchup: Matchu
           Анонсы в Telegram
         </a>
         <Link className="sf-btn sf-btn-ink-line" href="/schedule">
-          Расписание
+          Матчи
         </Link>
       </div>
     </aside>
@@ -265,7 +268,7 @@ export function Schedule({ live, shows }: { live: MatchState | null; shows: Tour
           </h2>
           <span className="sf-mono">время московское</span>
           <Link className="sf-more" href="/schedule">
-            Расписание <Arrow />
+            Все матчи <Arrow />
           </Link>
         </div>
         <ScheduleRows live={live} upcoming={shows.slice(0, 3)} />

@@ -48,7 +48,7 @@ function PastShow({ t }: { t: Tournament }) {
   );
 }
 
-/** Расписание в новом дизайне: идущий матч и анонсы по дате, ниже - сыгранные шоу-матчи. */
+/** Матчи в новом дизайне: идущий матч и анонсы по дате, ниже - сыгранные шоу-матчи. */
 export async function SurfaceSchedule() {
   const [all, match] = await Promise.all([getTournaments(), getCurrentMatch()]);
   const upcoming = all.filter((t) => t.status === "upcoming").sort(byStartAsc);
@@ -60,16 +60,16 @@ export async function SurfaceSchedule() {
       <section className="sf-page-head sf-night sf-grain sch-top">
         <Stripes shape="corner" className="corner" draw />
         <div className="sf-wrap">
-          <p className="sf-eyebrow">Расписание · время московское</p>
+          <p className="sf-eyebrow">Матчи · время московское</p>
           <h1 className="sf-h-big">
-            расписание<span className="sf-dot">.</span>
+            матчи<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead sch-lead">
-            Шоу-матчи объявляем заранее. Обычные матчи 1×1 ведущий собирает прямо в эфире — все сыгранные лежат в архиве.
+            Шоу-матчи объявляем заранее. Обычные матчи 1×1 ведущий собирает прямо в эфире — все сыгранные лежат в результатах.
           </p>
           <div className="sf-controls">
             <Link className="sf-btn sf-btn-amber" href="/join">
-              Записаться на матч
+              Участвовать в лиге
             </Link>
             <a className="sf-btn sf-btn-line" href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer">
               <TelegramIcon />
@@ -90,7 +90,7 @@ export async function SurfaceSchedule() {
             title="прошедшие шоу-матчи"
             action={
               <Link className="sf-more" href="/archive">
-                Все матчи в архиве <Arrow />
+                Все результаты <Arrow />
               </Link>
             }
           />

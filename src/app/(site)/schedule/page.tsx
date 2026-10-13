@@ -9,7 +9,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceSchedule } from "@/components/surface/pages/schedule";
 
 export const metadata = {
-  title: "Расписание — Битва за Респект",
+  title: "Матчи — Битва за Респект",
   description: "Когда ближайшие шоу-матчи по Arc Raiders и какие уже прошли.",
 };
 

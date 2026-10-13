@@ -11,11 +11,12 @@ import { SfAvatar } from "@/components/surface/ui";
 import { ShortCountdown } from "@/components/surface/motion";
 
 const LINKS = [
-  { href: "/schedule", label: "Расписание" },
+  { href: "/news", label: "Новости" },
+  { href: "/schedule", label: "Матчи" },
+  { href: "/archive", label: "Результаты" },
   { href: "/rating", label: "Рейтинг" },
-  { href: "/archive", label: "Архив" },
-  { href: "/highlights", label: "Хайлайты" },
   { href: "/rules", label: "Правила" },
+  { href: "/highlights", label: "Лучшие моменты" },
 ];
 
 /** Что показать в шапке рядом с кнопкой: идущий матч или отсчёт до шоу-матча. */
@@ -88,7 +89,7 @@ export function SurfaceNav({ live }: { live: NavLive | null }) {
         Войти
       </Link>
       <Link href="/join" className="sf-btn sf-btn-amber sf-btn-sm">
-        Записаться
+        Играть
       </Link>
     </>
   );

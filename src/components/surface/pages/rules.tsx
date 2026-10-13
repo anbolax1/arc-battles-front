@@ -28,7 +28,7 @@ export async function SurfaceRules() {
               К заданиям
             </a>
             <Link className="sf-btn sf-btn-line" href="/join">
-              Записаться на матч
+              Участвовать в лиге
             </Link>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceHighlightsPage } from "@/components/surface/pages/highlights";
 
 export const metadata = {
-  title: "Хайлайты — Битва за Респект",
+  title: "Лучшие моменты — Битва за Респект",
   description: "Лучшие моменты турниров по Arc Raiders: клипы участников.",
 };
 
