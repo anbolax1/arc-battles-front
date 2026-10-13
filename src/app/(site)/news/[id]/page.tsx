@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getDesign } from "@/lib/design";
 import { getNewsItem } from "@/lib/queries";
 import { SurfaceNewsItem } from "@/components/surface/pages/news";
-import { newsExcerpt } from "@/components/surface/news-body";
+import { newsExcerpt } from "@/components/surface/news-text";
 
 type Props = { params: Promise<{ id: string }> };
 

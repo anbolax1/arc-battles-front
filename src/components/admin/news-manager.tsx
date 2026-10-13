@@ -11,10 +11,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
 import { PreviewImage, useChosenPreview, type PreviewSource } from "@/components/admin/match/show-preview";
+import { RichEditor } from "@/components/admin/rich-editor";
 
 /** Пределы - те же, что проверяет сервер. */
 const MAX_TITLE = 140;
-const MAX_BODY = 20000;
 const MAX_IMAGE_MB = 10;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -229,7 +229,7 @@ export function NewsManager() {
     }
     const body = {
       title: draft.title.trim(),
-      body: draft.body.trim(),
+      body: draft.body,
       publishedAt: draft.publish === "draft" ? null : draft.publish === "now" ? new Date().toISOString() : `${draft.date}:00+03:00`,
     };
     setBusy(true);
@@ -304,18 +304,14 @@ export function NewsManager() {
                 />
               </label>
 
-              <label className="block space-y-1.5">
-                <span className="field-label">Текст</span>
-                <textarea
-                  className="textarea min-h-[220px]"
-                  maxLength={MAX_BODY}
-                  value={draft.body}
-                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                />
+              <div className="space-y-1.5">
+                <span className="field-label block">Текст</span>
+                <RichEditor key={draft.id ?? "new"} value={draft.body} onChange={(html) => setDraft((d) => (d ? { ...d, body: html } : d))} />
                 <span className="block text-xs text-muted">
-                  Абзацы — через пустую строку, ссылки на сайте станут кликабельными. В ленте виден первый абзац.
+                  Выделите текст и выберите оформление на панели — или сочетания клавиш, как в Телеграме. ||Текст|| при наборе
+                  станет спойлером. В ленте виден первый абзац.
                 </span>
-              </label>
+              </div>
 
               <div className="space-y-2">
                 <span className="field-label block">Картинка</span>

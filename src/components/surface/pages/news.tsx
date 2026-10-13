@@ -7,7 +7,8 @@ import type { News } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { Arrow, ArrowBack } from "@/components/surface/ui";
 import { fullDate } from "@/components/surface/fmt";
-import { NewsBody, newsExcerpt } from "@/components/surface/news-body";
+import { NewsBody } from "@/components/surface/news-body";
+import { newsExcerpt } from "@/components/surface/news-text";
 
 const PAGE = 12;
 
@@ -135,7 +136,7 @@ export function SurfaceNewsItem({ n }: { n: News }) {
               // eslint-disable-next-line @next/next/no-img-element -- картинка из нашего хранилища медиа
               <img className="nw-article-img" src={n.imageUrl} alt="" />
             )}
-            <NewsBody text={n.body} />
+            <NewsBody html={n.body} />
             <Link className="sf-more nw-article-back" href="/news">
               <ArrowBack />
               Все новости
