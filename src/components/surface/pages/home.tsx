@@ -1,8 +1,8 @@
 import { getCurrentMatch, getHighlights, getLeaderboard, getMaps, getMatch, getMatchup, getMe, getSeasons, getTournaments } from "@/lib/queries";
 import { roleAtLeast } from "@/lib/roles";
-import { isShowMatch } from "@/lib/match";
+import { isShowMatch, vetoOrder } from "@/lib/match";
 import { byStartAsc } from "@/components/surface/shell";
-import { Hero, JoinCta, Leaders, Schedule, SHOW_ORDER, ShowSection, Ticker } from "@/components/surface/home-parts";
+import { Hero, JoinCta, Leaders, Schedule, ShowSection, Ticker } from "@/components/surface/home-parts";
 import { LastMatch } from "@/components/surface/last-match";
 import { LiveMatch, OrganizerBar } from "@/components/surface/live-match";
 import { HowSection } from "@/components/surface/how-section";
@@ -29,7 +29,7 @@ export async function SurfaceHome() {
     match.last ? Promise.resolve(match.last) : finished[0] ? getMatch(finished[0].id) : Promise.resolve(null),
     match.current ? getMatchup(match.current.tournament.id) : Promise.resolve(null),
   ]);
-  const order = showState?.vetoOrder?.length ? showState.vetoOrder : SHOW_ORDER;
+  const order = showState?.vetoOrder?.length ? showState.vetoOrder : vetoOrder(3, maps.length);
   const organizer = !!me && roleAtLeast(me.role, "superadmin");
 
   return (

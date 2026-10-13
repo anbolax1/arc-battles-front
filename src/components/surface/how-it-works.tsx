@@ -5,8 +5,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { mapImage } from "@/lib/match";
-import type { MapInfo } from "@/lib/types";
+import { mapImage, vetoOrder } from "@/lib/match";
+import type { MapInfo, VetoStep } from "@/lib/types";
 import { signed } from "@/components/surface/ui";
 
 export interface HowExample {
@@ -83,6 +83,12 @@ interface PbStep {
 
 const pbLabel = (s: PbStep) => (s.act === "ban" ? `бан ${s.side}` : s.act === "pick" ? `пик ${s.side} · Р${s.round}` : `остаток · Р${s.round}`);
 
+/** Порядок ходов словами: «бан A → бан B → пик A …». */
+const orderText = (order: VetoStep[]) => order.map((s) => (s.action === "rest" ? "остаток" : `${s.action === "ban" ? "бан" : "пик"} ${s.side}`)).join(" → ");
+
+/** Какие карты пула берёт пример по ходам: выбор вперемешку, а не подряд по списку. */
+const PB_PICK = [1, 2, 3, 5, 4, 6, 0];
+
 const ICON_REPLAY = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden>
     <path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" />
@@ -121,19 +127,15 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
   const [t3N, setT3N] = React.useState(TASKS.length);
   const [calcReplay, setCalcReplay] = React.useState(0);
 
+  const order2 = React.useMemo(() => vetoOrder(2, maps.length), [maps.length]);
   const pb = React.useMemo<PbStep[]>(() => {
-    const m = maps.slice(0, 6).map((x) => x.code);
-    if (m.length < 6) return [];
-    return [
-      { act: "ban", side: "A", code: m[1] },
-      { act: "ban", side: "B", code: m[2] },
-      { act: "pick", side: "A", code: m[3], round: 1 },
-      { act: "ban", side: "B", code: m[5] },
-      { act: "ban", side: "A", code: m[4] },
-      { act: "rest", side: "", code: m[0], round: 2 },
-    ];
-  }, [maps]);
+    if (maps.length < order2.length) return [];
+    const idx = [...PB_PICK, ...maps.map((_, i) => i)].filter((i, k, all) => i < maps.length && all.indexOf(i) === k);
+    return order2.map((s, k) => ({ act: s.action, side: s.side, code: maps[idx[k]].code, round: s.round }));
+  }, [maps, order2]);
   const mapName = (code: string) => maps.find((x) => x.code === code)?.name ?? code;
+  const unused = maps.length - order2.length;
+  const tileCols = maps.length > 6 ? Math.ceil(maps.length / 2) : 3;
 
   /** Сцена этапа i в положении p (0..1): дискретное - через состояние, плавное - прямо в стили. */
   const render = React.useCallback(
@@ -381,8 +383,10 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
             <div className="sf-how-texts">
               <Panel i={0} step={step} title="пики и баны">
                 <p>
-                  Карты выбирают по очереди: <b>бан A → бан B → пик A → бан B → бан A</b>, оставшаяся карта уходит во второй раунд. Сторона A — игрок с
-                  меньшим MMR или новичок сезона. В шоу-матче три раунда и порядок «пик, пик, бан, бан, пик».
+                  Карты выбирают по очереди: <b>{orderText(order2)}</b>
+                  {unused > 0 ? `, ${unused === 1 ? "оставшаяся карта не играется" : `оставшиеся ${unused} не играются`}` : ""}. Сторона A — игрок с
+                  меньшим MMR или новичок сезона. В шоу-матче три раунда: пик A, пик B, дальше баны по очереди до последней карты — она уходит в третий
+                  раунд.
                 </p>
                 <Link className="sf-more" href={example ? `/tournament/${example.id}` : "/archive"}>
                   Пики и баны сыгранного матча <Arr />
@@ -421,17 +425,18 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
           <div className="sf-how-arts">
             {/* 1. пики и баны */}
             <div className={`sf-how-art ${step === 0 ? "is-on" : ""} ${pbN >= pb.length ? "is-done" : ""}`} inert={step !== 0} role="group" aria-label="Пример пиков и банов">
-              <div className="sf-pb-grid">
-                {maps.slice(0, 6).map((m) => {
+              <div className="sf-pb-grid" style={{ "--cols": tileCols } as React.CSSProperties}>
+                {maps.map((m) => {
                   const k2 = pb.findIndex((s) => s.code === m.code);
                   const s = k2 >= 0 && k2 < pbN ? pb[k2] : null;
                   const now = s && k2 === pbN - 1 && pbN < pb.length;
+                  const left = pb.length > 0 && k2 < 0 && pbN >= pb.length;
                   return (
-                    <div key={m.code} className={`sf-pb-t ${s ? s.act : ""} ${now ? "now" : ""}`}>
+                    <div key={m.code} className={`sf-pb-t ${s ? s.act : ""} ${now ? "now" : ""} ${left ? "left" : ""}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- превью карты */}
                       <img src={mapImage(m.code)} alt="" loading="lazy" />
                       <span className="sf-pb-tag" style={s?.side ? ({ "--sd": `var(--sf-${s.side.toLowerCase()})` } as React.CSSProperties) : undefined}>
-                        {s ? pbLabel(s) : ""}
+                        {s ? pbLabel(s) : left ? "не играется" : ""}
                       </span>
                       <span className="sf-pb-nm">{m.name}</span>
                     </div>
@@ -442,7 +447,15 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                 <span>
                   {pbN >= pb.length && pb.length ? (
                     <>
-                      Итог: раунд 1 — <b>{mapName(pb[2].code)}</b>, раунд 2 — <b>{mapName(pb[5].code)}</b>
+                      Итог:{" "}
+                      {pb
+                        .filter((s) => s.round)
+                        .sort((x, y) => (x.round ?? 0) - (y.round ?? 0))
+                        .map((s, j) => (
+                          <React.Fragment key={s.code}>
+                            {j ? ", " : ""}раунд {s.round} — <b>{mapName(s.code)}</b>
+                          </React.Fragment>
+                        ))}
                     </>
                   ) : pbN === 0 ? (
                     "Пример: обычный матч, два раунда"

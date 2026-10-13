@@ -391,7 +391,9 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
               : "Название соберётся из ников, матч сразу станет текущим"}
           </div>
           {roundCount === 3 && (
-            <div className="text-xs text-muted">Пики-баны на три раунда: пик A → пик B → бан A → бан B → пик A</div>
+            <div className="text-xs text-muted">
+              Пики-баны на три раунда: пик A → пик B → баны по очереди до последней карты, она уходит в 3-й раунд
+            </div>
           )}
         </div>
         <button type="button" className="btn btn-primary" disabled={!sideA || !sideB || busy || !!createdId} onClick={create}>

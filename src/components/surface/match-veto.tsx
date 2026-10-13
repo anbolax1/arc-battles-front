@@ -87,7 +87,7 @@ export function MatchVeto({
         </button>
       </div>
       <div className="sf-veto-wrap">
-        <div className="sf-tiles">
+        <div className="sf-tiles" style={{ "--cols": tiles.length > 6 ? Math.ceil(tiles.length / 2) : 3 } as React.CSSProperties}>
           {tiles.map((m) => {
             const k = steps.findIndex((s) => s.mapCode === m.code);
             const s = k >= 0 && k < shown ? steps[k] : null;

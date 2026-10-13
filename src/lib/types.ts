@@ -881,6 +881,8 @@ export interface MapInfo {
   name: string;
   image: string;
   sortOrder: number;
+  /** С этого момента карта в пуле пиков-банов: в прошлых матчах её не было. */
+  addedAt?: string;
 }
 
 export type VetoActionKind = "ban" | "pick" | "rest";

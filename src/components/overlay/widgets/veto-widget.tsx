@@ -12,7 +12,7 @@ export function VetoWidget({ state, instance }: WidgetProps) {
         {!instance.hideTitle && (
           <div className="ov-fill-2 px-4 py-1.5 font-display text-xs uppercase tracking-[0.2em] text-muted">Пики-баны</div>
         )}
-        <div className="grid flex-1 grid-cols-3 gap-1.5 p-2">
+        <div className={`grid flex-1 gap-1.5 p-2 ${veto.length > 6 ? "grid-cols-4" : "grid-cols-3"}`}>
           {veto.map((v) => {
             const banned = v.action === "ban";
             return (

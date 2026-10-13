@@ -2460,16 +2460,19 @@ a.sf-side-name:hover {
 .sf-how.scrolly .sf-again {
   display: none;
 }
-/* 1. пики и баны */
+/* 1. пики и баны: число колонок задаёт разметка (--cols), неполный последний ряд стоит по центру */
 .sf-pb-grid {
+  --gap: 8px;
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: stretch;
+  gap: var(--gap);
   padding: 14px 14px 0;
 }
 .sf-pb-t {
+  flex: 0 0 calc((100% - (var(--cols, 3) - 1) * var(--gap)) / var(--cols, 3));
   position: relative;
   min-height: 110px;
   border-radius: 4px;
@@ -2572,6 +2575,15 @@ a.sf-side-name:hover {
 }
 .sf-pb-t.rest .sf-pb-tag {
   background: var(--sf-cream);
+}
+.sf-pb-t.left img {
+  filter: grayscale(0.8) brightness(0.5);
+}
+.sf-pb-t.left .sf-pb-tag {
+  background: rgba(19, 9, 24, 0.9);
+  color: var(--sf-cream-2);
+  opacity: 1;
+  transform: none;
 }
 .sf-pb-t.now {
   transform: scale(1.04);
@@ -3018,7 +3030,7 @@ a.sf-side-name:hover {
     grid-template-columns: 1fr;
   }
   .sf-pb-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    --cols: 2 !important;
   }
   .sf-how-tab {
     font-size: 17px;
@@ -3765,12 +3777,16 @@ a.sf-tr:hover,
   gap: clamp(20px, 3vw, 40px);
   align-items: start;
 }
+/* Плитки карт матча: число колонок задаёт разметка (--cols), неполный последний ряд стоит по центру. */
 .sf-tiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  --gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap);
 }
 .sf-tile {
+  flex: 0 0 calc((100% - (var(--cols, 3) - 1) * var(--gap)) / var(--cols, 3));
   position: relative;
   aspect-ratio: 16 / 10;
   border-radius: 4px;
@@ -4009,7 +4025,7 @@ a.sf-tr:hover,
 }
 @media (max-width: 760px) {
   .sf-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    --cols: 2 !important;
   }
 }
 .sf-elo {

@@ -48,7 +48,7 @@ export function VetoBoard({
           <h3 className="font-display text-lg uppercase">Карты без пиков-банов</h3>
           <p className="text-sm text-muted">Если пики-баны прошли вне эфира: выберите карту каждого раунда по порядку.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`grid gap-3 sm:grid-cols-2 ${maps.length > 6 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           {maps.map((m) => {
             const idx = manual.indexOf(m.code);
             return (
@@ -135,7 +135,7 @@ export function VetoBoard({
         </ol>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={`grid gap-3 sm:grid-cols-2 ${maps.length > 6 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         {maps.map((m) => {
           const v = byCode.get(m.code);
           const round = rounds.find((r) => r.mapCode === m.code)?.number;

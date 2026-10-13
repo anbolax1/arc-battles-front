@@ -9,15 +9,6 @@ import { Arrow, ScheduleIcon, SecHead, TagStamps, signed } from "@/components/su
 import { AnnounceBar, CountUp, FitLine, FlipCountdown, GrowOnView, Parallax, ShortCountdown, Tilt } from "@/components/surface/motion";
 import { dayMonth, hhmm, shortDate, splitTitle, weekdayDate, weekdayLong, winrate } from "@/components/surface/fmt";
 
-/** Порядок пиков-банов шоу-матча, если матч ещё не начинали. */
-export const SHOW_ORDER: VetoStep[] = [
-  { action: "pick", side: "A", round: 1 },
-  { action: "pick", side: "B", round: 2 },
-  { action: "ban", side: "A" },
-  { action: "ban", side: "B" },
-  { action: "pick", side: "A", round: 3 },
-];
-
 const ACT: Record<VetoStep["action"], string> = { ban: "бан", pick: "пик", rest: "остаток" };
 
 /** Порядок ходов чипами в цветах сторон. */

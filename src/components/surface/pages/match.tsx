@@ -11,6 +11,7 @@ import {
   isShowMatch,
   loadoutLabel,
   mapImage,
+  mapsAt,
   matchSides,
   roundBreakdown,
   roundScore,
@@ -20,12 +21,13 @@ import {
   taskKindLabel,
   taskTitle,
   totalScore,
+  vetoOrder,
 } from "@/lib/match";
 import type { HeadToHeadMatch, MatchState, Matchup, MatchupSide, Participant, ParticipantMmr, Round } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack, TagChips, signed } from "@/components/surface/ui";
 import { CountUp, FlipCountdown } from "@/components/surface/motion";
-import { MmrMove, Odds, SHOW_ORDER, VetoOrder } from "@/components/surface/home-parts";
+import { MmrMove, Odds, VetoOrder } from "@/components/surface/home-parts";
 import { SurfaceHighlights } from "@/components/surface/highlights";
 import { MatchVeto } from "@/components/surface/match-veto";
 import { MatchPatches } from "@/components/surface/match-patches";
@@ -355,8 +357,8 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const sb = totalScore(st, b?.id);
   const mult = t.ratingMultiplier > 1 ? t.ratingMultiplier : 1;
   const title = finished ? "разбор матча" : live ? "матч в эфире" : show ? "шоу-матч" : "матч скоро";
-  const order = st.vetoOrder?.length ? st.vetoOrder : show ? SHOW_ORDER : [];
-  const allMaps = [...maps].sort((x, y) => x.sortOrder - y.sortOrder).map((m) => ({ code: m.code, name: m.name }));
+  const order = st.vetoOrder?.length ? st.vetoOrder : show ? vetoOrder(3, maps.length) : [];
+  const allMaps = [...mapsAt(maps, t.startsAt)].sort((x, y) => x.sortOrder - y.sortOrder).map((m) => ({ code: m.code, name: m.name }));
   const h2h = matchup?.headToHead;
   const hasH2h = !!h2h && h2h.wins[0] + h2h.wins[1] + h2h.draws > 0;
   const showRounds = (finished || live) && rounds.length > 0;
