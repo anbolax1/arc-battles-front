@@ -31,6 +31,7 @@ import type {
   UserOverview,
   UserTag,
   Highlight,
+  News,
   PatchCatalog,
 } from "@/lib/types";
 
@@ -250,4 +251,24 @@ export function getMaps(): Promise<MapInfo[]> {
 export function getPatchCatalog(season?: string): Promise<PatchCatalog | null> {
   const q = season ? `?season=${encodeURIComponent(season)}` : "";
   return safe(`patches(${season ?? ""})`, serverFetch<PatchCatalog>(`/patches${q}`), null);
+}
+
+/** Вышедшие новости, свежие сверху. */
+export function getNews(params: { limit?: number; offset?: number } = {}): Promise<{ items: News[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  if (params.offset != null) qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return safe("news", serverFetch<{ items: News[]; total: number }>(`/news${suffix}`), { items: [], total: 0 });
+}
+
+/** Одна новость; черновик откроется только организатору. null - новости нет или бэкенд недоступен. */
+export async function getNewsItem(id: string): Promise<News | null> {
+  try {
+    return await serverFetch<News>(`/news/${encodeURIComponent(id)}`, { auth: true });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    console.warn(`[queries] news(${id}): ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
 }

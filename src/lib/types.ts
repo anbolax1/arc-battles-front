@@ -885,6 +885,19 @@ export interface MapInfo {
   addedAt?: string;
 }
 
+/** Новость лиги. Без даты публикации - черновик, с датой в будущем - выйдет сама. */
+export interface News {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  publishedAt?: string | null;
+  /** Дата публикации наступила - новость видна на сайте. */
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type VetoActionKind = "ban" | "pick" | "rest";
 
 /** Ход пиков-банов матча. */

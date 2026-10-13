@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/admin/matches", label: "Матчи" },
+  { href: "/admin/news", label: "Новости" },
   { href: "/admin/overlay", label: "Оверлей" },
   { href: "/admin/tasks", label: "Задания и протоколы" },
   { href: "/admin/legendary", label: "Легендарки" },
