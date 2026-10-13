@@ -10,11 +10,13 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
-import { PreviewImage, PreviewPicker, useChosenPreview, type PreviewSource } from "@/components/admin/match/show-preview";
+import { PreviewImage, useChosenPreview, type PreviewSource } from "@/components/admin/match/show-preview";
 
 /** Пределы - те же, что проверяет сервер. */
 const MAX_TITLE = 140;
 const MAX_BODY = 20000;
+const MAX_IMAGE_MB = 10;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 type Publish = "draft" | "now" | "date";
 
@@ -25,7 +27,17 @@ interface Draft {
   publish: Publish;
   date: string; // «YYYY-MM-DDTHH:mm» по МСК
   image?: string;
+  imageLink: string;
   removeImage: boolean;
+}
+
+function isHttpUrl(v: string): boolean {
+  try {
+    const u = new URL(v.trim());
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function putNewsImage(id: string, src: PreviewSource): Promise<News> {
@@ -40,7 +52,7 @@ function putNewsImage(id: string, src: PreviewSource): Promise<News> {
 }
 
 function draftOf(n?: News): Draft {
-  if (!n) return { title: "", body: "", publish: "now", date: "", removeImage: false };
+  if (!n) return { title: "", body: "", publish: "now", date: "", imageLink: "", removeImage: false };
   return {
     id: n.id,
     title: n.title,
@@ -48,6 +60,7 @@ function draftOf(n?: News): Draft {
     publish: n.publishedAt ? "date" : "draft",
     date: toMskInput(n.publishedAt),
     image: n.imageUrl,
+    imageLink: "",
     removeImage: false,
   };
 }
@@ -69,6 +82,101 @@ function Status({ n }: { n: News }) {
     <span className="badge badge-champ">
       <span>Выйдет · {when}</span>
     </span>
+  );
+}
+
+/** Картинка новости: ссылка подхватывается сразу, без отдельной кнопки, файл - кнопкой, перетаскиванием или вставкой. */
+function ImageField({
+  link,
+  shown,
+  busy,
+  onLink,
+  onFile,
+  onRemove,
+}: {
+  link: string;
+  shown: string;
+  busy: boolean;
+  onLink: (v: string) => void;
+  onFile: (f: File) => void;
+  onRemove: () => void;
+}) {
+  const [over, setOver] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const fileId = React.useId();
+
+  function pickFile(f?: File | null) {
+    setErr("");
+    if (!f) return;
+    if (!IMAGE_TYPES.includes(f.type)) return setErr("Это не картинка: подойдут JPG, PNG, WebP или GIF.");
+    if (f.size > MAX_IMAGE_MB * 1024 * 1024) return setErr(`Файл больше ${MAX_IMAGE_MB} МБ.`);
+    onFile(f);
+  }
+
+  return (
+    <div
+      className={`space-y-3 rounded-md border border-dashed p-3 transition ${
+        over ? "border-[var(--primary)] bg-[rgba(255,106,26,0.06)]" : "border-[var(--border-strong)]"
+      }`}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        setOver(false);
+        pickFile(e.dataTransfer.files[0]);
+      }}
+      onPaste={(e) => {
+        const f = Array.from(e.clipboardData.files).find((x) => x.type.startsWith("image/"));
+        if (!f) return;
+        e.preventDefault();
+        pickFile(f);
+      }}
+    >
+      <div className="flex flex-wrap gap-2">
+        <input
+          className="input min-w-0 flex-1"
+          inputMode="url"
+          placeholder="Ссылка на картинку: https://…"
+          value={link}
+          onChange={(e) => {
+            setErr("");
+            onLink(e.target.value);
+          }}
+        />
+        <label htmlFor={fileId} className={`btn btn-ghost btn-sm cursor-pointer ${busy ? "pointer-events-none opacity-50" : ""}`}>
+          <span>Файл с компьютера</span>
+          <input
+            id={fileId}
+            type="file"
+            accept={IMAGE_TYPES.join(",")}
+            className="sr-only"
+            onChange={(e) => {
+              pickFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+      <p className="text-xs text-muted">
+        Вставьте ссылку, выберите файл или перетащите картинку сюда. JPG, PNG, WebP или GIF до {MAX_IMAGE_MB} МБ; по ссылке сайт
+        скачает картинку и будет хранить у себя.
+      </p>
+      {link.trim() && !isHttpUrl(link) && <p className="text-xs text-danger">Нужна ссылка, начинающаяся с http:// или https://</p>}
+      {err && <p className="text-xs text-danger">{err}</p>}
+      {shown && (
+        <div className="space-y-2">
+          <PreviewImage src={shown} className="max-w-md" />
+          <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={onRemove}>
+            <span>Убрать картинку</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -114,6 +222,11 @@ export function NewsManager() {
       setErr("Укажите дату и время публикации.");
       return;
     }
+    const link = draft.imageLink.trim();
+    if (link && !isHttpUrl(link)) {
+      setErr("Ссылка на картинку должна начинаться с http:// или https://");
+      return;
+    }
     const body = {
       title: draft.title.trim(),
       body: draft.body.trim(),
@@ -126,6 +239,7 @@ export function NewsManager() {
       const saved = id ? await api.patch<News>(`/news/${id}`, body) : await api.post<News>("/news", body);
       id = saved.id;
       if (chosen) await putNewsImage(id, chosen.src);
+      else if (link) await putNewsImage(id, { url: link });
       else if (draft.removeImage && draft.image) await api.del<News>(`/news/${id}/image`);
       close();
     } catch (e) {
@@ -154,7 +268,8 @@ export function NewsManager() {
     }
   }
 
-  const shownImage = chosen?.shown || (draft && !draft.removeImage ? draft.image : "");
+  const shownImage =
+    chosen?.shown || (draft && isHttpUrl(draft.imageLink) ? draft.imageLink.trim() : "") || (draft && !draft.removeImage ? draft.image ?? "" : "");
 
   return (
     <div className="space-y-6">
@@ -176,7 +291,6 @@ export function NewsManager() {
         <div ref={editorRef} className="scroll-mt-24">
           <Panel className="space-y-5 p-5">
             <h3 className="font-display text-lg uppercase">{draft.id ? "Изменить новость" : "Новая новость"}</h3>
-            {/* Не форма: внутри своя форма выбора картинки по ссылке, а формы не вкладываются. */}
             <div className="space-y-5">
               <label className="block space-y-1.5">
                 <span className="field-label">Заголовок</span>
@@ -205,24 +319,23 @@ export function NewsManager() {
 
               <div className="space-y-2">
                 <span className="field-label block">Картинка</span>
-                {shownImage ? (
-                  <div className="space-y-2">
-                    <PreviewImage src={shownImage} className="max-w-md" />
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={busy}
-                      onClick={() => {
-                        if (chosen) choose(null);
-                        else setDraft({ ...draft, removeImage: true });
-                      }}
-                    >
-                      <span>Убрать картинку</span>
-                    </button>
-                  </div>
-                ) : (
-                  <PreviewPicker busy={busy} onPick={(src) => choose(src)} />
-                )}
+                <ImageField
+                  link={draft.imageLink}
+                  shown={shownImage}
+                  busy={busy}
+                  onLink={(v) => {
+                    choose(null);
+                    setDraft({ ...draft, imageLink: v });
+                  }}
+                  onFile={(f) => {
+                    choose({ file: f });
+                    setDraft({ ...draft, imageLink: "" });
+                  }}
+                  onRemove={() => {
+                    choose(null);
+                    setDraft({ ...draft, imageLink: "", removeImage: true });
+                  }}
+                />
               </div>
 
               <div className="space-y-2">
