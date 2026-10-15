@@ -19,7 +19,7 @@ type Draft = {
   name: string;
   text: string;
   kind: TaskKind;
-  mapCode: string;
+  mapCodes: string[];
   points: string;
   active: boolean;
   source: "official" | "boosty";
@@ -41,7 +41,7 @@ const emptyDraft = (category: TaskCategory, kind: TaskKind, mapCode: string): Dr
   name: "",
   text: "",
   kind,
-  mapCode,
+  mapCodes: mapCode ? [mapCode] : [],
   points: category === "protocol" ? "1" : "2",
   active: true,
   source: "official",
@@ -85,18 +85,19 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
       (t.category || "task") === category &&
       (showOff || t.active) &&
       (kind === "all" || t.kind === kind || category === "protocol") &&
-      (mapFilter === "all" || (mapFilter === "universal" ? !t.mapCode : t.mapCode === mapFilter)) &&
+      (mapFilter === "all" || (mapFilter === "universal" ? !t.mapCodes.length : t.mapCodes.includes(mapFilter))) &&
       (!q || `${t.name ?? ""} ${t.text}`.toLowerCase().includes(q)),
   );
-  const groups = new Map<string, CatalogTask[]>();
-  for (const t of visible) {
-    const key = t.mapCode || "";
-    groups.set(key, [...(groups.get(key) ?? []), t]);
-  }
-  const groupOrder = ["", ...maps.map((m) => m.code)].filter((k) => groups.has(k));
-
   const defaultKind: TaskKind = category === "protocol" ? "pvpve" : kind === "all" ? "pvp" : kind;
   const defaultMap = mapFilter !== "all" && mapFilter !== "universal" ? mapFilter : "";
+
+  // Задание на нескольких картах стоит в группе каждой своей карты.
+  const groups = new Map<string, CatalogTask[]>();
+  for (const t of visible) {
+    const keys = defaultMap ? [defaultMap] : t.mapCodes.length ? t.mapCodes : [""];
+    for (const key of keys) groups.set(key, [...(groups.get(key) ?? []), t]);
+  }
+  const groupOrder = ["", ...maps.map((m) => m.code)].filter((k) => groups.has(k));
 
   async function save() {
     if (!draft || !draft.text.trim()) {
@@ -110,7 +111,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
     }
     setBusy(true);
     setErr("");
-    const body = { ...draft, points, category, mapCode: category === "protocol" ? "" : draft.mapCode, valueType: "fixed" };
+    const body = { ...draft, points, category, mapCodes: category === "protocol" ? [] : draft.mapCodes, valueType: "fixed" };
     try {
       const saved = draft.id
         ? await api.patch<CatalogTask>(`/catalog/tasks/${draft.id}`, body)
@@ -150,7 +151,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
           ...r,
           category,
           kind: defaultKind,
-          mapCode: category === "protocol" ? "" : defaultMap,
+          mapCodes: category === "protocol" || !defaultMap ? [] : [defaultMap],
           points: category === "protocol" ? 1 : 2,
           valueType: "fixed",
         })),
@@ -263,6 +264,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                   <div className="min-w-[240px] flex-1">
                     <div className="text-sm font-semibold">{t.name ? `«${t.name}»` : t.text}</div>
                     {t.name && <div className="text-sm text-muted">{t.text}</div>}
+                    {t.mapCodes.length > 1 && <div className="text-xs text-muted">Карты: {t.mapCodes.map(mapName).join(", ")}</div>}
                     {t.source === "boosty" && (
                       <div className="text-xs text-[var(--boosty)]">
                         Boosty · {t.title} {t.author}
@@ -283,7 +285,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                         name: t.name ?? "",
                         text: t.text,
                         kind: t.kind,
-                        mapCode: t.mapCode ?? "",
+                        mapCodes: t.mapCodes,
                         points: String(t.points),
                         active: t.active,
                         source: t.source === "boosty" ? "boosty" : "official",
@@ -341,19 +343,30 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                     ))}
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="field-label" htmlFor="d-map">
-                    Карта
-                  </label>
-                  <select id="d-map" className="select" value={draft.mapCode} onChange={(e) => setDraft({ ...draft, mapCode: e.target.value })}>
-                    <option value="">Общее (любая карта)</option>
-                    {maps.map((m) => (
-                      <option key={m.code} value={m.code}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+              </div>
+            )}
+            {category === "task" && (
+              <div className="space-y-1.5">
+                <span className="field-label">Карты</span>
+                <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                  {maps.map((m) => (
+                    <label key={m.code} className="flex items-center gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-[var(--primary)]"
+                        checked={draft.mapCodes.includes(m.code)}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            mapCodes: e.target.checked ? [...draft.mapCodes, m.code] : draft.mapCodes.filter((c) => c !== m.code),
+                          })
+                        }
+                      />
+                      {m.name}
+                    </label>
+                  ))}
                 </div>
+                {!draft.mapCodes.length && <p className="text-xs text-muted">Карта не отмечена — задание общее, выпадает на любой карте.</p>}
               </div>
             )}
             <div className="grid gap-3 sm:grid-cols-2">

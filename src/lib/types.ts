@@ -357,8 +357,8 @@ export interface CatalogTask {
   /** Название задания, например «Голыми руками». */
   name?: string;
   category: TaskCategory;
-  /** Задание на карту; пусто - универсальное. */
-  mapCode?: string;
+  /** Карты задания; пусто - общее, на любую карту. */
+  mapCodes: string[];
   /** Выключенные не раздаются, но остаются в истории матчей. */
   active: boolean;
 }

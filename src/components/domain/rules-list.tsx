@@ -31,14 +31,17 @@ function matches(it: { num: number; label: string }, q: string): boolean {
 export function rulesCatalog(tasks: CatalogTask[], legendary: CatalogLegendary[], maps: MapInfo[], pool: "pvp" | "pve", q: string) {
   const active = tasks.filter((t) => t.active);
   const groupOrder = ["", ...maps.map((m) => m.code)];
+  // Задание на нескольких картах стоит в группе каждой своей карты, со своим номером.
   const poolTasks = numbered(
     active
-      .filter((t) => t.category !== "protocol" && (t.kind === pool || t.kind === "pvpve") && groupOrder.includes(t.mapCode ?? ""))
-      .sort((x, y) => groupOrder.indexOf(x.mapCode ?? "") - groupOrder.indexOf(y.mapCode ?? "")),
+      .filter((t) => t.category !== "protocol" && (t.kind === pool || t.kind === "pvpve"))
+      .flatMap((t) => (t.mapCodes.length ? t.mapCodes : [""]).map((mapCode) => ({ ...t, mapCode })))
+      .filter((t) => groupOrder.includes(t.mapCode))
+      .sort((x, y) => groupOrder.indexOf(x.mapCode) - groupOrder.indexOf(y.mapCode)),
   );
   return {
     groups: groupOrder
-      .map((code) => ({ code, items: poolTasks.filter((t) => (t.mapCode ?? "") === code && matches(t, q)) }))
+      .map((code) => ({ code, items: poolTasks.filter((t) => t.mapCode === code && matches(t, q)) }))
       .filter((g) => g.items.length),
     protocols: numbered(active.filter((t) => t.category === "protocol")).filter((t) => matches(t, q)),
     legendary: numbered(legendary).filter((l) => matches(l, q)),
