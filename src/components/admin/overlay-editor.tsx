@@ -72,6 +72,14 @@ function ResizeHandles({ scaleFactor, onStart }: { scaleFactor: number; onStart:
 /** Типы виджетов, у которых есть заголовок/подпись (для тумблера «Заголовок»). */
 const HAS_TITLE = new Set<string>(["roundTasks", "bonusTasks", "standings", "complications", "round"]);
 
+/** Слои снизу вверх, как их рисует сцена: по z, а при равном z выше тот, кто позже в раскладке. */
+function bottomUp(widgets: WidgetInstance[]): WidgetInstance[] {
+  return widgets
+    .map((w, i) => ({ w, i }))
+    .sort((a, b) => a.w.z - b.w.z || a.i - b.i)
+    .map((x) => x.w);
+}
+
 /** Аккуратный switch вместо чекбокса. Кругляш позиционируется явным `left` внутри
     дорожки (box-border + p-0), чтобы не вылезал за границу. */
 function Switch({ on, onChange, title }: { on: boolean; onChange: (v: boolean) => void; title?: string }) {
@@ -200,8 +208,9 @@ export function OverlayEditor({
     else targets.current.delete(id);
   };
 
-  const ordered = [...layout.widgets].sort((a, b) => a.z - b.z);
+  const ordered = bottomUp(layout.widgets);
   const sel = byId(selId) ?? null;
+  const selPos = sel ? ordered.findIndex((w) => w.id === sel.id) : -1;
   const maxZ = layout.widgets.reduce((m, w) => Math.max(m, w.z), 0);
   const pad = layout.pad ?? DEFAULT_PAD; // текущий отступ края (px сцены)
   // Какой квадрат «К краю» подсветить у выбранного виджета: жёсткий anchor, если задан,
@@ -228,8 +237,16 @@ export function OverlayEditor({
     setSelId(id);
     setAddOpen(false);
   }
+  // Выше или ниже ровно на одну позицию: меняемся местами с соседом, и номера слоёв идут подряд,
+  // чтобы сцена и список «Слои» не расходились на равных номерах.
   function raise(id: string, dir: 1 | -1) {
-    patch(id, { z: Math.max(0, (byId(id)?.z ?? 0) + dir) });
+    const order = bottomUp(layout.widgets);
+    const i = order.findIndex((w) => w.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    const z = new Map(order.map((w, k) => [w.id, k + 1]));
+    onChange({ ...layout, widgets: layout.widgets.map((w) => ({ ...w, z: z.get(w.id) ?? w.z })) });
   }
   // Размер виджета в долях сцены по факту измеренного бокса (с учётом scale).
   function widgetFrac(w: WidgetInstance): { ww: number; hh: number } {
@@ -784,13 +801,6 @@ export function OverlayEditor({
             </SettingRow>
           )}
 
-          {sel.type === "complications" && (
-            <SettingRow label="Плашка минут">
-              <Switch on={!sel.hidePenalty} onChange={(v) => patch(sel.id, { hidePenalty: !v })} title="показывать плашку минут штрафа при нарушении протокола" />
-              <span className="text-xs text-muted">{sel.hidePenalty ? "скрыта" : "показана"}</span>
-            </SettingRow>
-          )}
-
           {sel.type === "scoreboard" && (
             <>
               <SettingRow label="Счёт за раунд">
@@ -858,10 +868,10 @@ export function OverlayEditor({
           </SettingRow>
 
           <SettingRow label="Слой">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => raise(sel.id, 1)} title="выше">
+            <button type="button" className="btn btn-ghost btn-sm" disabled={selPos === ordered.length - 1} onClick={() => raise(sel.id, 1)} title="выше">
               <span>↑ выше</span>
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => raise(sel.id, -1)} title="ниже">
+            <button type="button" className="btn btn-ghost btn-sm" disabled={selPos <= 0} onClick={() => raise(sel.id, -1)} title="ниже">
               <span>↓ ниже</span>
             </button>
           </SettingRow>
@@ -905,8 +915,8 @@ export function OverlayEditor({
       <div className="rounded-lg border border-[var(--border)]">
         <div className="border-b border-[var(--border)] px-3 py-1.5 text-xs uppercase tracking-wide text-muted">Слои</div>
         <ul className="max-h-48 overflow-auto">
-          {[...layout.widgets]
-            .sort((a, b) => b.z - a.z)
+          {[...ordered]
+            .reverse()
             .map((w) => (
               <li
                 key={w.id}

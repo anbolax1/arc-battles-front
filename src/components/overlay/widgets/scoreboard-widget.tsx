@@ -70,6 +70,8 @@ function Side({
   const parts = (s.name || "—").split(/\s*&\s*/);
   const rp = s.roundPoints ?? 0;
   const place = showPlace ? (s.place ?? 0) : 0;
+  // Места в таблице ещё нет: игрок в сезоне не играл - так и пишем, как на сайте.
+  const fresh = showPlace && !place && !!s.isNew;
   const mmr = showMmr ? (s.mmr ?? 0) : 0;
   const delta = showMmr ? (s.mmrDelta ?? 0) : 0;
   const t = TONE[tone];
@@ -91,7 +93,7 @@ function Side({
             ))}
           </div>
         </div>
-        {(mmr > 0 || focused || holder) && (
+        {(mmr > 0 || focused || holder || fresh) && (
           <div
             className={`mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
           >
@@ -104,6 +106,7 @@ function Side({
                 )}
               </span>
             )}
+            {fresh && <span className="whitespace-nowrap text-[0.7rem]">новичок сезона</span>}
             {focused && <span className={`whitespace-nowrap text-[0.7rem] ${t.text}`}>● в рейде</span>}
           </div>
         )}
