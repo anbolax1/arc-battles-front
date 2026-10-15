@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import "./profile.css";
-import { getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
+import { getBelt, getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
 import type { PlayerPatch, PlayerProfile, Season } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack, TagStamps } from "@/components/surface/ui";
@@ -12,6 +12,7 @@ import { fullDate, winrate } from "@/components/surface/fmt";
 import { initials } from "@/lib/format";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
+import { BeltProfile } from "@/components/surface/belt-parts";
 
 function NotFound({ login }: { login: string }) {
   return (
@@ -128,7 +129,7 @@ export async function ProfileView({
   extra?: ReactNode;
 }) {
   const { user, timeline1x1, history, teams } = profile;
-  const [{ items: highlights }, seasons, maps] = await Promise.all([getHighlights({ userId: user.id, limit: 4 }), getSeasons(), getMaps()]);
+  const [{ items: highlights }, seasons, maps, belt] = await Promise.all([getHighlights({ userId: user.id, limit: 4 }), getSeasons(), getMaps(), getBelt()]);
   const active = seasons.find((s) => s.status === "active");
   const played = timeline1x1.some((p) => !p.correction);
   const name = user.displayName || user.login;
@@ -175,6 +176,8 @@ export async function ProfileView({
           ) : (
             <p className="sf-note">В рейтинге 1×1 у {name} пока нет матчей — график и разбор по картам появятся после первого.</p>
           )}
+
+          <BeltProfile belt={belt} userId={user.id} />
 
           <div className="sf-prof-cols sf-block">
             <div>

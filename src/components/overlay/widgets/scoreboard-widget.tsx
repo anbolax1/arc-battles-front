@@ -1,4 +1,4 @@
-import type { LiveStanding } from "@/lib/types";
+import type { LiveBelt, LiveStanding } from "@/lib/types";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
@@ -27,6 +27,27 @@ function PlaceBadge({ place }: { place: number }) {
   );
 }
 
+/** Пояс лиги у ника: носитель с числом защит, после матча - итог. */
+function BeltBadge({ belt }: { belt: LiveBelt }) {
+  const text =
+    belt.result === "take" || belt.result === "pick"
+      ? "новый носитель"
+      : belt.result === "defense"
+        ? `защита №${belt.defenses}`
+        : belt.defenses > 0
+          ? `пояс ★${belt.defenses}`
+          : "пояс";
+  return (
+    <span className="inline-flex h-6 flex-none items-center gap-1.5 whitespace-nowrap rounded bg-[var(--gold)] px-1.5 font-display text-xs uppercase leading-none tracking-wider text-[#2a1a00] [text-shadow:none]">
+      <svg viewBox="0 0 40 20" className="h-3 w-6 flex-none" aria-hidden>
+        <path d="M1 7 Q20 10 39 7 L39 14 Q20 17 1 14 Z" fill="#2a1a00" />
+        <path d="M20 1 L27 4 L29 10 L27 16 L20 19 L13 16 L11 10 L13 4 Z" fill="#fff3c4" stroke="#2a1a00" strokeWidth="1.2" />
+      </svg>
+      {text}
+    </span>
+  );
+}
+
 function Side({
   s,
   tone,
@@ -34,6 +55,7 @@ function Side({
   showRound,
   showMmr,
   showPlace,
+  belt,
 }: {
   s: LiveStanding;
   tone: Tone;
@@ -41,6 +63,7 @@ function Side({
   showRound: boolean;
   showMmr: boolean;
   showPlace: boolean;
+  belt?: LiveBelt | null;
 }) {
   const right = tone === "b";
   // 2×2: имя команды «Ник1 & Ник2» - в две строки; длинные ники обрезаются.
@@ -50,6 +73,7 @@ function Side({
   const mmr = showMmr ? (s.mmr ?? 0) : 0;
   const delta = showMmr ? (s.mmrDelta ?? 0) : 0;
   const t = TONE[tone];
+  const holder = !!belt && belt.holderParticipantId === s.participantId;
 
   return (
     <div
@@ -67,10 +91,11 @@ function Side({
             ))}
           </div>
         </div>
-        {(mmr > 0 || focused) && (
+        {(mmr > 0 || focused || holder) && (
           <div
             className={`mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
           >
+            {holder && <BeltBadge belt={belt} />}
             {mmr > 0 && (
               <span className="whitespace-nowrap text-sm tnum text-fg/85 sm:text-base">
                 {mmr}
@@ -105,12 +130,13 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
   // При единственном раунде счётчик «N/M» не нужен - по центру только «VS».
   const multiRound = (state.totalRounds ?? 1) > 1;
   const finished = state.stage === "finished";
+  const belt = state.belt ?? null;
 
   return (
     <WidgetFrame instance={instance}>
       <div className="flex h-full items-stretch">
         {a ? (
-          <Side s={a} tone="a" focused={!finished && a.participantId === focusedId} {...opts} />
+          <Side s={a} tone="a" focused={!finished && a.participantId === focusedId} belt={belt} {...opts} />
         ) : (
           <div className="flex flex-1 items-center px-5 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
         )}
@@ -128,8 +154,9 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
           ) : (
             <span className="font-display text-xl leading-none text-muted">VS</span>
           )}
+          {belt && !finished && <span className="whitespace-nowrap text-[0.6rem] uppercase tracking-[0.2em] text-gold">за пояс</span>}
         </div>
-        {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} {...opts} /> : <div className="flex-1" />}
+        {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} belt={belt} {...opts} /> : <div className="flex-1" />}
       </div>
     </WidgetFrame>
   );

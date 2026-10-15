@@ -33,6 +33,7 @@ import type {
   Highlight,
   News,
   PatchCatalog,
+  Belt,
 } from "@/lib/types";
 
 async function safe<T>(label: string, p: Promise<T>, fallback: T): Promise<T> {
@@ -271,4 +272,9 @@ export async function getNewsItem(id: string): Promise<News | null> {
     console.warn(`[queries] news(${id}): ${e instanceof Error ? e.message : e}`);
     return null;
   }
+}
+
+/** Пояс лиги: носитель, ржавчина и вся история; null - бэкенд недоступен. */
+export function getBelt(): Promise<Belt | null> {
+  return safe("belt", serverFetch<Belt>("/belt"), null);
 }

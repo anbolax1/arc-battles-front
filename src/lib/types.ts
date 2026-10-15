@@ -43,6 +43,8 @@ export interface TagHolder {
     тег с сезоном выдаётся сам победителю сезона. */
 export interface Tag extends UserTag {
   role?: Role;
+  /** Тег выдаёт сайт сам по своему правилу: honor - «Почётный носитель» пояса лиги. */
+  code?: string;
   seasonId?: string;
   seasonName?: string;
   holderCount: number;
@@ -535,6 +537,17 @@ export interface LiveState {
   veto?: LiveVeto[];
   /** Нашивки, полученные в идущем матче: каждая новая показывается плашкой. */
   patchFlashes?: PatchFlash[];
+  /** Матч идёт за пояс лиги: табло отмечает носителя, после матча - итог. */
+  belt?: LiveBelt | null;
+}
+
+/** Пояс лиги в идущем матче. */
+export interface LiveBelt {
+  /** Пусто - пояс ничей, его разыгрывает этот матч. */
+  holderParticipantId?: string;
+  defenses: number;
+  /** После матча: defense - отбился, take - пояс сменил хозяина, pick - подобрал ничей. */
+  result?: "defense" | "take" | "pick";
 }
 
 /** Контракт стороны в оверлее (виджет «Контракты»). */
@@ -1034,4 +1047,61 @@ export type OverlayState = LiveState;
 export interface HealthResponse {
   ok: boolean;
   overlayConns: number;
+}
+
+/* ---------- пояс лиги ---------- */
+
+export interface BeltPlayer {
+  userId: string;
+  login: string;
+  displayName: string;
+}
+
+export interface BeltDefense {
+  at: string;
+  matchId: string;
+  opponent: BeltPlayer;
+  /** Счёт: свой, соперника; у матчей из таблицы организатора очков нет. */
+  score?: [number, number];
+  /** Матч с жетоном ×2. */
+  double?: boolean;
+}
+
+/** Одно владение поясом: от матча, где его взяли, до поражения или до того, как он выпал. */
+export interface BeltReign {
+  holder: BeltPlayer;
+  from: string;
+  to?: string;
+  /** first - первый матч лиги, take - обыграл носителя, pick - подобрал ничей пояс. */
+  how: "first" | "take" | "pick";
+  matchId: string;
+  opponent?: BeltPlayer;
+  score?: [number, number];
+  defenses: BeltDefense[];
+  /** lost - проиграл, drop - выпал; нет - держит сейчас. */
+  end?: "lost" | "drop";
+  lostTo?: BeltPlayer;
+  /** В который раз игрок берёт пояс. */
+  time: number;
+  /** Какой он по счёту носитель в истории лиги; только у первого раза. */
+  newcomer?: number;
+}
+
+/** Пояс лиги: у кого он, сколько на нём ржавчины и вся история с первого матча на сайте. */
+export interface Belt {
+  /** Нет - пояс ничей. */
+  holder?: BeltPlayer;
+  since?: string;
+  defenses: number;
+  /** Игровых дней подряд без матча носителя. */
+  rust: number;
+  /** На столько игровых дней без матча пояс выпадает. */
+  rustLimit: number;
+  /** Пояс ничей с этого момента. */
+  droppedAt?: string;
+  /** Ничей пояс разыграет ближайший матч одного из них; пусто - первый матч сезона. */
+  leaders?: BeltPlayer[];
+  /** Защит за всё время для тега «Почётный носитель». */
+  honorAt: number;
+  reigns: BeltReign[];
 }

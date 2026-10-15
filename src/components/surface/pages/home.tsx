@@ -1,4 +1,4 @@
-import { getCurrentMatch, getHighlights, getLeaderboard, getMaps, getMatch, getMatchup, getMe, getSeasons, getTournaments } from "@/lib/queries";
+import { getBelt, getCurrentMatch, getHighlights, getLeaderboard, getMaps, getMatch, getMatchup, getMe, getSeasons, getTournaments } from "@/lib/queries";
 import { roleAtLeast } from "@/lib/roles";
 import { isShowMatch, vetoOrder } from "@/lib/match";
 import { byStartAsc } from "@/components/surface/shell";
@@ -7,10 +7,11 @@ import { LastMatch } from "@/components/surface/last-match";
 import { LiveMatch, OrganizerBar } from "@/components/surface/live-match";
 import { HowSection } from "@/components/surface/how-section";
 import { SurfaceHighlights } from "@/components/surface/highlights";
+import { BeltHome } from "@/components/surface/belt-parts";
 
 /** Главная в новом дизайне. */
 export async function SurfaceHome() {
-  const [match, top, upcoming, finished, hl, me, seasons, maps] = await Promise.all([
+  const [match, top, upcoming, finished, hl, me, seasons, maps, belt] = await Promise.all([
     getCurrentMatch(),
     getLeaderboard("1x1"),
     getTournaments("upcoming"),
@@ -19,6 +20,7 @@ export async function SurfaceHome() {
     getMe(),
     getSeasons(),
     getMaps(),
+    getBelt(),
   ]);
   const season = seasons.find((s) => s.status === "active");
   const shows = upcoming.filter(isShowMatch).sort(byStartAsc);
@@ -37,6 +39,7 @@ export async function SurfaceHome() {
       {match.current ? <LiveMatch st={match.current} matchup={liveMatchup} organizer={organizer} /> : organizer && <OrganizerBar />}
       <Hero season={season} show={show} showMatchup={showMatchup} showOrder={order} />
       <Schedule live={match.current} shows={shows} />
+      <BeltHome belt={belt} />
       {show && <ShowSection t={show} matchup={showMatchup} order={order} />}
       {lastState && <LastMatch st={lastState} />}
       <Ticker matches={finished} />

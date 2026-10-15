@@ -17,6 +17,7 @@ function links(season?: FooterSeason | null) {
     { href: "/rating", label: "Рейтинг" },
     ...(season ? [{ href: `/season/${season.number}`, label: season.active ? "Сезон в цифрах" : "Итоги сезона" }] : []),
     { href: "/patches", label: "Нашивки" },
+    { href: "/belt", label: "Пояс лиги" },
     { href: "/rules", label: "Правила" },
     { href: "/highlights", label: "Лучшие моменты" },
   ];

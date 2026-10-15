@@ -23,6 +23,8 @@ const NO_APPLICANTS = new Set<string>();
 function autoNote(t: Tag): string {
   if (t.role) return `есть у всех с этой ролью и выше · ${t.holderCount}`;
   if (t.seasonId) return `выдаётся победителю «${t.seasonName}» сам`;
+  if (t.code === "honor") return "выдаётся сам за 10 защит пояса лиги";
+  if (t.code) return "выдаётся сайтом сам";
   return "";
 }
 
@@ -43,7 +45,7 @@ function TagRow({
   onAdd: (userId: string) => void;
   onRemove: (userId: string) => void;
 }) {
-  const auto = !!tag.role || !!tag.seasonId;
+  const auto = !!tag.role || !!tag.seasonId || !!tag.code;
   const holders = React.useMemo(() => new Set(tag.holders.map((h) => h.userId)), [tag.holders]);
 
   return (
@@ -181,7 +183,7 @@ export function TagsManager() {
                   name: t.name,
                   color: t.color,
                   visible: t.visible,
-                  note: t.role || t.seasonId ? autoNote(t) : undefined,
+                  note: t.role || t.seasonId || t.code ? autoNote(t) : undefined,
                 })
               }
               onDelete={() => setDeleting(t)}
