@@ -129,7 +129,8 @@ npm run build
 
 ## Выкладка на прод
 
-Split-топология: `brouhub.ru` (этот фронт, :3000) + `api.brouhub.ru` (Go API, :8080) за nginx
-+ Let's Encrypt. Выкладка автоматическая: push в `main` — GitHub Actions проверяет код, собирает
+Сайт открыт на двух доменах, `brouhub.ru` и `goarc.ru`, каждый работает сам по себе. На обоих
+nginx отдаёт страницы этого фронта (:3000), а `/api` передаёт Go API (:8080); `api.brouhub.ru`
+оставлен для старых ссылок. Let's Encrypt. Выкладка автоматическая: push в `main` — GitHub Actions проверяет код, собирает
 сайт и выкладывает его на сервер (`.github/workflows/deploy.yml`). `NEXT_PUBLIC_API_BASE`
 вшивается при сборке из `.env.production`.

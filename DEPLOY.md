@@ -1,7 +1,8 @@
 # Деплой фронтенда (обновление)
 
-Прод: `brouhub.ru` → Next.js (standalone) на VPS `155.212.133.147`, порт `3000`, под
-пользователем `admin2` (systemd --user сервис `respect-front`). За nginx + Let's Encrypt.
+Прод: `brouhub.ru` и `goarc.ru` → Next.js (standalone) на VPS `155.212.133.147`, порт `3000`, под
+пользователем `admin2` (systemd --user сервис `respect-front`). За nginx + Let's Encrypt;
+`/api` на обоих доменах nginx передаёт бэкенду (:8080).
 
 **Принцип:** собираем **локально** (`npm run build`), на сервер кладём только готовый
 standalone-бандл. На сервере 960 МБ RAM — там `next build` не запускаем.
@@ -69,8 +70,9 @@ ssh admin2@$VPS 'rm -rf ~/front_old'
 
 ## Что вшивается при сборке (build-time)
 
-- `NEXT_PUBLIC_API_BASE=https://api.brouhub.ru/api` — из `.env.production` (коммитится, значение публичное).
-  Если собрать без него — клиент пойдёт на неправильный origin. **Не удаляй `.env.production`.**
+- `NEXT_PUBLIC_API_BASE=/api` — из `.env.production` (коммитится, значение публичное). API на том
+  же домене, что и страница, — так вход работает и на brouhub.ru, и на goarc.ru.
+  Абсолютный адрес сюда не вписывать: сайт на втором домене останется без данных и входа.
 - Рантайм-переменные (`PORT`, `HOSTNAME`, `INTERNAL_API_URL`) — в systemd-юните на сервере, не в сборке.
 
 ## Откат (rollback)
@@ -93,8 +95,8 @@ ssh admin2@$VPS 'journalctl --user -u respect-front -n 50 --no-pager'
 ssh admin2@$VPS 'systemctl --user restart respect-front'
 ```
 - Белая страница / 500 → смотри логи; частая причина — забыли `static`/`public` в бандле (шаг 2).
-- Данные не грузятся, в консоли запросы на `brouhub.ru/api` (а не `api.brouhub.ru`) → собрали без
-  `.env.production`. Пересобрать (шаг 1) и перезалить.
+- Данные не грузятся, запросы на `/api` отвечают 404 от Next → в nginx-блоке этого домена нет
+  `include snippets/site-api.conf` (передача `/api` бэкенду).
 - 502 → сервис не поднялся (`server.js` не там / нет node) — логи.
 
 ## Если нет SSH-доступа как admin2 (с этой машины)

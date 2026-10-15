@@ -38,9 +38,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 /** URL к API для ССЫЛОК-НАВИГАЦИЙ (напр. вход через Twitch `<a href>`), а не fetch.
-    В dev BASE="/api" → относительный путь работает через прокси next.config.
-    В prod split (NEXT_PUBLIC_API_BASE=https://api.brouhub.ru/api) → абсолютный URL
-    на API-origin, т.к. фронт-origin (brouhub.ru) сам по себе /api не обслуживает. */
+    BASE="/api" - относительный путь: в dev его проксирует next.config, в prod - nginx. */
 export function apiHref(path: string): string {
   return `${BASE}${path}`;
 }

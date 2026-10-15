@@ -30,6 +30,13 @@ export interface CardStat {
   word?: boolean;
 }
 
+const noSubscribe = () => () => {};
+
+/** У сайта несколько доменов - на карточке тот, на котором её открыли. */
+function useSiteHost(): string {
+  return React.useSyncExternalStore(noSubscribe, () => window.location.hostname, () => "");
+}
+
 /** Карточка рейдера: редкость по MMR сезона. Мышью наклоняется, блик едет за курсором. */
 export function RaiderCard({
   name,
@@ -48,6 +55,7 @@ export function RaiderCard({
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const frame = React.useRef(0);
+  const host = useSiteHost();
 
   function move(e: React.PointerEvent<HTMLDivElement>) {
     const el = ref.current;
@@ -114,7 +122,7 @@ export function RaiderCard({
           ))}
         </dl>
         <div className="pt-card-foot" aria-hidden>
-          <span>brouhub.ru</span>
+          <span>{host}</span>
           <span>
             {STRIPES.map((c) => (
               <i key={c} style={{ background: c }} />
