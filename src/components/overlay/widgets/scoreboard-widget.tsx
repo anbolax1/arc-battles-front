@@ -20,30 +20,31 @@ function PlaceBadge({ place }: { place: number }) {
           : "bg-white/12 text-fg";
   return (
     <span
-      className={`inline-flex h-6 min-w-[2rem] flex-none items-center justify-center rounded px-1.5 font-display text-xs leading-none tnum [text-shadow:none] ${medal}`}
+      className={`inline-flex h-6 min-w-[2rem] flex-none items-center justify-center self-center rounded px-1.5 font-display text-xs leading-none tnum [text-shadow:none] ${medal}`}
     >
       #{place}
     </span>
   );
 }
 
-/** Пояс лиги у ника: носитель с числом защит, после матча - итог. */
-function BeltBadge({ belt }: { belt: LiveBelt }) {
-  const text =
-    belt.result === "take" || belt.result === "pick"
-      ? "новый носитель"
-      : belt.result === "defense"
-        ? `защита №${belt.defenses}`
-        : belt.defenses > 0
-          ? `пояс ★${belt.defenses}`
-          : "пояс";
+/** Носитель пояса лиги: мини-пояс под ником и звёзды защит. После матча значок уже у нового носителя и светится чаще. */
+function BeltMark({ belt }: { belt: LiveBelt }) {
+  const fresh = belt.result === "take" || belt.result === "pick";
   return (
-    <span className="inline-flex h-6 flex-none items-center gap-1.5 whitespace-nowrap rounded bg-[var(--gold)] px-1.5 font-display text-xs uppercase leading-none tracking-wider text-[#2a1a00] [text-shadow:none]">
-      <svg viewBox="0 0 40 20" className="h-3 w-6 flex-none" aria-hidden>
-        <path d="M1 7 Q20 10 39 7 L39 14 Q20 17 1 14 Z" fill="#2a1a00" />
-        <path d="M20 1 L27 4 L29 10 L27 16 L20 19 L13 16 L11 10 L13 4 Z" fill="#fff3c4" stroke="#2a1a00" strokeWidth="1.2" />
+    <span className={`ov-belt flex flex-none items-center gap-1 self-center ${fresh ? "fresh" : ""}`}>
+      <svg viewBox="0 0 44 22" className="h-[18px] w-[36px]" role="img" aria-label="носитель пояса лиги">
+        <path d="M1 8.5 Q22 11.5 43 8.5 L43 14.5 Q22 17.5 1 14.5 Z" fill="#3b2408" stroke="#c98a0c" strokeWidth="0.8" />
+        <circle cx="5.5" cy="12" r="1.3" fill="#f1aa1c" />
+        <circle cx="38.5" cy="12" r="1.3" fill="#f1aa1c" />
+        <path d="M22 1 L29.2 4 L32.2 11 L29.2 18 L22 21 L14.8 18 L11.8 11 L14.8 4 Z" fill="#e9a21a" stroke="#6b4300" strokeWidth="1.2" />
+        <path d="M15.6 5 L22 2.4 L28.4 5 L29.6 7.6 L14.4 7.6 Z" fill="#ffe7a3" opacity="0.6" />
+        <rect x="16" y="7.8" width="12" height="6.6" rx="1" fill="#1a0e1e" />
+        <rect x="17.4" y="9" width="2" height="4.2" fill="#7fede6" />
+        <rect x="20.2" y="9" width="2" height="4.2" fill="#2bef83" />
+        <rect x="23" y="9" width="2" height="4.2" fill="#f9cf0a" />
+        <rect x="25.8" y="9" width="2" height="4.2" fill="#f2271c" />
       </svg>
-      {text}
+      {belt.defenses > 0 && <span className="font-display text-sm leading-none tnum text-gold">★{belt.defenses}</span>}
     </span>
   );
 }
@@ -55,6 +56,7 @@ function Side({
   showRound,
   showMmr,
   showPlace,
+  showBelt,
   belt,
 }: {
   s: LiveStanding;
@@ -63,6 +65,7 @@ function Side({
   showRound: boolean;
   showMmr: boolean;
   showPlace: boolean;
+  showBelt: boolean;
   belt?: LiveBelt | null;
 }) {
   const right = tone === "b";
@@ -75,7 +78,7 @@ function Side({
   const mmr = showMmr ? (s.mmr ?? 0) : 0;
   const delta = showMmr ? (s.mmrDelta ?? 0) : 0;
   const t = TONE[tone];
-  const holder = !!belt && belt.holderParticipantId === s.participantId;
+  const holder = showBelt && !!belt && belt.holderParticipantId === s.participantId;
 
   return (
     <div
@@ -83,21 +86,18 @@ function Side({
     >
       <span className={`absolute inset-y-0 w-1 ${right ? "right-0" : "left-0"} ${t.bar} ${focused ? t.glow : "opacity-50"}`} />
       <div className="min-w-0 flex-1">
-        <div className={`flex items-center gap-2.5 ${right ? "flex-row-reverse" : ""}`}>
-          {place > 0 && <PlaceBadge place={place} />}
-          <div className="min-w-0">
-            {parts.map((n, i) => (
-              <div key={i} className="truncate font-display text-lg uppercase leading-tight sm:text-xl">
-                {n}
-              </div>
-            ))}
+        {/* Ник - отдельной строкой: значки ниже, чтобы в узком табло он не обрезался. */}
+        {parts.map((n, i) => (
+          <div key={i} className="truncate font-display text-lg uppercase leading-tight sm:text-xl">
+            {n}
           </div>
-        </div>
-        {(mmr > 0 || focused || holder || fresh) && (
+        ))}
+        {(mmr > 0 || focused || fresh || holder || place > 0) && (
           <div
-            className={`mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
+            className={`mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-semibold uppercase tracking-wider text-muted ${right ? "flex-row-reverse" : ""}`}
           >
-            {holder && <BeltBadge belt={belt} />}
+            {place > 0 && <PlaceBadge place={place} />}
+            {holder && belt && <BeltMark belt={belt} />}
             {mmr > 0 && (
               <span className="whitespace-nowrap text-sm tnum text-fg/85 sm:text-base">
                 {mmr}
@@ -119,7 +119,7 @@ function Side({
   );
 }
 
-/** Виджет «Счёт»: табло двух сторон, раунд по центру; по настройкам - MMR и места в таблице сезона. */
+/** Виджет «Счёт»: табло двух сторон, раунд по центру; по настройкам - MMR, места в таблице сезона и пояс лиги. */
 export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const standings = state.standings ?? [];
   const focusedId = state.currentParticipantId ?? undefined;
@@ -127,6 +127,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
     showRound: !!instance.showRoundScore,
     showMmr: !!instance.showMmr,
     showPlace: !!instance.showPlace,
+    showBelt: !!instance.showBelt,
   };
   const a = standings[0];
   const b = standings[1];
@@ -134,6 +135,16 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const multiRound = (state.totalRounds ?? 1) > 1;
   const finished = state.stage === "finished";
   const belt = state.belt ?? null;
+  const beltCaption =
+    !belt || !opts.showBelt
+      ? ""
+      : !finished
+        ? "за пояс"
+        : belt.result === "take" || belt.result === "pick"
+          ? "новый носитель"
+          : belt.result === "defense"
+            ? `защита №${belt.defenses}`
+            : "";
 
   return (
     <WidgetFrame instance={instance}>
@@ -157,7 +168,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
           ) : (
             <span className="font-display text-xl leading-none text-muted">VS</span>
           )}
-          {belt && !finished && <span className="whitespace-nowrap text-[0.6rem] uppercase tracking-[0.2em] text-gold">за пояс</span>}
+          {beltCaption && <span className="max-w-[5.5rem] text-center text-[0.6rem] uppercase leading-tight tracking-[0.14em] text-gold">{beltCaption}</span>}
         </div>
         {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} belt={belt} {...opts} /> : <div className="flex-1" />}
       </div>

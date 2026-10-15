@@ -603,6 +603,8 @@ export interface WidgetInstance {
   showMmr?: boolean;
   /** Табло: показывать места сторон в таблице сезона. */
   showPlace?: boolean;
+  /** Табло: значок под ником носителя пояса лиги и «за пояс» по центру. */
+  showBelt?: boolean;
   /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
   anchor?: string;
   bg: OverlayBg;

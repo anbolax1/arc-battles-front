@@ -465,6 +465,22 @@
   .ov-fill-2 {
     background-color: color-mix(in srgb, var(--surface-2) calc(var(--ov-bg-alpha, 1) * 100%), transparent);
   }
+  /* Значок носителя пояса на табло мягко светится; у только что взявшего пояс - чаще. */
+  .ov-belt svg {
+    animation: ov-belt-glow 2.8s ease-in-out infinite;
+  }
+  .ov-belt.fresh svg {
+    animation-duration: 1.1s;
+  }
+  @keyframes ov-belt-glow {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 1px rgba(241, 170, 28, 0.45));
+    }
+    50% {
+      filter: drop-shadow(0 0 6px rgba(241, 170, 28, 0.95));
+    }
+  }
   /* Когда фон выключен — текст читается поверх захвата игры. */
   .ov-legible,
   .ov-legible * {

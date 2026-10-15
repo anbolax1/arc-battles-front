@@ -815,6 +815,10 @@ export function OverlayEditor({
                 <Switch on={!!sel.showPlace} onChange={(v) => patch(sel.id, { showPlace: v })} title="показывать текущее место сторон в таблице сезона" />
                 <span className="text-xs text-muted">{sel.showPlace ? "рядом с ником" : "скрыто"}</span>
               </SettingRow>
+              <SettingRow label="Носитель пояса">
+                <Switch on={!!sel.showBelt} onChange={(v) => patch(sel.id, { showBelt: v })} title="значок пояса под ником носителя и «за пояс» по центру табло" />
+                <span className="text-xs text-muted">{sel.showBelt ? "значок под ником" : "скрыт"}</span>
+              </SettingRow>
             </>
           )}
 
