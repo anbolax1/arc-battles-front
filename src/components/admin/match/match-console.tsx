@@ -97,6 +97,18 @@ export function MatchConsole({
   const total = st.tournament.rounds?.length ?? 2;
   const focusId =
     feed.state?.tournamentId === id ? (feed.state?.currentParticipantId ?? a?.id ?? null) : (a?.id ?? null);
+  // Пояс лиги считает сервер для оверлея: пульт показывает то же, что видят зрители на табло.
+  const liveBelt = feed.state?.tournamentId === id ? (feed.state.belt ?? null) : null;
+  const beltHolder = sides.find((p) => p && p.id === liveBelt?.holderParticipantId)?.name;
+  const beltLabel = !liveBelt
+    ? ""
+    : liveBelt.result === "take" || liveBelt.result === "pick"
+      ? `${beltHolder ?? "победитель"} — новый носитель пояса`
+      : liveBelt.result === "defense"
+        ? `${beltHolder ?? "носитель"} отбился: защита пояса №${liveBelt.defenses}`
+        : beltHolder
+          ? `за пояс: ${beltHolder} защищает${liveBelt.defenses ? `, ★${liveBelt.defenses}` : ""}`
+          : "за ничей пояс";
 
   // Запросы к матчу уходят строго по одному, в порядке нажатий: иначе «Нок» и «Следующий раунд»
   // сервер мог бы обработать наоборот, а ответ на старый запрос перетёр бы новый счёт.
@@ -236,6 +248,7 @@ export function MatchConsole({
             <span className="chip"><span>{st.tournament.mode}</span></span>
             <span className="chip"><span>{st.tournament.playerType.toUpperCase()}</span></span>
             {st.tournament.ratingMultiplier === 2 && <span className="chip chip-cyan"><span>рейтинг ×2</span></span>}
+            {beltLabel && <span className="badge badge-champ"><span>{beltLabel}</span></span>}
             <span>{stageLabel(st.stage, st.currentRound || 1, total)}</span>
           </div>
         </div>

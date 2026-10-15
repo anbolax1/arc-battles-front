@@ -12,6 +12,7 @@ import { SectionHead } from "@/components/ui/section-head";
 import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
 import { PreviewImage, useChosenPreview, type PreviewSource } from "@/components/admin/match/show-preview";
 import { RichEditor } from "@/components/admin/rich-editor";
+import { BeltArt } from "@/components/surface/belt-art";
 
 /** Пределы - те же, что проверяет сервер. */
 const MAX_TITLE = 140;
@@ -284,7 +285,8 @@ export function NewsManager() {
       />
       <p className="-mt-2 max-w-3xl text-sm text-muted">
         Новости видят все на странице «Новости», свежие сверху. Черновик видно только вам; новость с датой в будущем выйдет
-        сама в это время.
+        сама в это время. О поясе лиги сайт пишет сам: кто забрал пояс, у кого он выпал, кто стал почётным носителем. Такую
+        новость можно поправить или удалить — удалённая не появится снова.
       </p>
 
       {draft && (
@@ -403,12 +405,23 @@ export function NewsManager() {
               {n.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- картинка из нашего хранилища медиа
                 <img src={n.imageUrl} alt="" className="h-16 w-28 flex-none rounded object-cover" />
+              ) : n.belt ? (
+                <div className="flex h-16 w-28 flex-none items-center rounded bg-[#130918] px-1.5" aria-hidden>
+                  <BeltArt id={`adm-news-${n.id}`} name={n.belt.name} stars={n.belt.stars} vacant={n.belt.vacant} className="h-auto w-full" />
+                </div>
               ) : (
                 <div className="h-16 w-28 flex-none rounded bg-surface-2" aria-hidden />
               )}
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="truncate font-semibold">{n.title}</div>
-                <Status n={n} />
+                <div className="flex flex-wrap gap-1.5">
+                  <Status n={n} />
+                  {n.belt && (
+                    <span className="badge badge-champ">
+                      <span>Написал сайт · пояс</span>
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Link className="btn btn-ghost btn-sm" href={`/news/${n.id}`} target="_blank">

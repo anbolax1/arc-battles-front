@@ -17,6 +17,8 @@ export interface ArchiveMatch {
   score: SideScore[];
   maps: string[];
   mult: number;
+  /** Что матч сделал с поясом лиги: сменил хозяина, защитил. */
+  belt?: string;
 }
 
 type Filter = "all" | "1x1" | "2x2" | "show";
@@ -69,7 +71,10 @@ function Row({ m }: { m: ArchiveMatch }) {
           </span>
           <small>{meta.join(" · ")}</small>
         </span>
-        <span className={`arc-res ${winner ? "w" : ""}`}>{winner ? `победа ${winner}` : "ничья"}</span>
+        <span className={`arc-res ${winner ? "w" : ""}`}>
+          {winner ? `победа ${winner}` : "ничья"}
+          {m.belt && <em className="arc-belt">{m.belt}</em>}
+        </span>
       </Link>
     </li>
   );

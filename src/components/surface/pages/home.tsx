@@ -36,7 +36,7 @@ export async function SurfaceHome() {
 
   return (
     <>
-      {match.current ? <LiveMatch st={match.current} matchup={liveMatchup} organizer={organizer} /> : organizer && <OrganizerBar />}
+      {match.current ? <LiveMatch st={match.current} matchup={liveMatchup} organizer={organizer} belt={belt} /> : organizer && <OrganizerBar />}
       <Hero season={season} show={show} showMatchup={showMatchup} showOrder={order} />
       <Schedule live={match.current} shows={shows} />
       <BeltHome belt={belt} />

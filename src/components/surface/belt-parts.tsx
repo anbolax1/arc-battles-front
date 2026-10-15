@@ -1,11 +1,25 @@
 import Link from "next/link";
-import type { Belt } from "@/lib/types";
+import type { ReactNode } from "react";
+import type { Belt, BeltPlayer, BeltReign } from "@/lib/types";
 import { BeltArt } from "@/components/surface/belt-art";
 import { Arrow } from "@/components/surface/ui";
 import { dayMonth } from "@/components/surface/fmt";
 import { plural, W_DAY } from "@/components/surface/season-lib";
 import { shortDate } from "@/components/surface/fmt";
-import { W_DEF, W_GAMEDAY, W_HOLDER, W_TIME, holderName, holderStats, holderTag, howEnded, reignDays, rustText, serverNow } from "@/components/surface/belt-lib";
+import {
+  W_DEF,
+  W_GAMEDAY,
+  W_HOLDER,
+  W_TIME,
+  holderName,
+  holderStats,
+  holderTag,
+  howEnded,
+  reignDays,
+  rustText,
+  serverNow,
+  type MatchBeltMark,
+} from "@/components/surface/belt-lib";
 import "@/components/surface/belt.css";
 
 /** Звёзды защит как на поясе: десять мест, занятые - золотые. */
@@ -229,5 +243,128 @@ export function BeltProfile({ belt, userId }: { belt: Belt | null; userId: strin
         </div>
       </div>
     </section>
+  );
+}
+
+function PlayerLink({ p }: { p: BeltPlayer }) {
+  return <Link href={`/profile/${p.login}`}>{holderName(p)}</Link>;
+}
+
+/** «Берёт пояс уже 2-й раз» или «10-й носитель в истории лиги» - продолжение фразы о новом носителе. */
+function newcomerText(r: BeltReign): string {
+  return r.time > 1 ? `${holderName(r.holder)} берёт пояс уже ${r.time}-й раз.` : `${holderName(r.holder)} — ${r.newcomer}-й носитель в истории лиги.`;
+}
+
+/** Пояс на странице матча: что матч с ним сделал, а у идущего - за что он. other - соперник носителя. */
+export function BeltMatch({ mark, belt, id, other }: { mark: MatchBeltMark; belt: Belt; id: string; other: string }) {
+  let head = "";
+  let text: ReactNode = null;
+  let art: { name?: string; stars: number; rust?: number; vacant?: boolean } = { stars: 0 };
+
+  switch (mark.kind) {
+    case "first":
+    case "take":
+    case "pick": {
+      const r = mark.reign;
+      const p = mark.prev;
+      const opp = r.opponent ? <PlayerLink p={r.opponent} /> : "соперника";
+      art = { name: holderName(r.holder), stars: 0 };
+      if (mark.kind === "first") {
+        head = "первый носитель пояса";
+        text = (
+          <>
+            <PlayerLink p={r.holder} /> выиграл первый матч лиги{r.opponent && <> у {opp}</>} и стал первым носителем пояса.
+          </>
+        );
+      } else if (mark.kind === "take") {
+        const days = p ? reignDays(p) : 0;
+        const n = p?.defenses.length ?? 0;
+        head = "пояс сменил хозяина";
+        text = (
+          <>
+            <PlayerLink p={r.holder} /> обыграл носителя {opp} и забрал пояс лиги.
+            {p && ` ${holderName(p.holder)} держал пояс ${days} ${plural(days, W_DAY)} и ${n ? `отбился ${n} ${plural(n, W_TIME)}` : "ни разу не отбился"}.`}{" "}
+            {newcomerText(r)}
+          </>
+        );
+      } else {
+        head = "ничей пояс подобран";
+        text = (
+          <>
+            <PlayerLink p={r.holder} /> обыграл {opp} и подобрал ничей пояс лиги.
+            {p?.end === "drop" &&
+              p.to &&
+              ` Пояс был ничей с ${dayMonth(p.to)}: ${holderName(p.holder)} ${belt.rustLimit} ${plural(belt.rustLimit, W_GAMEDAY)} подряд не выходил на матч.`}{" "}
+            {newcomerText(r)}
+          </>
+        );
+      }
+      break;
+    }
+    case "defense": {
+      const r = mark.reign;
+      const d = r.defenses[mark.n - 1];
+      head = `защита №${mark.n}`;
+      art = { name: holderName(r.holder), stars: mark.n };
+      text = (
+        <>
+          <PlayerLink p={r.holder} /> отбился от <PlayerLink p={d.opponent} /> и сохранил пояс — это его {mark.n}-я защита подряд. Пояс у него с{" "}
+          {dayMonth(r.from)}.
+        </>
+      );
+      break;
+    }
+    case "draw":
+      head = "пояс остался у носителя";
+      art = { name: holderName(mark.reign.holder), stars: mark.stars };
+      text = (
+        <>
+          Ничья: пояс остался у <PlayerLink p={mark.reign.holder} />, а ржавчина сошла — счёт игровых дней без матча начался заново.
+        </>
+      );
+      break;
+    case "defend":
+      head = "матч за пояс";
+      art = { name: holderName(mark.holder), stars: mark.defenses, rust: mark.rust / belt.rustLimit };
+      text = (
+        <>
+          <PlayerLink p={mark.holder} /> защищает пояс лиги
+          {mark.defenses ? ` — за ним уже ${mark.defenses} ${plural(mark.defenses, W_DEF)} подряд` : " — это его первая защита"}. Победит {other} —
+          пояс перейдёт к нему, ничья оставит пояс у носителя.
+        </>
+      );
+      break;
+    case "vacant":
+      head = "матч за ничей пояс";
+      art = { vacant: true, stars: 0 };
+      text = !belt.reigns.length
+        ? "Пояс ещё не разыгран: победитель этого матча станет первым носителем."
+        : mark.leaders.length
+          ? "Пояс ничей, и его разыгрывает ближайший обычный матч лидера таблицы сезона — этот. Победитель заберёт пояс, ничья его не разыграет."
+          : "Пояс ничей, и в сезоне ещё не было матчей: этот матч его разыграет. Победитель заберёт пояс, ничья — нет.";
+      break;
+  }
+
+  return (
+    <div className="sf-m-block bl-match">
+      <div className="bl-match-head">
+        <div>
+          <p className="sf-eyebrow">Пояс лиги</p>
+          <h2 className="sf-h-mid">
+            {head}
+            <span className="sf-dot">.</span>
+          </h2>
+        </div>
+        <Link className="sf-more" href="/belt">
+          Правила и история <Arrow />
+        </Link>
+      </div>
+      <div className="bl-match-grid">
+        <figure className="bl-prof-art">
+          <BeltArt id={`match-${id}`} name={art.name} stars={art.stars} rust={art.rust ?? 0} vacant={art.vacant} />
+        </figure>
+        <p className="bl-match-text">{text}</p>
+      </div>
+    </div>
   );
 }

@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { getCurrentMatch, getTournaments } from "@/lib/queries";
+import { getBelt, getCurrentMatch, getTournaments } from "@/lib/queries";
 import { isShowMatch, matchSides, roundsLabel, stageLabel, totalScore } from "@/lib/match";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { Panel } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/pill";
 import { SectionHead } from "@/components/ui/section-head";
 import { NewMatchForm } from "@/components/admin/match/new-match-form";
+import { BeltAdminCard } from "@/components/admin/belt-card";
 import type { Tournament } from "@/lib/types";
 
 export const metadata = { title: "Матчи — Кабинет" };
@@ -15,10 +16,11 @@ function byStartAsc(a: Tournament, b: Tournament): number {
 }
 
 export default async function AdminMatchesPage() {
-  const [{ current }, finished, upcoming] = await Promise.all([
+  const [{ current }, finished, upcoming, belt] = await Promise.all([
     getCurrentMatch(),
     getTournaments("finished"),
     getTournaments("upcoming"),
+    getBelt(),
   ]);
   const recent = finished.slice(0, 12);
   const planned = [...upcoming].sort(byStartAsc);
@@ -56,8 +58,10 @@ export default async function AdminMatchesPage() {
           );
         })()}
 
+      <BeltAdminCard belt={belt} />
+
       {current && <h3 className="font-display text-lg uppercase">Запланировать шоу-матч</h3>}
-      <NewMatchForm liveMatchId={current?.tournament.id} />
+      <NewMatchForm liveMatchId={current?.tournament.id} belt={belt} />
 
       {planned.length > 0 && (
         <section className="space-y-3">

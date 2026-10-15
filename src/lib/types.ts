@@ -909,6 +909,18 @@ export interface News {
   published: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Новость о поясе лиги, её написал сам сайт: без своей картинки у неё рисунок пояса. */
+  belt?: NewsBelt;
+}
+
+/** Рисунок пояса у новости о нём. */
+export interface NewsBelt {
+  /** Ник на поясе. */
+  name: string;
+  /** Звёзды защит. */
+  stars: number;
+  /** Пояс выпал и ничей. */
+  vacant?: boolean;
 }
 
 /** vote - карту выбрал чат голосованием, ведущий ставит её сам. */

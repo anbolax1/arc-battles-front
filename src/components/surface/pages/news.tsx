@@ -9,6 +9,7 @@ import { Arrow, ArrowBack } from "@/components/surface/ui";
 import { fullDate } from "@/components/surface/fmt";
 import { NewsBody } from "@/components/surface/news-body";
 import { newsExcerpt } from "@/components/surface/news-text";
+import { BeltArt } from "@/components/surface/belt-art";
 
 const PAGE = 12;
 
@@ -23,12 +24,18 @@ function newsWord(n: number): string {
 function NewsCard({ n, lead }: { n: News; lead: boolean }) {
   const text = newsExcerpt(n.body, lead ? 320 : 180);
   return (
-    <Link className={`nw-card ${lead ? "lead" : ""} ${n.imageUrl ? "" : "no-art"}`} href={`/news/${n.id}`}>
-      {n.imageUrl && (
+    <Link className={`nw-card ${lead ? "lead" : ""} ${n.imageUrl || n.belt ? "" : "no-art"}`} href={`/news/${n.id}`}>
+      {n.imageUrl ? (
         <span className="nw-card-art" aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element -- картинка из нашего хранилища медиа */}
           <img src={n.imageUrl} alt="" loading={lead ? undefined : "lazy"} />
         </span>
+      ) : (
+        n.belt && (
+          <span className="nw-card-art nw-belt" aria-hidden>
+            <BeltArt id={`news-${n.id}`} name={n.belt.name} stars={n.belt.stars} vacant={n.belt.vacant} />
+          </span>
+        )
       )}
       <span className="nw-card-body">
         <time dateTime={n.publishedAt ?? undefined}>{fullDate(n.publishedAt)}</time>
@@ -132,9 +139,15 @@ export function SurfaceNewsItem({ n }: { n: News }) {
       <section className="sf-sec sf-paper sf-grain nw-article-sec">
         <div className="sf-wrap">
           <article className="nw-article">
-            {n.imageUrl && (
+            {n.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- картинка из нашего хранилища медиа
               <img className="nw-article-img" src={n.imageUrl} alt="" />
+            ) : (
+              n.belt && (
+                <div className="nw-article-belt" aria-hidden>
+                  <BeltArt id={`news-${n.id}`} name={n.belt.name} stars={n.belt.stars} vacant={n.belt.vacant} />
+                </div>
+              )
             )}
             <NewsBody html={n.body} />
             <Link className="sf-more nw-article-back" href="/news">

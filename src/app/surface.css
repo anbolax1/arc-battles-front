@@ -1099,6 +1099,15 @@
   background: var(--sf-amber);
   color: var(--sf-ink);
 }
+/* матч разыгрывает пояс лиги: ярлык и строка у носителя */
+.sf-live-tag.belt {
+  background: transparent;
+  color: var(--sf-amber);
+  box-shadow: inset 0 0 0 1px var(--sf-amber);
+}
+.sf-night .sf-side-mmr.sf-live-belt {
+  color: var(--sf-amber);
+}
 .sf-live .sf-board {
   padding-block: 4px 22px;
 }

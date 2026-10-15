@@ -717,3 +717,40 @@ a.bl-name:hover {
   line-height: 1.45;
   color: var(--sf-ink-2);
 }
+
+/* ---------- страница матча ---------- */
+.bl-match-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+.bl-match-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 20px clamp(24px, 4vw, 48px);
+  align-items: center;
+  margin-top: 18px;
+}
+.bl-match-grid > * {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .bl-match-grid {
+    grid-template-columns: 1fr;
+  }
+  .bl-match-grid .bl-prof-art {
+    max-width: 460px;
+  }
+}
+.bl-match-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  max-width: 56ch;
+}
+.bl-match-text a {
+  color: inherit;
+  font-weight: 800;
+}

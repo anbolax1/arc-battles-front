@@ -61,6 +61,21 @@
 .nw-card:hover .nw-card-art img {
   transform: scale(1.03);
 }
+/* новость о поясе без своей картинки: рисунок пояса на ночном фоне */
+.nw-belt {
+  display: grid;
+  place-items: center;
+  padding: 6% 9%;
+  background: radial-gradient(closest-side, rgba(241, 170, 28, 0.2), rgba(241, 170, 28, 0)), var(--sf-night);
+}
+.nw-belt svg,
+.nw-article-belt svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.5));
+}
 .nw-card-body {
   display: grid;
   align-content: start;
@@ -150,6 +165,12 @@
 }
 .nw-article {
   max-width: 760px;
+}
+.nw-article-belt {
+  margin-bottom: clamp(24px, 3vw, 36px);
+  padding: clamp(20px, 4vw, 44px) clamp(24px, 8vw, 96px);
+  border-radius: 6px;
+  background: radial-gradient(closest-side, rgba(241, 170, 28, 0.2), rgba(241, 170, 28, 0)), var(--sf-night);
 }
 .nw-article-img {
   display: block;

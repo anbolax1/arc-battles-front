@@ -16,7 +16,8 @@ import {
   putShowPreview,
   useChosenPreview,
 } from "@/components/admin/match/show-preview";
-import type { MatchFormat, MatchPlayer, MatchState, PlayerType, Registration, User } from "@/lib/types";
+import type { Belt, MatchFormat, MatchPlayer, MatchState, PlayerType, Registration, User } from "@/lib/types";
+import { holderName } from "@/components/surface/belt-lib";
 
 const PLAYER_TYPES: Array<[PlayerType, string]> = [
   ["pvp", "PvP"],
@@ -39,12 +40,28 @@ const SIDE_HINTS = {
   coin: ["MMR и опыт равны — стороны решит жребий", "MMR и опыт равны — стороны решит жребий"],
 } as const;
 
+/** Что новый матч сделает с поясом лиги - подсказка организатору до создания матча. */
+function beltNote(belt: Belt | null, a: MatchPlayer, b: MatchPlayer, show: boolean): string {
+  if (!belt?.reigns.length) return "";
+  const ids = [a.id, b.id];
+  const holder = belt.holder && ids.includes(belt.holder.userId) ? belt.holder : null;
+  if (show) return holder ? "Шоу-матч пояс лиги не разыгрывает" : "";
+  if (holder) {
+    const other = holder.userId === a.id ? b : a;
+    return `Матч за пояс лиги: победит ${other.displayName || other.login} — заберёт пояс, ничья оставит его у ${holderName(holder)}`;
+  }
+  const leaders = belt.leaders ?? [];
+  if (!belt.holder && (!leaders.length || leaders.some((l) => ids.includes(l.userId)))) return "Матч разыграет ничейный пояс лиги: победитель заберёт его";
+  return "";
+}
+
 function SideCard({
   title,
   hint,
   player,
   tone,
   applicant,
+  beltBadge,
   onClear,
   children,
 }: {
@@ -53,6 +70,8 @@ function SideCard({
   player: MatchPlayer | null;
   tone: "primary" | "cyan";
   applicant: boolean;
+  /** Игрок держит пояс лиги. */
+  beltBadge?: string;
   onClear: () => void;
   children: React.ReactNode;
 }) {
@@ -81,6 +100,7 @@ function SideCard({
             <div className="flex flex-wrap gap-1.5">
               {applicant && <span className="badge badge-org"><span>Из заявки</span></span>}
               {player.isPlaceholder && <span className="badge badge-official"><span>Без входа</span></span>}
+              {beltBadge && <span className="badge badge-champ"><span>{beltBadge}</span></span>}
             </div>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
@@ -103,7 +123,7 @@ function defaultShowTime(): string {
 }
 
 /** Новый матч: стороны, тип игроков и ×2 - и сразу к пикам-банам; шоу-матч - в расписание на дату. */
-export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
+export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: string; belt?: Belt | null }) {
   const router = useRouter();
   const [format, setFormat] = React.useState<MatchFormat>(liveMatchId ? "show" : "match");
   const [startsAt, setStartsAt] = React.useState(defaultShowTime);
@@ -212,6 +232,10 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
   };
 
   const freePool = pool.filter((r) => r.userId !== first?.id && r.userId !== second?.id);
+  const holder = belt?.holder ? players.find((p) => p.id === belt.holder?.userId) : undefined;
+  const holderBadge = belt?.holder ? `Носитель пояса${belt.defenses ? ` · ★${belt.defenses}` : ""}` : "";
+  const badgeFor = (p: MatchPlayer | null) => (p && p.id === belt?.holder?.userId ? holderBadge : undefined);
+  const note = sideA && sideB ? beltNote(belt, sideA, sideB, show) : "";
 
   return (
     <div className="space-y-4">
@@ -337,6 +361,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           player={sideA}
           tone="primary"
           applicant={!!sideA && applicants.has(sideA.id)}
+          beltBadge={badgeFor(sideA)}
           onClear={() => (sideA === first ? setFirst(null) : setSecond(null))}
         >
           <PlayerPicker
@@ -355,6 +380,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           player={sideB}
           tone="cyan"
           applicant={!!sideB && applicants.has(sideB.id)}
+          beltBadge={badgeFor(sideB)}
           onClear={() => (sideB === second ? setSecond(null) : setFirst(null))}
         >
           <PlayerPicker
@@ -368,6 +394,19 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
           />
         </SideCard>
       </div>
+
+      {!show && belt && holder && (!first || !second) && first?.id !== holder.id && second?.id !== holder.id && (
+        <Panel className="flex flex-wrap items-center gap-2 p-4">
+          <span className="field-label mr-1">Пояс</span>
+          <button type="button" className="chip transition hover:brightness-125" onClick={() => put(holder)}>
+            <span>Носитель: {holder.displayName || holder.login}</span>
+            <span className="font-normal text-muted">
+              ржавчина {belt.rust} из {belt.rustLimit}
+            </span>
+          </button>
+          <span className="text-xs text-muted">нажмите — носитель встанет в свободный слот</span>
+        </Panel>
+      )}
 
       {freePool.length > 0 && (!first || !second) && (
         <Panel className="flex flex-wrap items-center gap-2 p-4">
@@ -401,6 +440,7 @@ export function NewMatchForm({ liveMatchId = "" }: { liveMatchId?: string }) {
               ? "Появится в расписании; начать его можно из пульта, когда придёт время"
               : "Название соберётся из ников, матч сразу станет текущим"}
           </div>
+          {note && <div className="text-xs text-gold">{note}</div>}
           {roundCount === 3 && (
             <div className="text-xs text-muted">
               Пики-баны на три раунда: бан A → бан B → пик A → пик B, карту 3-го раунда выбирает чат

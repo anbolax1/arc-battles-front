@@ -3,11 +3,12 @@ import type { CSSProperties } from "react";
 import { TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, YOUTUBE_URL } from "@/lib/links";
 import { hasScore, isShowMatch, mapImage, matchSides, roundScore, roundsLabel, stageLabel, totalScore } from "@/lib/match";
-import type { MatchState, Matchup, MatchupSide } from "@/lib/types";
+import type { Belt, MatchState, Matchup, MatchupSide } from "@/lib/types";
 import { CountUp } from "@/components/surface/motion";
 import { RoundCard } from "@/components/surface/round-card";
 import { roundTasks, VetoChips } from "@/components/surface/last-match";
 import { Odds } from "@/components/surface/home-parts";
+import { beltMarkLabel, matchBelt } from "@/components/surface/belt-lib";
 
 /** Где сторона в сезоне и что стоит на кону; части переносятся целиком. */
 function Standing({ s }: { s?: MatchupSide }) {
@@ -26,7 +27,7 @@ function Standing({ s }: { s?: MatchupSide }) {
 }
 
 /** Матч, который идёт прямо сейчас: обычный или шоу-матч, независимо от анонсов. */
-export function LiveMatch({ st, matchup, organizer }: { st: MatchState; matchup: Matchup | null; organizer: boolean }) {
+export function LiveMatch({ st, matchup, organizer, belt = null }: { st: MatchState; matchup: Matchup | null; organizer: boolean; belt?: Belt | null }) {
   const t = st.tournament;
   const sides = matchSides(st);
   const [a, b] = sides;
@@ -40,6 +41,9 @@ export function LiveMatch({ st, matchup, organizer }: { st: MatchState; matchup:
   const ib = b ? info.get(b.id) : undefined;
   const chance = ia?.winChance != null && ib?.winChance != null ? [ia.winChance, ib.winChance] : null;
   const show = isShowMatch(t);
+  const mark = matchBelt(belt, t, sides.flatMap((p) => (p?.userId ? [p.userId] : [])));
+  const holder = mark?.kind === "defend" ? mark.holder.userId : "";
+  const beltLine = mark?.kind === "defend" ? `носитель пояса${mark.defenses ? ` · ★${mark.defenses}` : ""}` : "";
   const poster = show && t.previewUrl ? t.previewUrl : "";
   const vetoNow = st.stage === "veto" && st.veto.length > 0;
   const withMaps = !vetoNow && rounds.some((r) => r.map);
@@ -55,6 +59,7 @@ export function LiveMatch({ st, matchup, organizer }: { st: MatchState; matchup:
             <div className="sf-live-head">
               <span className="sf-live-pill">В эфире</span>
               {show && <span className="sf-live-tag">Шоу-матч</span>}
+              {mark && <span className="sf-live-tag belt">{beltMarkLabel(mark)}</span>}
               <p className="sf-eyebrow">{eyebrow}</p>
             </div>
             <div className="sf-board">
@@ -62,6 +67,7 @@ export function LiveMatch({ st, matchup, organizer }: { st: MatchState; matchup:
                 <span className="sf-corner" style={{ background: "var(--sf-a)" }} />
                 <span className="sf-side-name">{a?.name ?? "—"}</span>
                 <Standing s={ia} />
+                {holder && a?.userId === holder && <span className="sf-side-mmr sf-live-belt">{beltLine}</span>}
               </div>
               <div className="sf-score" aria-label={scored ? `Счёт ${sa}:${sb}` : "Счёт пока не открыт"}>
                 {scored ? (
@@ -82,6 +88,7 @@ export function LiveMatch({ st, matchup, organizer }: { st: MatchState; matchup:
                 <span className="sf-corner" style={{ background: "var(--sf-b)" }} />
                 <span className="sf-side-name">{b?.name ?? "—"}</span>
                 <Standing s={ib} />
+                {holder && b?.userId === holder && <span className="sf-side-mmr sf-live-belt">{beltLine}</span>}
               </div>
             </div>
             {vetoNow && <VetoChips veto={st.veto} />}

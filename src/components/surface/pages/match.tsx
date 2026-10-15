@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, YOUTUBE_URL } from "@/lib/links";
-import { getHighlights, getMaps, getMatch, getMatchup } from "@/lib/queries";
+import { getBelt, getHighlights, getMaps, getMatch, getMatchup } from "@/lib/queries";
 import {
   breakdownParts,
   CROSS_POINTS,
@@ -32,6 +32,8 @@ import { SurfaceHighlights } from "@/components/surface/highlights";
 import { MatchVeto } from "@/components/surface/match-veto";
 import { MatchPatches } from "@/components/surface/match-patches";
 import { fullDate, hhmm } from "@/components/surface/fmt";
+import { beltMarkLabel, matchBelt } from "@/components/surface/belt-lib";
+import { BeltMatch } from "@/components/surface/belt-parts";
 
 const SIDE_COLOR = ["var(--sf-a)", "var(--sf-b)"] as const;
 
@@ -55,6 +57,7 @@ function BoardSide({
   solo,
   finished,
   winner,
+  beltLine,
 }: {
   p: Participant | null;
   i: number;
@@ -63,6 +66,8 @@ function BoardSide({
   solo: boolean;
   finished: boolean;
   winner: boolean;
+  /** Носитель пояса в идущем матче. */
+  beltLine?: string;
 }) {
   const players = side?.players ?? [];
   const href = sideHref(side, solo);
@@ -115,6 +120,7 @@ function BoardSide({
           ) : null}
         </>
       ) : null}
+      {beltLine && <span className="sf-side-line belt">{beltLine}</span>}
       {winner && <span className="sf-stamp win">Победа</span>}
     </div>
   );
@@ -335,7 +341,12 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const st = await getMatch(id);
   if (!st) notFound();
   const t = st.tournament;
-  const [{ items: highlights }, matchup, maps] = await Promise.all([getHighlights({ tournamentId: id, limit: 4 }), getMatchup(id), getMaps()]);
+  const [{ items: highlights }, matchup, maps, beltData] = await Promise.all([
+    getHighlights({ tournamentId: id, limit: 4 }),
+    getMatchup(id),
+    getMaps(),
+    getBelt(),
+  ]);
 
   const sides = matchSides(st);
   const [a, b] = sides;
@@ -364,7 +375,12 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const showRounds = (finished || live) && rounds.length > 0;
   const showElo = finished && a && b && ca && cb;
   const patches = st.patches ?? [];
-  const paper = st.veto.length > 0 || showRounds || showElo || hasH2h || patches.length > 0;
+  const belt = matchBelt(beltData, t, sides.flatMap((p) => (p?.userId ? [p.userId] : [])));
+  const holderId = belt?.kind === "defend" ? belt.holder.userId : "";
+  const beltLine = belt?.kind === "defend" ? `носитель пояса${belt.defenses ? ` · ★${belt.defenses}` : ""}` : undefined;
+  const beltOther = sides.find((p) => p && p.userId !== holderId)?.name ?? "соперник";
+  const beltBlock = belt && beltData ? <BeltMatch mark={belt} belt={beltData} id={id} other={beltOther} /> : null;
+  const paper = st.veto.length > 0 || showRounds || showElo || hasH2h || patches.length > 0 || !!beltBlock;
 
   const streams = (
     <>
@@ -395,6 +411,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
                 {upcoming && <span className="hot">Скоро</span>}
                 {finished && <span className="done">Сыгран</span>}
                 {show && <span className="hot">Шоу-матч</span>}
+                {belt && <span className="belt">{beltMarkLabel(belt)}</span>}
                 <span>{t.mode}</span>
                 <span>{roundsLabel(rounds.length || t.totalRounds)}</span>
                 {mult > 1 && <span>рейтинг ×{mult}</span>}
@@ -433,7 +450,16 @@ export async function SurfaceMatch({ id }: { id: string }) {
           </div>
 
           <div className="sf-mh-board">
-            <BoardSide p={a} i={0} side={ia} change={ca} solo={solo} finished={finished} winner={!!a && t.winnerParticipantId === a.id} />
+            <BoardSide
+              p={a}
+              i={0}
+              side={ia}
+              change={ca}
+              solo={solo}
+              finished={finished}
+              winner={!!a && t.winnerParticipantId === a.id}
+              beltLine={a?.userId && a.userId === holderId ? beltLine : undefined}
+            />
             {played ? (
               <div className="sf-score" aria-label={`Счёт матча ${sa}:${sb}`}>
                 <b className={sa >= sb ? "w" : "l"}>
@@ -447,7 +473,16 @@ export async function SurfaceMatch({ id }: { id: string }) {
             ) : (
               <div className="sf-score vs">VS</div>
             )}
-            <BoardSide p={b} i={1} side={ib} change={cb} solo={solo} finished={finished} winner={!!b && t.winnerParticipantId === b.id} />
+            <BoardSide
+              p={b}
+              i={1}
+              side={ib}
+              change={cb}
+              solo={solo}
+              finished={finished}
+              winner={!!b && t.winnerParticipantId === b.id}
+              beltLine={b?.userId && b.userId === holderId ? beltLine : undefined}
+            />
           </div>
 
           {(chance || t.prize) && (
@@ -483,9 +518,11 @@ export async function SurfaceMatch({ id }: { id: string }) {
       {paper && (
         <section className="sf-sec sf-paper sf-grain">
           <div className="sf-wrap">
+            {live && beltBlock}
             {st.veto.length > 0 && <MatchVeto maps={allMaps} veto={st.veto} nameA={a?.name ?? "A"} nameB={b?.name ?? "B"} />}
             {showRounds && <Rounds st={st} rounds={rounds} sides={sides} finished={finished} />}
             {showElo && <EloBlock a={a} b={b} ca={ca} cb={cb} k={matchup?.season?.kFactor} mult={mult} />}
+            {!live && beltBlock}
             {patches.length > 0 && <MatchPatches patches={patches} sides={sides} live={live} />}
             {hasH2h && h2h && <HeadToHead h={h2h} a={a?.name ?? "A"} b={b?.name ?? "B"} />}
           </div>
