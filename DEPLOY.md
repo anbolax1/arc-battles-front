@@ -1,6 +1,6 @@
 # Деплой фронтенда (обновление)
 
-Прод: `brouhub.ru` и `goarc.ru` → Next.js (standalone) на VPS `155.212.133.147`, порт `3000`, под
+Прод: `brouhub.ru` и `goarc.pro` → Next.js (standalone) на VPS `155.212.133.147`, порт `3000`, под
 пользователем `admin2` (systemd --user сервис `respect-front`). За nginx + Let's Encrypt;
 `/api` на обоих доменах nginx передаёт бэкенду (:8080).
 
@@ -71,7 +71,7 @@ ssh admin2@$VPS 'rm -rf ~/front_old'
 ## Что вшивается при сборке (build-time)
 
 - `NEXT_PUBLIC_API_BASE=/api` — из `.env.production` (коммитится, значение публичное). API на том
-  же домене, что и страница, — так вход работает и на brouhub.ru, и на goarc.ru.
+  же домене, что и страница, — так вход работает и на brouhub.ru, и на goarc.pro.
   Абсолютный адрес сюда не вписывать: сайт на втором домене останется без данных и входа.
 - Рантайм-переменные (`PORT`, `HOSTNAME`, `INTERNAL_API_URL`) — в systemd-юните на сервере, не в сборке.
 
