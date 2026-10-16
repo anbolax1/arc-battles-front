@@ -237,7 +237,18 @@ export function UsersManager({
                         </td>
                         <td className="px-4 py-3 tnum text-muted">{u.embarkId || "—"}</td>
                         <td className="px-4 py-3 text-muted">{u.email || "—"}</td>
-                        <td className="px-4 py-3 text-muted">{u.createdAt ? fmtDate(u.createdAt) : "—"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-muted">
+                          {/* У заглушки дата создания - это дата импорта, а не регистрации игрока */}
+                          {u.isPlaceholder ? (
+                            <span className="text-gold" title="Аккаунт создан автоматически: игрок ещё не зарегистрировался и не задал пароль по ссылке">
+                              не зарегистрирован
+                            </span>
+                          ) : u.createdAt ? (
+                            fmtDate(u.createdAt)
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right tnum">{u.tournaments}</td>
                         <td className="px-4 py-3 text-right tnum">{u.wins}</td>
                       </tr>
