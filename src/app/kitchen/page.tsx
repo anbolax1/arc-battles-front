@@ -23,7 +23,7 @@ export default function Kitchen() {
       <header className="space-y-3">
         <p className="eyebrow">Дизайн-система · витрина компонентов</p>
         <h1 className="text-4xl sm:text-5xl">
-          БИТВА ЗА <span className="grad">РЕСПЕКТ</span>
+          <span className="grad">ЛИГА</span>
         </h1>
         <p className="max-w-2xl text-muted">
           Справочник по варианту B «Respect Arena»: токены, шрифты (Russo One +

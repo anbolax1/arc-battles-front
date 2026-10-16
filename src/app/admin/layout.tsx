@@ -6,7 +6,7 @@ import { roleAtLeast } from "@/lib/roles";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 
-export const metadata = { title: "Кабинет — Битва за Респект" };
+export const metadata = { title: "Кабинет — Лига" };
 
 /* Кабинет организатора — собственный shell (вне публичного (site)-хрома).
    Гейт по роли на сервере: не организатор → экран-заглушка. */

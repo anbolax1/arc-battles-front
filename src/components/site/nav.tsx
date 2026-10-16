@@ -79,12 +79,12 @@ export function SiteNav() {
   return (
     <header className="sticky top-0 z-[100] border-b border-[var(--border)] bg-[rgba(9,9,12,0.72)] backdrop-blur-md">
       <div className="mx-auto flex h-[68px] max-w-[1240px] items-center gap-6 px-6">
-        <Link href="/" className="flex items-center gap-3" aria-label="Битва за Респект — на главную">
+        <Link href="/" className="flex items-center gap-3" aria-label="Лига — на главную">
           <span className="logo-mark">
             <BoltIcon />
           </span>
           <span className="font-display text-lg uppercase leading-none tracking-wide">
-            Битва за <span className="text-primary-2">Респект</span>
+            Лига
           </span>
         </Link>
 

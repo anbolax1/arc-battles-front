@@ -8,7 +8,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceJoin } from "@/components/surface/pages/auth";
 
 export const metadata = {
-  title: "Записаться — Битва за Респект",
+  title: "Записаться — Лига",
   description: "Войди, укажи Embark ID в профиле и оставь заявку в общий пул участников.",
 };
 

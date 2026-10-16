@@ -28,7 +28,7 @@ export function SiteFooter() {
               <BoltIcon />
             </span>
             <span className="font-display text-sm uppercase leading-none tracking-wide">
-              Битва за <span className="text-primary-2">Респект</span>
+              Лига
             </span>
           </Link>
           <nav aria-label="Разделы сайта" className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
@@ -43,7 +43,7 @@ export function SiteFooter() {
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
           <div className="max-w-xl space-y-1.5 text-xs leading-relaxed text-muted">
             <p>
-              © {new Date().getFullYear()} Битва за Респект. Турниры сообщества ARC Raiders в эфире у Дениса Блима.
+              © {new Date().getFullYear()} Лига. Турниры сообщества ARC Raiders в эфире у Дениса Блима.
               Не является официальным продуктом Embark Studios AB.
             </p>
             <p>

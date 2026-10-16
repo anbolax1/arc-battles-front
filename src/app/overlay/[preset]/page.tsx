@@ -5,7 +5,7 @@ import { OverlayCanvas } from "@/components/overlay/overlay-canvas";
    на каждый вид оверлея и они переключаются сценами, а не выбором в кабинете. */
 
 export const metadata = {
-  title: "Оверлей — Битва за Респект",
+  title: "Оверлей — Лига",
 };
 
 export default async function OverlayPresetPage({ params }: { params: Promise<{ preset: string }> }) {

@@ -20,7 +20,7 @@ export type PillStatus = "live" | "soon" | "announce" | "done" | "ok" | "no" | "
     эндпоинте /tournaments участников НЕТ → используется title. */
 export function tournamentName(t: Pick<Tournament, "title" | "participants">): string {
   if (t.participants && t.participants.length >= 2) return matchName(t.participants);
-  return t.title?.trim() || "Битва за Респект";
+  return t.title?.trim() || "Лига";
 }
 
 /** Статус турнира бэкенда (draft|upcoming|live|finished) → пилл + русская подпись. */

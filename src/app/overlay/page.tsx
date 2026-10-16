@@ -4,7 +4,7 @@ import { OverlayCanvas } from "@/components/overlay/overlay-canvas";
    обновляется по WebSocket /api/ws/overlay (с фолбэком на опрос GET). */
 
 export const metadata = {
-  title: "Оверлей — Битва за Респект",
+  title: "Оверлей — Лига",
 };
 
 export default function OverlayPage() {

@@ -97,9 +97,9 @@ export function SurfaceNav({ live }: { live: NavLive | null }) {
   return (
     <header className="sf-nav">
       <div className="sf-wrap sf-nav-in">
-        <Link href="/" className="sf-brand" aria-label="Битва за Респект, на главную">
+        <Link href="/" className="sf-brand" aria-label="Лига, на главную">
           <Mark />
-          <b>Битва за Респект</b>
+          <b>Лига</b>
         </Link>
         <nav className="sf-links" aria-label="Разделы">
           {links.map((l) => (

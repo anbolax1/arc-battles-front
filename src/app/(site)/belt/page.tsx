@@ -3,8 +3,8 @@ import { getDesign } from "@/lib/design";
 import { SurfaceBelt } from "@/components/surface/pages/belt";
 
 export const metadata = {
-  title: "Пояс лиги — Битва за Респект",
-  description: "Пояс лиги «Битвы за Респект»: правила, нынешний носитель и вся история с первого матча.",
+  title: "Пояс лиги — Лига",
+  description: "Пояс лиги: правила, нынешний носитель и вся история с первого матча.",
 };
 
 /** Пояс лиги есть только в новом дизайне. */

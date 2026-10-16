@@ -9,7 +9,7 @@ type Props = { params: Promise<{ n: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { n } = await params;
   return {
-    title: `Сезон ${n} в цифрах — Битва за Респект`,
+    title: `Сезон ${n} в цифрах — Лига`,
     description: `Итоги ${n} сезона по ARC Raiders: таблица, гонка за первое место, решающий матч, карты, задания и ноки.`,
   };
 }

@@ -6,7 +6,7 @@ import { SectionHead } from "@/components/ui/section-head";
 import { getDesign } from "@/lib/design";
 import { SurfaceClaim } from "@/components/surface/pages/auth";
 
-export const metadata = { title: "Активация аккаунта — Битва за Респект" };
+export const metadata = { title: "Активация аккаунта — Лига" };
 
 export default async function ClaimPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

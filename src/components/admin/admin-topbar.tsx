@@ -29,7 +29,7 @@ export function AdminTopbar() {
             <BoltIcon />
           </span>
           <span className="font-display text-base uppercase leading-none">
-            Битва за Респект <span className="text-primary-2">· Кабинет</span>
+            Лига <span className="text-primary-2">· Кабинет</span>
           </span>
         </Link>
         <div className="ml-auto flex items-center gap-3">

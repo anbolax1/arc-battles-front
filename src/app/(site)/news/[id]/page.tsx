@@ -10,8 +10,8 @@ type Props = { params: Promise<{ id: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const n = await getNewsItem(id);
-  if (!n) return { title: "Новость не найдена — Битва за Респект" };
-  return { title: `${n.title} — Битва за Респект`, description: newsExcerpt(n.body, 160) || undefined };
+  if (!n) return { title: "Новость не найдена — Лига" };
+  return { title: `${n.title} — Лига`, description: newsExcerpt(n.body, 160) || undefined };
 }
 
 /** Страница новости есть только в новом дизайне. */

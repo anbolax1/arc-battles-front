@@ -7,7 +7,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceRules } from "@/components/surface/pages/rules";
 
 export const metadata = {
-  title: "Правила — Битва за Респект",
+  title: "Правила — Лига",
   description: "Формат матчей, пики-баны карт, задания, протоколы, легендарные задания и MMR.",
 };
 

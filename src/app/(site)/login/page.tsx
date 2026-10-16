@@ -6,7 +6,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceLogin } from "@/components/surface/pages/auth";
 
 export const metadata = {
-  title: "Вход — Битва за Респект",
+  title: "Вход — Лига",
   description: "Вход по логину и паролю.",
 };
 

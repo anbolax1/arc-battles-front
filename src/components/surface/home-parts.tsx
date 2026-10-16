@@ -287,7 +287,7 @@ function GeneratedPoster({ t }: { t: Tournament }) {
       <Stripes shape="poster" />
       <div className="sf-p-dots" />
       <div className="sf-p-top">
-        <span>Битва за Респект</span>
+        <span>Лига</span>
         <span>Шоу-матч</span>
       </div>
       <div className="sf-p-names">

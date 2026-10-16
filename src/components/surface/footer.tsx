@@ -38,7 +38,7 @@ export function SurfaceFooter({ season }: { season?: FooterSeason | null }) {
         <div className="sf-foot-top">
           <Link href="/" className="sf-brand">
             <Mark />
-            <b>Битва за Респект</b>
+            <b>Лига</b>
           </Link>
           <nav className="sf-foot-links" aria-label="Разделы сайта">
             {links(season).map((l) => (
@@ -57,7 +57,7 @@ export function SurfaceFooter({ season }: { season?: FooterSeason | null }) {
         </div>
         <div className="sf-foot-bottom">
           <p>
-            © {new Date().getFullYear()} Битва за Респект. Турниры сообщества ARC Raiders в эфире у Дениса Блима. Фанатский турнир, не является
+            © {new Date().getFullYear()} Лига. Турниры сообщества ARC Raiders в эфире у Дениса Блима. Фанатский турнир, не является
             официальным продуктом Embark Studios AB.
           </p>
           <p>
