@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { DEFAULT_LAYOUT } from "@/components/overlay/default-layout";
 import { OverlayEditor } from "@/components/admin/overlay-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import type { LiveState, OverlayLayout, OverlayPreset } from "@/lib/types";
+import type { LiveState, OverlayLayout, OverlayPreset, WidgetType } from "@/lib/types";
 
 const SAVE_DELAY = 500; // мс без правок до сохранения: перетаскивание и ползунки не шлют запрос на каждый шаг
 const RETRY_DELAY = 3000; // мс до повтора, если сервер не ответил
@@ -21,7 +21,7 @@ const SAVE_TEXT: Record<SaveState, string> = {
   error: "Не сохранилось, повторяю…",
 };
 
-/** Пример матча для превью, пока матча нет: без данных виджеты пустые, и их не расставить.
+/** Пример матча для превью: без данных виджеты пустые, и их не расставить.
     Имена условные, чтобы пример не приняли за настоящий матч и таблицу. */
 const SAMPLE_STATE: LiveState = {
   tournamentName: "Пример матча",
@@ -56,6 +56,37 @@ const SAMPLE_STATE: LiveState = {
     { mapCode: "buried_city", mapName: "Погребённый город", action: "pick", side: "A", sideName: "Игрок A", round: 2 },
   ],
 };
+
+/** Данные, которых в идущем матче может не быть: задания и протоколы сервер выдаёт с началом раунда,
+    основные задания есть только в старом пульте. */
+const SAMPLE_PARTS: { type: WidgetType; missing: string; has: (s: LiveState) => boolean; part: Partial<LiveState> }[] = [
+  { type: "bonusTasks", missing: "заданий", has: (s) => !!s.bonusTasks?.length, part: { bonusTasks: SAMPLE_STATE.bonusTasks } },
+  { type: "roundTasks", missing: "основных заданий", has: (s) => !!s.roundTasks?.length, part: { roundTasks: SAMPLE_STATE.roundTasks } },
+  {
+    type: "complications",
+    missing: "протоколов",
+    has: (s) => !!s.complications?.length || !!s.complication,
+    part: { complications: SAMPLE_STATE.complications },
+  },
+  { type: "veto", missing: "пиков-банов", has: (s) => !!s.veto?.length, part: { veto: SAMPLE_STATE.veto } },
+];
+
+/** Что показать в превью: настоящий матч, а чего в нём ещё нет - из примера, иначе виджет не расставить. */
+function previewOf(state: LiveState | null, layout: OverlayLayout): { data: LiveState; note?: string } {
+  if (!state) {
+    return {
+      data: SAMPLE_STATE,
+      note: "Матча сейчас нет: в превью пример с условными игроками. Во время матча здесь и в OBS будут его настоящие данные.",
+    };
+  }
+  const gaps = SAMPLE_PARTS.filter((p) => !p.has(state));
+  const data = gaps.reduce<LiveState>((s, p) => ({ ...s, ...p.part }), state);
+  const shown = new Set(layout.widgets.filter((w) => w.visible).map((w) => w.type));
+  const names = gaps.filter((p) => shown.has(p.type)).map((p) => p.missing);
+  if (!names.length) return { data };
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} и ${names[names.length - 1]}` : names[0];
+  return { data, note: `В матче пока нет ${list}: в превью они для примера. В OBS такие виджеты не видны, пока данных нет.` };
+}
 
 /** Раскладка сцены для редактора: без отметки о выбранной сцене и с обязательными полями. */
 function sceneLayout(raw: unknown): OverlayLayout {
@@ -326,7 +357,7 @@ function SceneName({ name, onSave }: { name: string; onSave: (name: string) => v
 }
 
 /** Редактор сцен оверлея: сцена здесь = сцена в OBS, у каждой своя ссылка /overlay/<адрес>.
-    state - данные матча для превью; без матча показывается пример. */
+    state - данные матча для превью; чего в нём нет, показывается из примера. */
 export function OverlaySceneEditor({
   state,
   onClose,
@@ -431,15 +462,16 @@ export function OverlaySceneEditor({
     );
   }
 
+  const preview = previewOf(state, sc.layout);
   return (
     <OverlayEditor
-      state={{ ...(state ?? SAMPLE_STATE), layout: sc.layout }}
+      state={{ ...preview.data, layout: sc.layout }}
       layout={sc.layout}
       onChange={sc.change}
       onClose={onClose}
       history={sc.history}
       top={bar}
-      note={state ? undefined : "Матча сейчас нет: в превью пример с условными игроками. Во время матча здесь и в OBS будут его настоящие данные."}
+      note={preview.note}
     />
   );
 }
