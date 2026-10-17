@@ -599,6 +599,8 @@ export interface WidgetInstance {
   showRoundScore?: boolean;
   /** Контракты: показывать и контракты противника (что можно «украсть» за +1). */
   showOpponentContracts?: boolean;
+  /** Задания: плашка «карта» у задания на карту раунда. */
+  showTags?: boolean;
   /** Табло: показывать MMR сторон. */
   showMmr?: boolean;
   /** Табло: показывать места сторон в таблице сезона. */

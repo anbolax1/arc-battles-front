@@ -29,7 +29,7 @@ export function BonusTasksWidget({ state, instance }: WidgetProps) {
                   {b.opponent && (
                     <span className="flex-none rounded bg-[var(--surface-2)] px-1 text-[0.6rem] uppercase tracking-wide text-accent">противник</span>
                   )}
-                  {b.category === "map" && (
+                  {instance.showTags && b.category === "map" && (
                     <span className="flex-none rounded bg-[var(--surface-2)] px-1 text-[0.6rem] uppercase tracking-wide text-primary-2">карта</span>
                   )}
                   <span className={`[overflow-wrap:anywhere] ${done ? "font-semibold text-primary-2" : ""}`}>{b.text}</span>
