@@ -288,6 +288,7 @@ export function MatchConsole({
           onPrize={(prize) => run(`/tournaments/${id}/prize`, { prize })}
           onPreview={(src) => step(() => putShowPreview(id, src))}
           onPreviewRemove={() => step(() => api.del<MatchState>(`/tournaments/${id}/preview`))}
+          onFirst={(pid) => run(`/tournaments/${id}/first`, { participantId: pid })}
         />
       )}
 
@@ -301,6 +302,7 @@ export function MatchConsole({
             onPick={(code) => run(`/tournaments/${id}/veto`, { mapCode: code })}
             onUndo={() => run(`/tournaments/${id}/veto/undo`)}
             onManual={(codes) => run(`/tournaments/${id}/maps`, { maps: codes })}
+            onFirst={(pid) => run(`/tournaments/${id}/first`, { participantId: pid })}
             onStart={() => run(`/tournaments/${id}/rounds/next`)}
           />
           <div className="flex justify-end">

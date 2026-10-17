@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
+import { FirstSide } from "@/components/admin/match/first-side";
 import { mapImage } from "@/lib/match";
 import type { MapInfo, MatchState, Participant, VetoStep } from "@/lib/types";
 
@@ -20,6 +21,7 @@ export function VetoBoard({
   onPick,
   onUndo,
   onManual,
+  onFirst,
   onStart,
 }: {
   st: MatchState;
@@ -29,6 +31,7 @@ export function VetoBoard({
   onPick: (code: string) => void;
   onUndo: () => void;
   onManual: (codes: string[]) => void;
+  onFirst: (participantId: string) => void;
   onStart: () => void;
 }) {
   const [manual, setManual] = React.useState<string[] | null>(null);
@@ -116,6 +119,7 @@ export function VetoBoard({
                 ? `Карту ${cur.round}-го раунда выбирает чат голосованием: нажмите ту, что победила.`
                 : `Выбирает карту ${cur?.round}-го раунда.${rest ? ` Последняя оставшаяся карта уйдёт в ${rest.round}-й раунд.` : ""}`}
         </p>
+        {!(ready && turn === 0) && <FirstSide sides={sides} busy={busy} moved={turn > 0} onPick={onFirst} />}
       </Panel>
 
       {!(ready && turn === 0) && (

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
 import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
+import { FirstSide } from "@/components/admin/match/first-side";
 import { MAX_PRIZE, PreviewImage, PreviewPicker, type PreviewSource } from "@/components/admin/match/show-preview";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { roundsLabel } from "@/lib/match";
@@ -27,6 +28,7 @@ export function ScheduledPanel({
   onPrize,
   onPreview,
   onPreviewRemove,
+  onFirst,
 }: {
   st: MatchState;
   sides: [Participant | null, Participant | null];
@@ -37,6 +39,7 @@ export function ScheduledPanel({
   onPrize: (prize: string) => Promise<MatchState | null>;
   onPreview: (src: PreviewSource) => Promise<MatchState | null>;
   onPreviewRemove: () => void;
+  onFirst: (participantId: string) => void;
 }) {
   const t = st.tournament;
   const [editing, setEditing] = React.useState(false);
@@ -132,6 +135,7 @@ export function ScheduledPanel({
               </div>
             ))}
           </div>
+          <FirstSide sides={sides} busy={busy} onPick={onFirst} />
 
           <div className="space-y-1.5">
             <span className="field-label">Приз</span>
