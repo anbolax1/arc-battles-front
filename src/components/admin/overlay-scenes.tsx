@@ -21,7 +21,8 @@ const SAVE_TEXT: Record<SaveState, string> = {
   error: "Не сохранилось, повторяю…",
 };
 
-/** Пример матча для превью, пока матча нет: без данных виджеты пустые, и их не расставить. */
+/** Пример матча для превью, пока матча нет: без данных виджеты пустые, и их не расставить.
+    Имена условные, чтобы пример не приняли за настоящий матч и таблицу. */
 const SAMPLE_STATE: LiveState = {
   tournamentName: "Пример матча",
   status: "live",
@@ -30,13 +31,13 @@ const SAMPLE_STATE: LiveState = {
   currentRound: 1,
   totalRounds: 2,
   currentParticipantId: "sample-a",
-  currentName: "EDEN",
+  currentName: "Игрок A",
   currentPoints: 5,
   currentMap: "Поле битвы у Дамбы",
   tasks: [],
   standings: [
-    { participantId: "sample-a", name: "EDEN", points: 5, roundPoints: 2, mmr: 1047, place: 2 },
-    { participantId: "sample-b", name: "MAKAR", points: 3, roundPoints: 1, mmr: 1012, place: 4 },
+    { participantId: "sample-a", name: "Игрок A", points: 5, roundPoints: 2, mmr: 1047, place: 2 },
+    { participantId: "sample-b", name: "Игрок B", points: 3, roundPoints: 1, mmr: 1012, place: 4 },
   ],
   roundTasks: [
     { id: "sample-r1", text: "Эвакуироваться с добычей", points: 3, completed: true },
@@ -49,10 +50,10 @@ const SAMPLE_STATE: LiveState = {
   ],
   complications: [{ text: "S.O.S: Первые 3 минуты рейда: Вызовите Эвакуацию.", penalty: 0, valueType: "fixed", reward: 1 }],
   veto: [
-    { mapCode: "spaceport", mapName: "Космопорт", action: "ban", side: "A", sideName: "EDEN" },
-    { mapCode: "blue_gate", mapName: "Синие ворота", action: "ban", side: "B", sideName: "MAKAR" },
-    { mapCode: "dam", mapName: "Поле битвы у Дамбы", action: "pick", side: "B", sideName: "MAKAR", round: 1 },
-    { mapCode: "buried_city", mapName: "Погребённый город", action: "pick", side: "A", sideName: "EDEN", round: 2 },
+    { mapCode: "spaceport", mapName: "Космопорт", action: "ban", side: "A", sideName: "Игрок A" },
+    { mapCode: "blue_gate", mapName: "Синие ворота", action: "ban", side: "B", sideName: "Игрок B" },
+    { mapCode: "dam", mapName: "Поле битвы у Дамбы", action: "pick", side: "B", sideName: "Игрок B", round: 1 },
+    { mapCode: "buried_city", mapName: "Погребённый город", action: "pick", side: "A", sideName: "Игрок A", round: 2 },
   ],
 };
 
@@ -394,7 +395,7 @@ export function OverlaySceneEditor({
         </div>
       )}
       <p className="text-[0.7rem] leading-snug text-muted">
-        Выбранную сцену правите здесь, её же показывает общая ссылка /overlay.{state ? "" : " Матча сейчас нет: в превью пример данных."}
+        Выбранную сцену правите здесь, её же показывает общая ссылка /overlay.
       </p>
       {sc.error && <p className="text-xs text-danger">{sc.error}</p>}
       <ConfirmDialog
@@ -438,6 +439,7 @@ export function OverlaySceneEditor({
       onClose={onClose}
       history={sc.history}
       top={bar}
+      note={state ? undefined : "Матча сейчас нет: в превью пример с условными игроками. Во время матча здесь и в OBS будут его настоящие данные."}
     />
   );
 }

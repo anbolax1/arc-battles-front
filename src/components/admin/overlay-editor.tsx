@@ -169,6 +169,7 @@ export function OverlayEditor({
   onClose,
   history,
   top = null,
+  note,
 }: {
   state: LiveState;
   layout: OverlayLayout;
@@ -178,6 +179,8 @@ export function OverlayEditor({
   history?: { undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean };
   /** Блок над сценой (список сцен); на весь экран - над панелью справа. */
   top?: React.ReactNode;
+  /** Плашка поверх макета (например, что данные - пример); в OBS её нет. */
+  note?: string;
 }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
@@ -587,6 +590,10 @@ export function OverlayEditor({
         </div>
     </div>
   );
+  // Над макетом, а не на нём: на макете плашка закрыла бы виджеты.
+  const noteBar = note ? (
+    <div className="rounded-md border border-[rgba(34,211,238,0.4)] bg-[rgba(34,211,238,0.08)] px-3 py-1.5 text-xs font-semibold text-accent">{note}</div>
+  ) : null;
 
   const opts = sel ? showOptions(sel) : [];
   const posSummary = sel
@@ -626,6 +633,15 @@ export function OverlayEditor({
             </div>
           )}
         </div>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          aria-pressed={!sel}
+          onClick={() => setSelId("")}
+          title="настройки всей сцены: отступ края, фон, акцент"
+        >
+          <span>⚙ Сцена</span>
+        </button>
         {history && (
           <>
             <button type="button" className="btn btn-ghost btn-sm" disabled={!history.canUndo} onClick={history.undo} title="отменить (Ctrl+Z)" aria-label="отменить">
@@ -958,7 +974,10 @@ export function OverlayEditor({
           </button>
         </div>
         <div className="flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 items-center justify-center p-4">{stagePane}</div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
+            {noteBar}
+            <div className="flex min-h-0 flex-1 items-center justify-center">{stagePane}</div>
+          </div>
           <div className="w-[380px] flex-none space-y-3 overflow-y-auto border-l border-[var(--border)] p-4">
             {top}
             {controls}
@@ -971,6 +990,7 @@ export function OverlayEditor({
   return (
     <div className="space-y-3">
       {top}
+      {noteBar}
       {stagePane}
       {controls}
     </div>
