@@ -3,7 +3,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceNews } from "@/components/surface/pages/news";
 
 export const metadata = {
-  title: "Новости — Лига",
+  title: "Новости — GOARC.PRO",
   description: "Новости лиги по ARC Raiders: сезоны, шоу-матчи и анонсы эфиров.",
 };
 

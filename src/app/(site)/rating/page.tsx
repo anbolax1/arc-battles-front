@@ -5,7 +5,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceRating } from "@/components/surface/pages/rating";
 
 export const metadata = {
-  title: "Рейтинг — Лига",
+  title: "Рейтинг — GOARC.PRO",
   description: "Сезонная таблица лидеров 1×1 и 2×2 по ARC Raiders.",
 };
 

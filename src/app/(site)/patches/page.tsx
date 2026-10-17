@@ -3,7 +3,7 @@ import { getDesign } from "@/lib/design";
 import { SurfacePatches } from "@/components/surface/pages/patches";
 
 export const metadata = {
-  title: "Нашивки — Лига",
+  title: "Нашивки — GOARC.PRO",
   description: "Нашивки сезона: за что даются, насколько редкие и кто их носит.",
 };
 

@@ -6,7 +6,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceArchive } from "@/components/surface/pages/archive";
 
 export const metadata = {
-  title: "Результаты — Лига",
+  title: "Результаты — GOARC.PRO",
   description: "Сыгранные матчи турнира по ARC Raiders: результаты и записи эфиров.",
 };
 

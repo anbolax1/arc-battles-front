@@ -6,7 +6,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceRegister } from "@/components/surface/pages/auth";
 
 export const metadata = {
-  title: "Регистрация — Лига",
+  title: "Регистрация — GOARC.PRO",
   description: "Создай аккаунт по логину и паролю, чтобы записываться на турниры и загружать хайлайты.",
 };
 

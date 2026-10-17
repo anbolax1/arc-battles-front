@@ -3,7 +3,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceBelt } from "@/components/surface/pages/belt";
 
 export const metadata = {
-  title: "Пояс лиги — Лига",
+  title: "Пояс лиги — GOARC.PRO",
   description: "Пояс лиги: правила, нынешний носитель и вся история с первого матча.",
 };
 

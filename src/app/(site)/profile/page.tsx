@@ -15,7 +15,7 @@ import { getDesign } from "@/lib/design";
 import { SurfaceMyProfile } from "@/components/surface/pages/my-profile";
 
 export const metadata = {
-  title: "Профиль — Лига",
+  title: "Профиль — GOARC.PRO",
 };
 
 export default async function ProfilePage() {
