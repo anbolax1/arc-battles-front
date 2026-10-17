@@ -11,7 +11,6 @@ export interface FooterSeason {
 
 function links(season?: FooterSeason | null) {
   return [
-    { href: "/news", label: "Новости" },
     { href: "/schedule", label: "Матчи" },
     { href: "/archive", label: "Результаты" },
     { href: "/rating", label: "Рейтинг" },
