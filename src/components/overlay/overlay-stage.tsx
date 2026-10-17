@@ -6,6 +6,7 @@ import type { LiveState, OverlayLayout } from "@/lib/types";
 import { DEFAULT_LAYOUT } from "./default-layout";
 import { WIDGET_REGISTRY } from "./widgets/registry";
 import { PatchToasts } from "./patch-toasts";
+import { PreviewBgLayer, type PreviewBg } from "./preview-bg";
 
 export const STAGE_W = 1920;
 export const STAGE_H = 1080;
@@ -14,7 +15,8 @@ export const STAGE_H = 1080;
     для /overlay, превью в кабинете и редактора. */
 export function resolveLayout(state: LiveState, layout?: OverlayLayout | null): OverlayLayout {
   if (layout) return layout;
-  if (state.layout && state.layout.widgets?.length) return state.layout;
+  // Сцена без виджетов остаётся пустой: раскладку по умолчанию рисуем, только когда сцена не выбрана.
+  if (state.layout && Array.isArray(state.layout.widgets)) return state.layout;
   return DEFAULT_LAYOUT;
 }
 
@@ -30,16 +32,16 @@ export function OverlayStage({
   state,
   layout,
   mode = "overlay",
-  bgImage = null,
+  bg = "off",
   className = "",
   children,
 }: {
   state: LiveState;
   layout?: OverlayLayout | null;
   mode?: "overlay" | "preview";
-  /** Картинка-подложка под оверлей (геймплей с HUD) — ТОЛЬКО в режиме preview,
+  /** Подложка под оверлеем (геймплей с HUD или шахматка) — ТОЛЬКО в режиме preview,
       чтобы оценить читаемость поверх игры. На /overlay (mode=overlay) игнорируется. */
-  bgImage?: string | null;
+  bg?: PreviewBg;
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -82,12 +84,9 @@ export function OverlayStage({
 
   return (
     <div ref={ref} style={outerStyle} className={className}>
-      {mode === "preview" && bgImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={bgImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
-      )}
+      {mode === "preview" && <PreviewBgLayer bg={bg} />}
       <div style={stageStyle}>
-        {lay.stageBg.on && (
+        {lay.stageBg?.on && (
           <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${lay.stageBg.opacity})` }} aria-hidden />
         )}
         {widgets.map((inst) => {

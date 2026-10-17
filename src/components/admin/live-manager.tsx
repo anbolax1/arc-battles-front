@@ -5,17 +5,17 @@ import { api, ApiError } from "@/lib/api";
 import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OverlayStage } from "@/components/overlay/overlay-stage";
-import { OverlayEditor } from "@/components/admin/overlay-editor";
+import { OverlaySceneEditor } from "@/components/admin/overlay-scenes";
 import { CatalogCombobox } from "@/components/admin/catalog-combobox";
-import { DEFAULT_LAYOUT } from "@/components/overlay/default-layout";
+import { PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
 import { CheckIcon, CopyIcon } from "@/components/icons";
 import { tournamentName } from "@/lib/display";
 import { minutesLabel } from "@/lib/format";
+import { useOverlayFeed } from "@/lib/ws";
 import type {
   CatalogComplication,
   CatalogTask,
   LiveState,
-  OverlayLayout,
   OverlayPreset,
   RoundBonusTask,
   RoundPenalty,
@@ -115,7 +115,7 @@ function PresetLinkRow({
               void save();
             }
           }}
-          aria-label={`адрес пресета «${preset.name}»`}
+          aria-label={`адрес сцены «${preset.name}»`}
           title={url}
         />
       </span>
@@ -124,13 +124,13 @@ function PresetLinkRow({
           <span>✓</span>
         </button>
       )}
-      <CopyButton text={url} label={`скопировать ссылку пресета «${preset.name}»`} />
+      <CopyButton text={url} label={`скопировать ссылку сцены «${preset.name}»`} />
     </div>
   );
 }
 
-/** Ссылки на оверлей для OBS: общая (раскладка выбирается в редакторе) плюс своя
-    на каждый пресет — чтобы вид оверлея переключался сценой OBS, а не кабинетом. */
+/** Ссылки на оверлей для OBS: своя у каждой сцены, чтобы вид оверлея переключался сценой OBS,
+    а не кабинетом, плюс общая - на сцену, выбранную в редакторе. */
 export function OverlayLinks({ reloadSig }: { reloadSig: number }) {
   const [origin, setOrigin] = React.useState("");
   const [presets, setPresets] = React.useState<OverlayPreset[]>([]);
@@ -164,10 +164,10 @@ export function OverlayLinks({ reloadSig }: { reloadSig: number }) {
   const rename = async (p: OverlayPreset, next: string) => {
     setErr("");
     try {
-      const u = await api.put<OverlayPreset>(`/overlay/presets/${p.id}`, { name: p.name, slug: next, layout: p.layout });
+      const u = await api.put<OverlayPreset>(`/overlay/presets/${p.id}`, { name: p.name, slug: next });
       setPresets((xs) => xs.map((x) => (x.id === u.id ? u : x)));
     } catch {
-      setErr("Не удалось изменить адрес пресета.");
+      setErr("Не удалось изменить адрес сцены.");
     }
   };
 
@@ -175,35 +175,39 @@ export function OverlayLinks({ reloadSig }: { reloadSig: number }) {
     <div className="space-y-1.5">
       <span className="field-label">Ссылки для OBS (Browser Source)</span>
 
-      <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] py-1 pl-2.5 pr-1">
-        <code className="flex-1 truncate text-xs text-[var(--muted)]">{origin}/overlay</code>
-        <CopyButton text={`${origin}/overlay`} />
-      </div>
-      <p className="text-[0.7rem] leading-snug text-muted">Общая ссылка: показывает ту раскладку, что сейчас выбрана в редакторе макета.</p>
-
-      {presets.length > 0 && (
-        <div className="space-y-1 pt-1">
+      {presets.length > 0 ? (
+        <div className="space-y-1">
           <p className="text-[0.7rem] leading-snug text-muted">
-            Ссылка на пресет всегда показывает свою раскладку — заведи по источнику на каждую и переключай оверлеи сценами OBS:
+            Своя ссылка у каждой сцены: заведите по источнику на сцену OBS. Правки в редакторе доходят до них сразу.
           </p>
           {presets.map((p) => (
             <PresetLinkRow key={`${p.id}:${p.slug}`} origin={origin} preset={p} onRename={(next) => rename(p, next)} />
           ))}
         </div>
+      ) : (
+        <p className="text-[0.7rem] leading-snug text-muted">Сцен пока нет: создайте первую в редакторе, у неё появится своя ссылка.</p>
       )}
       {err && <p className="text-xs text-danger">{err}</p>}
+
+      <div className="space-y-1 pt-2">
+        <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] py-1 pl-2.5 pr-1">
+          <code className="flex-1 truncate text-xs text-[var(--muted)]">{origin}/overlay</code>
+          <CopyButton text={`${origin}/overlay`} />
+        </div>
+        <p className="text-[0.7rem] leading-snug text-muted">Общая ссылка: показывает сцену, выбранную в редакторе.</p>
+      </div>
 
       <details className="mt-1.5 text-xs text-[var(--muted)]">
         <summary className="cursor-pointer select-none hover:text-[var(--fg)]">Как добавить в OBS</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-4 leading-relaxed">
           <li>В OBS, в блоке «Источники», нажмите «+» → «Браузер».</li>
-          <li>Создайте новый источник (например «Оверлей турнира») → «ОК».</li>
-          <li>В поле «URL-адрес» вставьте ссылку выше (кнопка копирования).</li>
+          <li>Создайте новый источник (например «Оверлей - задания») → «ОК».</li>
+          <li>В поле «URL-адрес» вставьте ссылку сцены (кнопка копирования).</li>
           <li>Ширина — 1920, высота — 1080 (под размер вашей сцены).</li>
           <li>Поставьте галочку «Обновлять браузер, когда сцена становится активной» → «ОК».</li>
           <li>
-            Чтобы менять вид оверлея сценами: создайте по такому источнику на каждую ссылку пресета и разложите их по разным
-            сценам. Переключили сцену — сменился оверлей, кабинет для этого открывать не нужно.
+            Повторите для каждой сцены, каждую - в своей сцене OBS. Переключили сцену в OBS - сменился оверлей, кабинет для
+            этого открывать не нужно.
           </li>
           <li>
             Оверлей обновляется сам во время эфира. Если завис — правый клик по источнику → «Обновить».
@@ -235,16 +239,13 @@ export function LiveManager({
   const [bonusPick, setBonusPick] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState("");
-  const [layout, setLayout] = React.useState<OverlayLayout>(DEFAULT_LAYOUT);
-  // Раскладка оверлея — ОБЩАЯ (одна на сайт, источник правды — сервер/live_state), не per-tournament.
-  // Пока не загрузили её с сервера, не пушим состояние, чтобы дефолт не затёр реальную раскладку.
-  const [layoutReady, setLayoutReady] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
   // Пресеты создают/удаляют в редакторе — по этому счётчику список ссылок для OBS перечитывается.
   const [presetsSig, setPresetsSig] = React.useState(0);
   // Фон превью (геймплей с HUD) — только для превью/редактора, на /overlay не влияет.
-  const [previewBg, setPreviewBg] = React.useState<"day" | "night" | "off">("day");
-  const bgImage = previewBg === "off" ? null : previewBg === "night" ? "/preview-bg-night.jpg" : "/preview-bg.jpg";
+  const [previewBg, setPreviewBg] = React.useState<PreviewBg>("day");
+  // Раскладку превью задаёт выбранная сцена: сервер присылает её вместе с состоянием оверлея.
+  const feed = useOverlayFeed();
 
   // детали турнира. Ровно один раунд — авто-создан бэком при создании турнира.
   React.useEffect(() => {
@@ -264,31 +265,6 @@ export function LiveManager({
       active = false;
     };
   }, [selId]);
-
-  // Общая раскладка оверлея грузится с сервера один раз (не зависит от турнира/устройства).
-  // Готовность (→ можно пушить состояние) ставим ТОЛЬКО при успешном ответе: при ошибке
-  // держим layoutReady=false и ретраим — иначе дефолт затёр бы реальную раскладку на сервере.
-  React.useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const load = () => {
-      api
-        .get<OverlayLayout>("/overlay/layout")
-        .then((l) => {
-          if (!active) return;
-          if (l && Array.isArray(l.widgets)) setLayout(l); // пусто {} → оставляем дефолт (первый запуск)
-          setLayoutReady(true);
-        })
-        .catch(() => {
-          if (active) timer = setTimeout(load, 3000); // не узнали раскладку — ждём и пробуем снова, не пушим
-        });
-    };
-    load();
-    return () => {
-      active = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
 
   const participants = detail?.participants ?? [];
   const current = participants.find((p) => p.id === participantId) ?? null;
@@ -436,20 +412,18 @@ export function LiveManager({
     roundTasks: liveRoundTasks,
     bonusTasks: liveBonusTasks,
     complications: liveComplications,
-    layout,
   };
 
   // авто-отправка состояния в оверлей (OBS + сайт), debounce. Кнопки «Обновить» нет.
   const pushSig = detail ? JSON.stringify(state) : "";
   React.useEffect(() => {
-    // Не пушим, пока не загрузили общую раскладку с сервера — иначе дефолт затрёт реальную.
-    if (!pushSig || !layoutReady) return;
+    if (!pushSig) return;
     const body = JSON.parse(pushSig);
     const t = setTimeout(() => {
       void api.put("/overlay/state", body).catch(() => {});
     }, 500);
     return () => clearTimeout(t);
-  }, [pushSig, layoutReady]);
+  }, [pushSig]);
 
   async function reloadCounters() {
     if (!detail?.id) return;
@@ -813,42 +787,20 @@ export function LiveManager({
             <div className="flex items-center justify-between gap-2">
               <span className="field-label">{editing ? "Редактор макета" : "Превью оверлея (обновляется само)"}</span>
               {!editing && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  disabled={!layoutReady}
-                  title={layoutReady ? undefined : "Загружаем раскладку с сервера…"}
-                  onClick={() => setEditing(true)}
-                >
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
                   <span>✏️ Редактировать макет</span>
                 </button>
               )}
             </div>
-            {/* Фон превью (геймплей с HUD) — оценить читаемость оверлея поверх игры.
-                На сам оверлей в OBS НЕ влияет (там фон прозрачный). */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted">Фон игры в превью:</span>
-              <div className="seg">
-                {([["day", "День"], ["night", "Ночь"], ["off", "Выкл"]] as const).map(([k, lbl]) => (
-                  <button key={k} type="button" className="seg-btn" aria-pressed={previewBg === k} onClick={() => setPreviewBg(k)}>
-                    <span>{lbl}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
             {editing ? (
-              <OverlayEditor
-                state={state}
-                layout={layout}
-                onChange={setLayout}
-                onClose={() => setEditing(false)}
-                onPresetsChanged={() => setPresetsSig((s) => s + 1)}
-                bgImage={bgImage}
-              />
+              <OverlaySceneEditor state={state} onClose={() => setEditing(false)} onScenesChanged={() => setPresetsSig((s) => s + 1)} />
             ) : (
-              <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
-                <OverlayStage state={state} mode="preview" bgImage={bgImage} />
-              </div>
+              <>
+                <PreviewBgSwitch value={previewBg} onChange={setPreviewBg} />
+                <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
+                  <OverlayStage state={{ ...state, layout: feed.state?.layout }} mode="preview" bg={previewBg} />
+                </div>
+              </>
             )}
             <OverlayLinks reloadSig={presetsSig} />
           </div>

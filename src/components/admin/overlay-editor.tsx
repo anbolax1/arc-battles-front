@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import type { CSSProperties, PointerEvent as RPointerEvent } from "react";
-import type { LiveState, OverlayBg, OverlayLayout, OverlayPreset, WidgetInstance, WidgetType } from "@/lib/types";
-import { api } from "@/lib/api";
+import type { LiveState, OverlayBg, OverlayLayout, WidgetInstance, WidgetType } from "@/lib/types";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { STAGE_W, STAGE_H } from "@/components/overlay/overlay-stage";
 import { DEFAULT_LAYOUT, makeWidget } from "@/components/overlay/default-layout";
+import { PreviewBgLayer, PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
 import { WIDGET_LABELS, WIDGET_ORDER, WIDGET_REGISTRY } from "@/components/overlay/widgets/registry";
 
 const DEFAULT_PAD = 48; // отступ от края при выравнивании, px сцены (по умолчанию)
@@ -110,6 +111,41 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
+/** Группа настроек панели: подпись и содержимое. */
+function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5 border-t border-[var(--border)] pt-2.5">
+      <div className="text-[0.65rem] uppercase tracking-[0.14em] text-muted">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+/** Что виджет показывает: одна кнопка-переключатель на настройку. */
+type ShowOption = { key: string; label: string; title: string; on: boolean; patch: (on: boolean) => Partial<WidgetInstance> };
+
+function showOptions(w: WidgetInstance): ShowOption[] {
+  const out: ShowOption[] = [];
+  if (HAS_TITLE.has(w.type)) {
+    out.push({ key: "title", label: "Заголовок", title: "подпись или шапка виджета", on: !w.hideTitle, patch: (on) => ({ hideTitle: !on }) });
+  }
+  if (w.type === "scoreboard") {
+    out.push(
+      { key: "round", label: "Счёт за раунд", title: "очки за текущий раунд в скобках у счёта", on: !!w.showRoundScore, patch: (on) => ({ showRoundScore: on }) },
+      { key: "mmr", label: "MMR", title: "текущий MMR сторон под ником", on: !!w.showMmr, patch: (on) => ({ showMmr: on }) },
+      { key: "place", label: "Место в таблице", title: "место сторон в таблице сезона рядом с ником", on: !!w.showPlace, patch: (on) => ({ showPlace: on }) },
+      { key: "belt", label: "Пояс", title: "значок пояса под ником носителя и «за пояс» по центру табло", on: !!w.showBelt, patch: (on) => ({ showBelt: on }) },
+    );
+  }
+  if (w.type === "bonusTasks") {
+    out.push(
+      { key: "opp", label: "Задания противника", title: "задания противника, которые сторона в рейде может украсть за +1", on: !!w.showOpponentContracts, patch: (on) => ({ showOpponentContracts: on }) },
+      { key: "tags", label: "Тег «карта»", title: "плашка «карта» у заданий на карту раунда", on: !!w.showTags, patch: (on) => ({ showTags: on }) },
+    );
+  }
+  return out;
+}
+
 function uid(type: string, existing: WidgetInstance[]): string {
   let i = 1;
   let id = `${type}-${i}`;
@@ -124,24 +160,24 @@ function uid(type: string, existing: WidgetInstance[]): string {
     на pointer-событиях (масштаб сцены учитываем сами → дельта всегда корректна), с
     прилипанием к краям/центру сцены и к ДРУГИМ виджетам (видимые гайд-линии). Плюс
     видимость/замок/порядок, фон вкл-выкл + прозрачность, размер и ширина, якоря,
-    добавление/удаление. Пишет в общий OverlayLayout через onChange — превью и
-    /overlay обновляются тем же документом. */
+    добавление/удаление. Пишет раскладку через onChange — превью и ссылки
+    оверлея обновляются тем же документом. */
 export function OverlayEditor({
   state,
   layout,
   onChange,
   onClose,
-  onPresetsChanged,
-  bgImage = null,
+  history,
+  top = null,
 }: {
   state: LiveState;
   layout: OverlayLayout;
   onChange: (next: OverlayLayout) => void;
-  onClose: () => void;
-  /** Пресетов стало больше/меньше — снаружи по этому событию обновляется список ссылок для OBS. */
-  onPresetsChanged?: () => void;
-  /** Подложка-геймплей (с HUD) под сценой редактора — для оценки читаемости. */
-  bgImage?: string | null;
+  /** Кнопка «Готово» есть, только когда редактор открыт поверх превью и его можно закрыть. */
+  onClose?: () => void;
+  history?: { undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean };
+  /** Блок над сценой (список сцен); на весь экран - над панелью справа. */
+  top?: React.ReactNode;
 }) {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<HTMLDivElement>(null);
@@ -149,35 +185,31 @@ export function OverlayEditor({
   const dragRef = React.useRef<DragState | null>(null);
   const [scale, setScale] = React.useState(0);
   const [box, setBox] = React.useState({ w: 0, h: 0 }); // размер контейнера сцены (для центровки)
-  const [selId, setSelId] = React.useState<string>(layout.widgets[0]?.id ?? "");
+  const [selId, setSelId] = React.useState(""); // ничего не выбрано - панель показывает настройки сцены
   const [guides, setGuides] = React.useState<Guide[]>([]);
   const [addOpen, setAddOpen] = React.useState(false);
   const [fs, setFs] = React.useState(false); // полноэкранный режим редактора
-  // Пресеты (общие шаблоны раскладки, хранятся на сервере).
-  const [presets, setPresets] = React.useState<OverlayPreset[]>([]);
-  // Выбранный пресет берём из самой раскладки (layout.activePresetId) — она общая и хранится
-  // на сервере, поэтому селектор одинаков на любом устройстве/у любого организатора. Редактор
-  // открывается уже с загруженной раскладкой, так что init из неё корректен.
-  const [presetSel, setPresetSel] = React.useState<string>(layout.activePresetId ?? "");
-  const [presetName, setPresetName] = React.useState("");
-  const [presetBusy, setPresetBusy] = React.useState(false);
-  const [presetMsg, setPresetMsg] = React.useState("");
+  const [bg, setBg] = React.useState<PreviewBg>("day");
+  const [posOpen, setPosOpen] = React.useState(false); // раскрыта ли группа «Положение»
+  const [confirm, setConfirm] = React.useState<{ kind: "widget"; id: string } | { kind: "reset" } | null>(null);
 
+  // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y. По коду клавиши, чтобы работало и в русской раскладке;
+  // в полях ввода сочетания отменяют набранный текст, а не правку сцены.
   React.useEffect(() => {
-    let active = true;
-    api
-      .get<OverlayPreset[]>("/overlay/presets")
-      .then((list) => {
-        if (!active) return;
-        setPresets(list);
-        // Активный пресет могли удалить с другого устройства — тогда сбрасываем выбор в селекторе.
-        setPresetSel((cur) => (cur && !list.some((p) => p.id === cur) ? "" : cur));
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
+    if (!history) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || (e.target as HTMLElement | null)?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (e.code === "KeyZ" && !e.shiftKey) {
+        e.preventDefault();
+        history.undo();
+      } else if ((e.code === "KeyZ" && e.shiftKey) || e.code === "KeyY") {
+        e.preventDefault();
+        history.redo();
+      }
     };
-  }, []);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [history]);
 
   const byId = React.useCallback((id: string) => layout.widgets.find((w) => w.id === id), [layout.widgets]);
 
@@ -301,75 +333,8 @@ export function OverlayEditor({
     onChange({ ...layout, pad: padPx, widgets });
   }
   function reset() {
-    onChange(JSON.parse(JSON.stringify(DEFAULT_LAYOUT)) as OverlayLayout);
-    setSelId(DEFAULT_LAYOUT.widgets[0]?.id ?? "");
-    setPresetSel(""); // дефолтная раскладка ни к какому пресету не привязана
-  }
-
-  // ── Пресеты (общие шаблоны раскладки) ────────────────────────────────────
-  // activePresetId пишем В САМУ раскладку → уходит на сервер вместе с состоянием и
-  // потом восстанавливает выбор в селекторе на любом устройстве.
-  function applyPreset() {
-    const p = presets.find((x) => x.id === presetSel);
-    if (p && p.layout && Array.isArray(p.layout.widgets)) {
-      onChange({ ...(JSON.parse(JSON.stringify(p.layout)) as OverlayLayout), activePresetId: p.id });
-      setSelId(p.layout.widgets[0]?.id ?? "");
-      setPresetMsg(`Загружен «${p.name}»`);
-    }
-  }
-  async function saveNewPreset() {
-    const name = presetName.trim();
-    if (!name) return;
-    setPresetBusy(true);
-    setPresetMsg("");
-    try {
-      const p = await api.post<OverlayPreset>("/overlay/presets", { name, layout });
-      setPresets((xs) => [...xs, p]);
-      setPresetSel(p.id);
-      onChange({ ...layout, activePresetId: p.id }); // новый пресет становится активным
-      setPresetName("");
-      setPresetMsg(`Сохранён «${p.name}» — ссылка для OBS: /overlay/${p.slug}`);
-      onPresetsChanged?.();
-    } catch {
-      setPresetMsg("Не удалось сохранить пресет.");
-    } finally {
-      setPresetBusy(false);
-    }
-  }
-  async function overwritePreset() {
-    const p = presets.find((x) => x.id === presetSel);
-    if (!p) return;
-    setPresetBusy(true);
-    setPresetMsg("");
-    try {
-      const u = await api.put<OverlayPreset>(`/overlay/presets/${p.id}`, { name: p.name, layout });
-      setPresets((xs) => xs.map((x) => (x.id === u.id ? u : x)));
-      onChange({ ...layout, activePresetId: u.id }); // текущая раскладка теперь соответствует пресету u
-      setPresetMsg(`Обновлён «${u.name}» — оверлеи на /overlay/${u.slug} подхватят макет сами`);
-      onPresetsChanged?.();
-    } catch {
-      setPresetMsg("Не удалось обновить пресет.");
-    } finally {
-      setPresetBusy(false);
-    }
-  }
-  async function deletePreset() {
-    const p = presets.find((x) => x.id === presetSel);
-    if (!p) return;
-    setPresetBusy(true);
-    setPresetMsg("");
-    try {
-      await api.del(`/overlay/presets/${p.id}`);
-      setPresets((xs) => xs.filter((x) => x.id !== p.id));
-      setPresetSel("");
-      if (layout.activePresetId === p.id) onChange({ ...layout, activePresetId: "" }); // активный удалили → сброс
-      setPresetMsg(`Удалён «${p.name}»`);
-      onPresetsChanged?.();
-    } catch {
-      setPresetMsg("Не удалось удалить пресет.");
-    } finally {
-      setPresetBusy(false);
-    }
+    onChange({ ...(JSON.parse(JSON.stringify(DEFAULT_LAYOUT)) as OverlayLayout), activePresetId: layout.activePresetId });
+    setSelId("");
   }
   function setStageBg(p: Partial<OverlayBg>) {
     onChange({ ...layout, stageBg: { ...layout.stageBg, ...p } });
@@ -540,6 +505,10 @@ export function OverlayEditor({
       ref={wrapRef}
       className={`relative overflow-hidden rounded-lg bg-black/60 ${fs ? "h-full w-full" : "border border-[var(--border)]"}`}
       style={fs ? undefined : { aspectRatio: `${STAGE_W} / ${STAGE_H}` }}
+      onPointerDown={(e) => {
+        // Клик мимо виджетов снимает выбор: панель показывает настройки сцены.
+        if (!(e.target as HTMLElement).closest("[data-widget]")) setSelId("");
+      }}
     >
         <div
           ref={stageRef}
@@ -557,21 +526,22 @@ export function OverlayEditor({
             ...(layout.accent ? ({ "--primary": layout.accent } as CSSProperties) : {}),
           }}
         >
-          {bgImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={bgImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
-          )}
-          {layout.stageBg.on && (
+          <PreviewBgLayer bg={bg} />
+          {layout.stageBg?.on && (
             <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${layout.stageBg.opacity})` }} aria-hidden />
           )}
           {ordered.map((w) => {
             const Cmp = WIDGET_REGISTRY[w.type];
             if (!Cmp) return null;
             const selected = w.id === selId;
+            // Скрытый виджет на сцене не виден, как и в эфире; выбранный в «Слоях» показан одной рамкой.
+            // Он остаётся в разметке, чтобы привязка к краю считалась от настоящего размера.
+            const hidden = !w.visible;
             return (
               <div
                 key={w.id}
                 ref={setRef(w.id)}
+                data-widget=""
                 onPointerDown={(e) => beginMove(e, w)}
                 style={{
                   position: "absolute",
@@ -582,16 +552,24 @@ export function OverlayEditor({
                   width: w.w ? w.w * STAGE_W : undefined,
                   height: w.h ? w.h * STAGE_H : undefined,
                   zIndex: w.z,
-                  opacity: w.visible ? 1 : 0.35,
-                  outline: selected ? "2px solid var(--accent)" : "1px dashed rgba(255,255,255,0.28)",
+                  visibility: hidden && !selected ? "hidden" : undefined,
+                  outline: selected ? `2px ${hidden ? "dashed" : "solid"} var(--accent)` : "1px dashed rgba(255,255,255,0.28)",
                   outlineOffset: 2,
                   cursor: w.locked ? "default" : "move",
                   touchAction: "none",
                 }}
               >
-                <div style={{ pointerEvents: "none", width: "100%", height: "100%" }}>
+                <div style={{ pointerEvents: "none", width: "100%", height: "100%", visibility: hidden ? "hidden" : undefined }}>
                   <Cmp state={state} instance={w} />
                 </div>
+                {hidden && selected && scale > 0 && (
+                  <span
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50 font-semibold uppercase tracking-wider text-accent"
+                    style={{ fontSize: 12 / (scale * (w.scale || 1)) }}
+                  >
+                    скрыт
+                  </span>
+                )}
                 {selected && !w.locked && scale > 0 && (
                   <ResizeHandles scaleFactor={scale * (w.scale || 1)} onStart={(dir, e) => beginResize(e, w, dir)} />
                 )}
@@ -610,55 +588,22 @@ export function OverlayEditor({
     </div>
   );
 
+  const opts = sel ? showOptions(sel) : [];
+  const posSummary = sel
+    ? `${sel.anchor ? ANCHOR_TITLE[sel.anchor as AnchorPos] : "свободно"} · ${Math.round(sel.scale * 100)}%${sel.w ? ` · ширина ${Math.round(sel.w * 100)}%` : ""}`
+    : "";
+  const confirmWidget = confirm?.kind === "widget" ? byId(confirm.id) : undefined;
+  const undoHint = history ? " Отменить можно через Ctrl+Z." : "";
+
   const controls = (
     <>
-      {/* Пресеты — общие шаблоны раскладки (сохранить/переключать) */}
-      <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-muted">Пресеты</span>
-          <select className="select max-w-[12rem] flex-1" value={presetSel} onChange={(e) => setPresetSel(e.target.value)}>
-            <option value="">— выбрать —</option>
-            {presets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <button type="button" className="btn btn-cyan btn-sm" disabled={!presetSel || presetBusy} onClick={applyPreset}>
-            <span>Загрузить</span>
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={!presetSel || presetBusy} onClick={overwritePreset} title="перезаписать выбранный пресет текущей раскладкой">
-            <span>Перезаписать</span>
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm text-danger" disabled={!presetSel || presetBusy} onClick={deletePreset}>
-            <span>Удалить</span>
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            className="input max-w-[12rem] flex-1"
-            placeholder="имя нового пресета"
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void saveNewPreset();
-              }
-            }}
-          />
-          <button type="button" className="btn btn-primary btn-sm" disabled={!presetName.trim() || presetBusy} onClick={saveNewPreset}>
-            <span>Сохранить как новый</span>
-          </button>
-          {presetMsg && <span className="text-xs text-accent">{presetMsg}</span>}
-        </div>
-      </div>
-
-      {/* Тулбар */}
+      {/* Тулбар: действия с макетом и подложка превью */}
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn btn-primary btn-sm" onClick={onClose}>
-          <span>Готово</span>
-        </button>
+        {onClose && (
+          <button type="button" className="btn btn-primary btn-sm" onClick={onClose}>
+            <span>Готово</span>
+          </button>
+        )}
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFs((v) => !v)} title="редактировать крупно">
           <span>{fs ? "⤢ Свернуть" : "⛶ На весь экран"}</span>
         </button>
@@ -681,56 +626,23 @@ export function OverlayEditor({
             </div>
           )}
         </div>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={reset}>
-          <span>Сбросить макет</span>
-        </button>
-
-        <label className="ml-auto flex items-center gap-1.5 text-xs text-muted" title="отступ от края при выравнивании; двигает все привязанные к краю виджеты">
-          отступ края
-          <input
-            type="range"
-            min={0}
-            max={160}
-            step={2}
-            value={pad}
-            onChange={(e) => setPad(Number(e.target.value))}
-            className="w-24 accent-[var(--primary)]"
-            aria-label="отступ от края"
-          />
-          <span className="w-9 text-right tnum">{Math.round(pad)}px</span>
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          <input type="checkbox" checked={layout.stageBg.on} onChange={(e) => setStageBg({ on: e.target.checked })} />
-          фон сцены
-        </label>
-        {layout.stageBg.on && (
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={layout.stageBg.opacity}
-            onChange={(e) => setStageBg({ opacity: Number(e.target.value) })}
-            className="w-24 accent-[var(--primary)]"
-            aria-label="прозрачность фона сцены"
-          />
+        {history && (
+          <>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={!history.canUndo} onClick={history.undo} title="отменить (Ctrl+Z)" aria-label="отменить">
+              <span>↶</span>
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={!history.canRedo} onClick={history.redo} title="повторить (Ctrl+Shift+Z)" aria-label="повторить">
+              <span>↷</span>
+            </button>
+          </>
         )}
-        <label className="flex items-center gap-1.5 text-xs text-muted" title="акцентный цвет">
-          акцент
-          <input
-            type="color"
-            value={layout.accent ?? "#ff6a1a"}
-            onChange={(e) => onChange({ ...layout, accent: e.target.value })}
-            className="h-6 w-8 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0"
-          />
-        </label>
       </div>
+      <PreviewBgSwitch value={bg} onChange={setBg} />
 
-      {/* Контролы выбранного виджета */}
-      {sel && (
-        <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+      {sel ? (
+        <div className="space-y-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
           {/* Шапка: имя + видимость/замок/удалить */}
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
+          <div className="flex items-center justify-between gap-2">
             <span className="font-display text-sm uppercase">{WIDGET_LABELS[sel.type]}</span>
             <div className="flex items-center gap-1">
               <button
@@ -749,169 +661,231 @@ export function OverlayEditor({
               >
                 {sel.locked ? "🔒" : "🔓"}
               </button>
-              <button type="button" className="ml-1 text-xs text-muted hover:text-danger" onClick={() => remove(sel.id)}>
+              <button type="button" className="ml-1 text-xs text-muted hover:text-danger" onClick={() => setConfirm({ kind: "widget", id: sel.id })}>
                 Удалить
+              </button>
+              <button
+                type="button"
+                className="ml-1 rounded px-1.5 text-sm text-muted hover:bg-[var(--surface)] hover:text-fg"
+                title="снять выбор: настройки сцены"
+                aria-label="снять выбор"
+                onClick={() => setSelId("")}
+              >
+                ✕
               </button>
             </div>
           </div>
 
           {/* Содержимое: текст (виджет «Текст») или URL картинки (виджет «Логотип») */}
-          {sel.type === "text" && (
-            <SettingRow label="Текст">
-              <input
-                className="input flex-1"
-                value={typeof sel.props?.text === "string" ? sel.props.text : ""}
-                onChange={(e) => patch(sel.id, { props: { ...sel.props, text: e.target.value } })}
-                placeholder="Текст на оверлее (напр. ник кастера)"
-              />
-            </SettingRow>
+          {(sel.type === "text" || sel.type === "logo") && (
+            <PanelSection title="Содержимое">
+              {sel.type === "text" ? (
+                <input
+                  className="input w-full"
+                  value={typeof sel.props?.text === "string" ? sel.props.text : ""}
+                  onChange={(e) => patch(sel.id, { props: { ...sel.props, text: e.target.value } })}
+                  placeholder="Текст на оверлее (напр. ник кастера)"
+                  aria-label="текст виджета"
+                />
+              ) : (
+                <input
+                  className="input w-full"
+                  value={typeof sel.props?.url === "string" ? sel.props.url : ""}
+                  onChange={(e) => patch(sel.id, { props: { ...sel.props, url: e.target.value } })}
+                  placeholder="https://… (ссылка на картинку/лого)"
+                  aria-label="ссылка на картинку"
+                />
+              )}
+            </PanelSection>
           )}
-          {sel.type === "logo" && (
-            <SettingRow label="URL">
-              <input
-                className="input flex-1"
-                value={typeof sel.props?.url === "string" ? sel.props.url : ""}
-                onChange={(e) => patch(sel.id, { props: { ...sel.props, url: e.target.value } })}
-                placeholder="https://… (ссылка на картинку/лого)"
-              />
-            </SettingRow>
+
+          {opts.length > 0 && (
+            <PanelSection title="Показывать">
+              <div className="flex flex-wrap gap-1.5">
+                {opts.map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    aria-pressed={o.on}
+                    title={o.title}
+                    onClick={() => patch(sel.id, o.patch(!o.on))}
+                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                      o.on
+                        ? "border-[var(--primary)] bg-[rgba(255,106,26,0.14)] text-fg"
+                        : "border-[var(--border-strong)] text-muted hover:text-fg"
+                    }`}
+                  >
+                    {o.on ? "✓ " : ""}
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </PanelSection>
           )}
 
           {/* Фон: тумблер + ползунок прозрачности (всегда на месте, гаснет при выключенном фоне) */}
-          <SettingRow label="Фон">
-            <Switch on={sel.bg.on} onChange={(v) => patchBg(sel.id, { on: v })} title="фон виджета" />
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={sel.bg.opacity}
-              disabled={!sel.bg.on}
-              onChange={(e) => patchBg(sel.id, { opacity: Number(e.target.value) })}
-              className={`flex-1 accent-[var(--primary)] ${sel.bg.on ? "" : "pointer-events-none opacity-30"}`}
-              aria-label="прозрачность фона"
-            />
-            <span className="w-9 text-right text-xs text-muted tnum">{sel.bg.on ? `${Math.round(sel.bg.opacity * 100)}%` : "—"}</span>
-          </SettingRow>
-
-          {HAS_TITLE.has(sel.type) && (
-            <SettingRow label="Заголовок">
-              <Switch on={!sel.hideTitle} onChange={(v) => patch(sel.id, { hideTitle: !v })} title="показывать подпись/шапку виджета" />
-              <span className="text-xs text-muted">{sel.hideTitle ? "скрыт" : "показан"}</span>
+          <PanelSection title="Вид">
+            <SettingRow label="Фон">
+              <Switch on={sel.bg.on} onChange={(v) => patchBg(sel.id, { on: v })} title="фон виджета" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={sel.bg.opacity}
+                disabled={!sel.bg.on}
+                onChange={(e) => patchBg(sel.id, { opacity: Number(e.target.value) })}
+                className={`flex-1 accent-[var(--primary)] ${sel.bg.on ? "" : "pointer-events-none opacity-30"}`}
+                aria-label="прозрачность фона"
+              />
+              <span className="w-9 text-right text-xs text-muted tnum">{sel.bg.on ? `${Math.round(sel.bg.opacity * 100)}%` : "—"}</span>
             </SettingRow>
-          )}
+          </PanelSection>
 
-          {sel.type === "scoreboard" && (
-            <>
-              <SettingRow label="Счёт за раунд">
-                <Switch on={!!sel.showRoundScore} onChange={(v) => patch(sel.id, { showRoundScore: v })} title="показывать очки за текущий раунд в скобках у счёта" />
-                <span className="text-xs text-muted">{sel.showRoundScore ? "в скобках" : "скрыт"}</span>
+          {/* Положение свёрнуто в сводку: обычно виджет двигают на макете. */}
+          <details open={posOpen} onToggle={(e) => setPosOpen(e.currentTarget.open)} className="border-t border-[var(--border)] pt-2.5">
+            <summary className="flex cursor-pointer select-none items-center justify-between gap-2 text-[0.65rem] uppercase tracking-[0.14em] text-muted hover:text-fg">
+              <span>Положение {posOpen ? "▾" : "▸"}</span>
+              <span className="truncate text-[0.7rem] normal-case tracking-normal">{posSummary}</span>
+            </summary>
+            <div className="space-y-2 pt-2">
+              <SettingRow label="Размер">
+                <input
+                  type="range"
+                  min={0.5}
+                  max={3}
+                  step={0.05}
+                  value={sel.scale}
+                  onChange={(e) => patch(sel.id, { scale: Number(e.target.value) })}
+                  className="flex-1 accent-[var(--primary)]"
+                  title="то же, что тянуть за УГОЛ виджета"
+                />
+                <span className="w-9 text-right text-xs text-muted tnum">{Math.round(sel.scale * 100)}%</span>
               </SettingRow>
-              <SettingRow label="Текущий MMR">
-                <Switch on={!!sel.showMmr} onChange={(v) => patch(sel.id, { showMmr: v })} title="показывать текущий MMR сторон" />
-                <span className="text-xs text-muted">{sel.showMmr ? "под ником" : "скрыт"}</span>
+
+              <SettingRow label="Ширина">
+                <input
+                  type="range"
+                  min={0.1}
+                  max={0.9}
+                  step={0.01}
+                  value={selLockedWidth}
+                  onChange={(e) => patch(sel.id, { w: Number(e.target.value) })}
+                  className="flex-1 accent-[var(--primary)]"
+                  title="то же, что тянуть за СЕРЕДИНУ боковой стороны"
+                />
+                <span className="w-9 text-right text-xs text-muted tnum">{Math.round(selLockedWidth * 100)}%</span>
               </SettingRow>
-              <SettingRow label="Место в таблице">
-                <Switch on={!!sel.showPlace} onChange={(v) => patch(sel.id, { showPlace: v })} title="показывать текущее место сторон в таблице сезона" />
-                <span className="text-xs text-muted">{sel.showPlace ? "рядом с ником" : "скрыто"}</span>
+
+              <SettingRow label="Высота">
+                <input
+                  type="range"
+                  min={0.05}
+                  max={0.9}
+                  step={0.01}
+                  value={selLockedHeight}
+                  onChange={(e) => patch(sel.id, { h: Number(e.target.value) })}
+                  className="flex-1 accent-[var(--primary)]"
+                  title="то же, что тянуть за СЕРЕДИНУ верх/низ; пусто = по содержимому"
+                />
+                <span className="w-9 text-right text-xs text-muted tnum">{sel.h ? `${Math.round(selLockedHeight * 100)}%` : "авто"}</span>
               </SettingRow>
-              <SettingRow label="Носитель пояса">
-                <Switch on={!!sel.showBelt} onChange={(v) => patch(sel.id, { showBelt: v })} title="значок пояса под ником носителя и «за пояс» по центру табло" />
-                <span className="text-xs text-muted">{sel.showBelt ? "значок под ником" : "скрыт"}</span>
+
+              <SettingRow label="Слой">
+                <button type="button" className="btn btn-ghost btn-sm" disabled={selPos === ordered.length - 1} onClick={() => raise(sel.id, 1)} title="выше">
+                  <span>↑ выше</span>
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" disabled={selPos <= 0} onClick={() => raise(sel.id, -1)} title="ниже">
+                  <span>↓ ниже</span>
+                </button>
               </SettingRow>
-            </>
-          )}
 
-          {sel.type === "bonusTasks" && (
-            <SettingRow label="Противник">
-              <Switch on={!!sel.showOpponentContracts} onChange={(v) => patch(sel.id, { showOpponentContracts: v })} title="показывать и контракты противника (что фокусная сторона может украсть за +1)" />
-              <span className="text-xs text-muted">{sel.showOpponentContracts ? "контракты противника видны" : "только свои"}</span>
-            </SettingRow>
-          )}
+              <SettingRow label="К краю">
+                <div className="grid grid-cols-3 gap-1">
+                  {ANCHOR_GRID.map((a) => {
+                    const pinned = sel.anchor === a; // жёстко закреплён → залит
+                    const near = !sel.anchor && selNear === a; // просто у этого края → обведён
+                    return (
+                      <button
+                        key={a}
+                        type="button"
+                        title={ANCHOR_TITLE[a]}
+                        onClick={() => anchor(sel.id, a)}
+                        className={`h-5 w-5 rounded-sm border transition-colors hover:border-[var(--accent)] ${
+                          pinned
+                            ? "border-[var(--primary)] bg-[var(--primary)]"
+                            : near
+                              ? "border-[var(--accent)] bg-[var(--surface)] ring-1 ring-inset ring-[var(--accent)]"
+                              : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+                {sel.anchor ? (
+                  <span className="text-[0.7rem] text-muted">следует за отступом</span>
+                ) : (
+                  selNear && <span className="text-[0.7rem] text-muted">у этого края (не закреплён)</span>
+                )}
+              </SettingRow>
 
-          <SettingRow label="Размер">
-            <input
-              type="range"
-              min={0.5}
-              max={3}
-              step={0.05}
-              value={sel.scale}
-              onChange={(e) => patch(sel.id, { scale: Number(e.target.value) })}
-              className="flex-1 accent-[var(--primary)]"
-              title="то же, что тянуть за УГОЛ виджета"
-            />
-            <span className="w-9 text-right text-xs text-muted tnum">{Math.round(sel.scale * 100)}%</span>
-          </SettingRow>
-
-          <SettingRow label="Ширина">
-            <input
-              type="range"
-              min={0.1}
-              max={0.9}
-              step={0.01}
-              value={selLockedWidth}
-              onChange={(e) => patch(sel.id, { w: Number(e.target.value) })}
-              className="flex-1 accent-[var(--primary)]"
-              title="то же, что тянуть за СЕРЕДИНУ боковой стороны"
-            />
-            <span className="w-9 text-right text-xs text-muted tnum">{Math.round(selLockedWidth * 100)}%</span>
-          </SettingRow>
-
-          <SettingRow label="Высота">
-            <input
-              type="range"
-              min={0.05}
-              max={0.9}
-              step={0.01}
-              value={selLockedHeight}
-              onChange={(e) => patch(sel.id, { h: Number(e.target.value) })}
-              className="flex-1 accent-[var(--primary)]"
-              title="то же, что тянуть за СЕРЕДИНУ верх/низ; пусто = по содержимому"
-            />
-            <span className="w-9 text-right text-xs text-muted tnum">{sel.h ? `${Math.round(selLockedHeight * 100)}%` : "авто"}</span>
-          </SettingRow>
-
-          <SettingRow label="Слой">
-            <button type="button" className="btn btn-ghost btn-sm" disabled={selPos === ordered.length - 1} onClick={() => raise(sel.id, 1)} title="выше">
-              <span>↑ выше</span>
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={selPos <= 0} onClick={() => raise(sel.id, -1)} title="ниже">
-              <span>↓ ниже</span>
-            </button>
-          </SettingRow>
-
-          <SettingRow label="К краю">
-            <div className="grid grid-cols-3 gap-1">
-              {ANCHOR_GRID.map((a) => {
-                const pinned = sel.anchor === a; // жёстко закреплён → залит
-                const near = !sel.anchor && selNear === a; // просто у этого края → обведён
-                return (
-                  <button
-                    key={a}
-                    type="button"
-                    title={ANCHOR_TITLE[a]}
-                    onClick={() => anchor(sel.id, a)}
-                    className={`h-5 w-5 rounded-sm border transition-colors hover:border-[var(--accent)] ${
-                      pinned
-                        ? "border-[var(--primary)] bg-[var(--primary)]"
-                        : near
-                          ? "border-[var(--accent)] bg-[var(--surface)] ring-1 ring-inset ring-[var(--accent)]"
-                          : "border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]"
-                    }`}
-                  />
-                );
-              })}
+              <p className="text-[0.7rem] leading-snug text-muted">
+                На макете: тяни за <span className="text-fg">угол</span> — масштаб всего виджета (со шрифтом); за <span className="text-fg">середину стороны</span> — ширина/высота коробки.
+              </p>
             </div>
-            {sel.anchor ? (
-              <span className="text-[0.7rem] text-muted">следует за отступом</span>
-            ) : (
-              selNear && <span className="text-[0.7rem] text-muted">у этого края (не закреплён)</span>
-            )}
-          </SettingRow>
-
-          <p className="border-t border-[var(--border)] pt-2 text-[0.7rem] leading-snug text-muted">
-            На макете: тяни за <span className="text-fg">угол</span> — масштаб всего виджета (со шрифтом); за <span className="text-fg">середину стороны</span> — ширина/высота коробки.
-          </p>
+          </details>
+        </div>
+      ) : (
+        <div className="space-y-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display text-sm uppercase">Сцена</span>
+            <span className="text-[0.7rem] text-muted">виджет - кликом по макету или в слоях</span>
+          </div>
+          <PanelSection title="Вид сцены">
+            <SettingRow label="Отступ края">
+              <input
+                type="range"
+                min={0}
+                max={160}
+                step={2}
+                value={pad}
+                onChange={(e) => setPad(Number(e.target.value))}
+                className="flex-1 accent-[var(--primary)]"
+                aria-label="отступ от края"
+                title="отступ от края при выравнивании; двигает все привязанные к краю виджеты"
+              />
+              <span className="w-9 text-right text-xs text-muted tnum">{Math.round(pad)}px</span>
+            </SettingRow>
+            <SettingRow label="Фон сцены">
+              <Switch on={!!layout.stageBg?.on} onChange={(v) => setStageBg({ on: v })} title="затемнение всей сцены" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={layout.stageBg?.opacity ?? 0.4}
+                disabled={!layout.stageBg?.on}
+                onChange={(e) => setStageBg({ opacity: Number(e.target.value) })}
+                className={`flex-1 accent-[var(--primary)] ${layout.stageBg?.on ? "" : "pointer-events-none opacity-30"}`}
+                aria-label="прозрачность фона сцены"
+              />
+              <span className="w-9 text-right text-xs text-muted tnum">{layout.stageBg?.on ? `${Math.round(layout.stageBg.opacity * 100)}%` : "—"}</span>
+            </SettingRow>
+            <SettingRow label="Акцент">
+              <input
+                type="color"
+                value={layout.accent ?? "#ff6a1a"}
+                onChange={(e) => onChange({ ...layout, accent: e.target.value })}
+                className="h-6 w-8 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0"
+                aria-label="акцентный цвет сцены"
+              />
+            </SettingRow>
+          </PanelSection>
+          <div className="border-t border-[var(--border)] pt-2.5">
+            <button type="button" className="btn btn-ghost btn-sm text-danger" onClick={() => setConfirm({ kind: "reset" })}>
+              <span>Сбросить макет</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -946,12 +920,29 @@ export function OverlayEditor({
             ))}
         </ul>
       </div>
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.kind === "reset" ? "Сбросить макет сцены?" : "Удалить виджет?"}
+        message={
+          confirm?.kind === "reset"
+            ? `На сцене останутся только табло и протоколы, как в раскладке по умолчанию.${undoHint}`
+            : `«${confirmWidget ? WIDGET_LABELS[confirmWidget.type] : ""}» пропадёт со сцены и из её ссылки для OBS.${undoHint}`
+        }
+        confirmLabel={confirm?.kind === "reset" ? "Сбросить" : "Удалить"}
+        onConfirm={() => {
+          if (confirm?.kind === "reset") reset();
+          else if (confirm?.kind === "widget") remove(confirm.id);
+          setConfirm(null);
+        }}
+        onCancel={() => setConfirm(null)}
+      />
     </>
   );
 
   if (fs) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-[var(--bg)]">
+      <div className="fixed inset-0 z-[150] flex flex-col bg-[var(--bg)]">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2">
           <span className="font-display text-sm uppercase">Редактор макета — на весь экран</span>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFs(false)}>
@@ -960,7 +951,10 @@ export function OverlayEditor({
         </div>
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 items-center justify-center p-4">{stagePane}</div>
-          <div className="w-[380px] flex-none space-y-3 overflow-y-auto border-l border-[var(--border)] p-4">{controls}</div>
+          <div className="w-[380px] flex-none space-y-3 overflow-y-auto border-l border-[var(--border)] p-4">
+            {top}
+            {controls}
+          </div>
         </div>
       </div>
     );
@@ -968,6 +962,7 @@ export function OverlayEditor({
 
   return (
     <div className="space-y-3">
+      {top}
       {stagePane}
       {controls}
     </div>

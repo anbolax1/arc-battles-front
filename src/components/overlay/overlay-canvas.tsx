@@ -72,7 +72,7 @@ export function OverlayCanvas({ presetKey = null }: { presetKey?: string | null 
   // чем вспышка чужой раскладки, которая через миг сменится.
   if (preset.kind === "loading") return null;
 
-  if (preset.kind === "missing") return <Plate>Пресет «{presetKey}» не найден</Plate>;
+  if (preset.kind === "missing") return <Plate>Сцена «{presetKey}» не найдена</Plate>;
 
   // Сцена — только когда турнир реально в эфире (status=live). Иначе плашка.
   if (!state || state.status !== "live") return <Plate>Сейчас никто не в эфире</Plate>;

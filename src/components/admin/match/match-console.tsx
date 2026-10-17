@@ -16,6 +16,7 @@ import { MatchLog, OverlayStatus, RoundConsole } from "@/components/admin/match/
 import { MatchResult } from "@/components/admin/match/match-result";
 import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
 import { putShowPreview } from "@/components/admin/match/show-preview";
+import { PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
 import type { CatalogLegendary, LiveState, MapInfo, MatchState } from "@/lib/types";
 
 type Confirm = "finish" | "early" | "cancel" | null;
@@ -32,6 +33,7 @@ function stepIndex(stage: MatchState["stage"]): number {
 
 /** Что сейчас видят зрители; во время раунда связь с оверлеем показана на табло, здесь не повторяем. */
 function OverlayPeek({ state, matchId, status, pageLink }: { state: LiveState | null; matchId: string; status: boolean; pageLink: boolean }) {
+  const [bg, setBg] = React.useState<PreviewBg>("day");
   return (
     <Panel className="space-y-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -43,11 +45,12 @@ function OverlayPeek({ state, matchId, status, pageLink }: { state: LiveState | 
       {status && <OverlayStatus online={!!state} />}
       <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-black/40">
         {state ? (
-          <OverlayStage state={state} mode="preview" bgImage="/preview-bg.jpg" />
+          <OverlayStage state={state} mode="preview" bg={bg} />
         ) : (
           <div className="flex aspect-video items-center justify-center text-sm text-muted">Оверлей пуст</div>
         )}
       </div>
+      {state && <PreviewBgSwitch value={bg} onChange={setBg} />}
       {pageLink && (
         <Link href={`/tournament/${matchId}`} className="btn btn-ghost btn-sm w-full">
           <span>Публичная страница матча</span>
