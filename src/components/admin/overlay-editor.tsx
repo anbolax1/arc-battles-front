@@ -701,7 +701,8 @@ export function OverlayEditor({
 
           {opts.length > 0 && (
             <PanelSection title="Показывать">
-              <div className="flex flex-wrap gap-1.5">
+              {/* Клетки сетки одной ширины, галочка всегда на своём месте: включение не сдвигает соседей. */}
+              <div className="grid grid-cols-2 gap-1.5">
                 {opts.map((o) => (
                   <button
                     key={o.key}
@@ -709,14 +710,21 @@ export function OverlayEditor({
                     aria-pressed={o.on}
                     title={o.title}
                     onClick={() => patch(sel.id, o.patch(!o.on))}
-                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                    className={`flex min-w-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors ${
                       o.on
-                        ? "border-[var(--primary)] bg-[rgba(255,106,26,0.14)] text-fg"
-                        : "border-[var(--border-strong)] text-muted hover:text-fg"
+                        ? "border-[var(--primary)] bg-[rgba(255,106,26,0.12)] text-fg"
+                        : "border-[var(--border)] text-muted hover:border-[var(--border-strong)] hover:text-fg"
                     }`}
                   >
-                    {o.on ? "✓ " : ""}
-                    {o.label}
+                    <span
+                      aria-hidden
+                      className={`grid h-4 w-4 flex-none place-items-center rounded-[4px] border text-[0.65rem] font-bold leading-none ${
+                        o.on ? "border-[var(--primary)] bg-[var(--primary)] text-[#150800]" : "border-[var(--border-strong)]"
+                      }`}
+                    >
+                      {o.on ? "✓" : ""}
+                    </span>
+                    <span className="min-w-0 truncate">{o.label}</span>
                   </button>
                 ))}
               </div>

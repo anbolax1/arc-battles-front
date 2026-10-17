@@ -343,9 +343,14 @@ export function OverlaySceneEditor({
   if (!sc.ready) return <p className="text-sm text-muted">Загружаем сцены…</p>;
 
   const bar = (
-    <div className="space-y-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-2.5">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3">
+      <div className="flex items-center justify-between gap-3">
         <span className="text-xs uppercase tracking-wide text-muted">Сцены</span>
+        {/* Место под статус постоянное: смена надписи не двигает строку. */}
+        <span className={`w-56 truncate text-right text-xs ${sc.save === "error" ? "text-danger" : "text-muted"}`}>{SAVE_TEXT[sc.save]}</span>
+      </div>
+      {/* Карточки одной ширины и с одинаковой подписью: выбор сцены меняет только цвет, ряд не прыгает. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-2">
         {sc.scenes.map((s) => {
           const on = s.id === sc.activeId;
           return (
@@ -355,35 +360,43 @@ export function OverlaySceneEditor({
               aria-pressed={on}
               onClick={() => void sc.select(s.id)}
               title={on ? "эту сцену правите, её же показывает /overlay" : "открыть сцену; /overlay тоже переключится на неё"}
-              className={`min-w-[7rem] max-w-[12rem] rounded-md border px-2.5 py-1.5 text-left transition-colors ${
-                on ? "border-[var(--accent)] bg-[rgba(34,211,238,0.08)]" : "border-[var(--border)] hover:border-[var(--border-strong)]"
+              className={`min-w-0 rounded-md border px-3 py-2 text-left transition-colors ${
+                on
+                  ? "border-[var(--accent)] bg-[rgba(34,211,238,0.1)] shadow-[inset_3px_0_0_var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
               }`}
             >
               <span className="block truncate font-display text-sm">{s.name}</span>
-              <span className={`block truncate text-[0.65rem] ${on ? "text-accent" : "text-muted"}`}>
-                {on ? "правите · на /overlay" : `/overlay/${s.slug}`}
-              </span>
+              <span className={`block truncate text-[0.68rem] ${on ? "text-accent" : "text-muted"}`}>/overlay/{s.slug}</span>
             </button>
           );
         })}
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void sc.create()}>
-          <span>+ Сцена</span>
+        <button
+          type="button"
+          onClick={() => void sc.create()}
+          className="min-w-0 rounded-md border border-dashed border-[var(--border-strong)] px-3 py-2 text-left text-muted transition-colors hover:border-[var(--accent)] hover:text-fg"
+        >
+          <span className="block truncate font-display text-sm">+ Новая сцена</span>
+          <span className="block truncate text-[0.68rem]">со своей ссылкой</span>
         </button>
       </div>
       {active && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-2.5">
           <SceneName key={active.id} name={active.name} onSave={(n) => void sc.rename(n)} />
-          <button type="button" className="btn btn-ghost btn-sm" onClick={sc.duplicate}>
-            <span>Дублировать</span>
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm text-danger" onClick={() => setAskDelete(true)}>
-            <span>Удалить</span>
-          </button>
-          <span className={`ml-auto text-xs ${sc.save === "error" ? "text-danger" : "text-muted"}`}>{SAVE_TEXT[sc.save]}</span>
+          <div className="flex gap-2">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={sc.duplicate}>
+              <span>Дублировать</span>
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm text-danger" onClick={() => setAskDelete(true)}>
+              <span>Удалить</span>
+            </button>
+          </div>
         </div>
       )}
+      <p className="text-[0.7rem] leading-snug text-muted">
+        Выбранную сцену правите здесь, её же показывает общая ссылка /overlay.{state ? "" : " Матча сейчас нет: в превью пример данных."}
+      </p>
       {sc.error && <p className="text-xs text-danger">{sc.error}</p>}
-      {!state && <p className="text-xs text-muted">Матча сейчас нет: в превью пример данных.</p>}
       <ConfirmDialog
         open={askDelete}
         title="Удалить сцену?"
