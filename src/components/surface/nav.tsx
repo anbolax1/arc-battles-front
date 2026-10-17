@@ -11,7 +11,6 @@ import { SfAvatar } from "@/components/surface/ui";
 import { ShortCountdown } from "@/components/surface/motion";
 
 const LINKS = [
-  { href: "/news", label: "Новости" },
   { href: "/schedule", label: "Матчи" },
   { href: "/archive", label: "Результаты" },
   { href: "/rating", label: "Рейтинг" },
