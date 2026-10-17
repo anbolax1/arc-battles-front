@@ -69,7 +69,7 @@ export function SurfaceNav({ live }: { live: NavLive | null }) {
   const chip = live && (
     <Link href={live.href} className="sf-live-chip">
       <i />
-      {live.live ? <span>эфир идёт</span> : live.startsAt ? <ShortCountdown to={live.startsAt} prefix="шоу-матч через " /> : <span>шоу-матч скоро</span>}
+      {live.live ? <span>эфир идёт</span> : live.startsAt ? <ShortCountdown to={live.startsAt} prefix="шоу-матч через " soon="шоу-матч скоро начнётся" /> : <span>шоу-матч скоро</span>}
     </Link>
   );
 

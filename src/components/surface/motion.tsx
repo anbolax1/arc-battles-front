@@ -90,10 +90,10 @@ export function useSecondsLeft(to?: string | null): number | null {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Отсчёт до начала плитками: дни, часы, минуты, секунды. */
-export function FlipCountdown({ to, live = "Эфир идёт", over = "Матч сыгран", label }: { to: string; live?: string; over?: string; label?: string }) {
+/** Отсчёт до начала плитками: дни, часы, минуты, секунды. Матч начинает организатор, поэтому
+    после назначенного времени отсчёт стоит на нулях с подписью, а не объявляет эфир. */
+export function FlipCountdown({ to, label }: { to: string; label?: string }) {
   const left = useSecondsLeft(to);
-  if (left !== null && left <= 0) return <p className="sf-cd-state">{left > -3 * 3600 ? live : over}</p>;
   const s = Math.max(0, left ?? 0);
   const parts = [
     { v: Math.floor(s / 86400), l: "дней" },
@@ -102,22 +102,25 @@ export function FlipCountdown({ to, live = "Эфир идёт", over = "Матч
     { v: s % 60, l: "секунд" },
   ];
   return (
-    <div className="sf-cd" role="timer" aria-label={label ?? "До начала"}>
-      {parts.map((p) => (
-        <div key={p.l}>
-          <b key={left === null ? "x" : p.v}>{left === null ? "--" : pad(p.v)}</b>
-          <small>{p.l}</small>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="sf-cd" role="timer" aria-label={label ?? "До начала"}>
+        {parts.map((p) => (
+          <div key={p.l}>
+            <b key={left === null ? "x" : p.v}>{left === null ? "--" : pad(p.v)}</b>
+            <small>{p.l}</small>
+          </div>
+        ))}
+      </div>
+      {left !== null && left <= 0 && <p className="sf-cd-soon">матч скоро начнётся</p>}
+    </>
   );
 }
 
-/** Короткий отсчёт строкой: «2 д 21:41:05». */
-export function ShortCountdown({ to, prefix = "", live = "эфир идёт", over = "сыгран" }: { to: string; prefix?: string; live?: string; over?: string }) {
+/** Короткий отсчёт строкой: «2 д 21:41:05»; после назначенного времени - soon, пока матч не начали. */
+export function ShortCountdown({ to, prefix = "", soon = "скоро начнётся" }: { to: string; prefix?: string; soon?: string }) {
   const left = useSecondsLeft(to);
   if (left === null) return <span>{prefix}скоро</span>;
-  if (left <= 0) return <span>{left > -3 * 3600 ? live : over}</span>;
+  if (left <= 0) return <span>{soon}</span>;
   const d = Math.floor(left / 86400);
   return (
     <span className="sf-tnum">
