@@ -12,6 +12,7 @@ import { fullDate, winrate } from "@/components/surface/fmt";
 import { initials } from "@/lib/format";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
+import { firstProfileSeason } from "@/components/surface/profile-season";
 import { BeltProfile } from "@/components/surface/belt-parts";
 
 function NotFound({ login }: { login: string }) {
@@ -100,17 +101,11 @@ function IdCard({ profile, season }: { profile: PlayerProfile; season?: Season }
   );
 }
 
-/** Три самые редкие нашивки текущего сезона, а пока в нём нет ни одной - последнего сезона с нашивками. */
-function rarestPatches(profile: PlayerProfile, seasons: Season[], active?: Season): { items: PlayerPatch[]; count: number } {
-  const order = [active, ...[...seasons].sort((a, b) => b.startedAt.localeCompare(a.startedAt))].filter((s): s is Season => !!s);
-  for (const s of order) {
-    const own = (profile.patches1x1?.[s.id]?.items ?? []).filter((p) => !p.provisional);
-    if (own.length) {
-      const items = [...own].sort((a, b) => a.holders - b.holders || PATCH_ORDER.indexOf(a.code) - PATCH_ORDER.indexOf(b.code));
-      return { items: items.slice(0, 3), count: own.length };
-    }
-  }
-  return { items: [], count: 0 };
+/** Три самые редкие нашивки сезона, который профиль открывает первым: цифра в шапке совпадает с блоком нашивок. */
+function rarestPatches(profile: PlayerProfile, season?: Season): { items: PlayerPatch[]; count: number } {
+  const own = (season ? (profile.patches1x1?.[season.id]?.items ?? []) : []).filter((p) => !p.provisional);
+  const items = [...own].sort((a, b) => a.holders - b.holders || PATCH_ORDER.indexOf(a.code) - PATCH_ORDER.indexOf(b.code));
+  return { items: items.slice(0, 3), count: own.length };
 }
 
 /** Профиль игрока в новом дизайне: пропуск рейдера, рейтинг по сезонам, матчи, команды и клипы.
@@ -133,7 +128,8 @@ export async function ProfileView({
   const active = seasons.find((s) => s.status === "active");
   const played = timeline1x1.some((p) => !p.correction);
   const name = user.displayName || user.login;
-  const sewn = rarestPatches(profile, seasons, active);
+  const shown = firstProfileSeason(timeline1x1, seasons);
+  const sewn = rarestPatches(profile, shown);
 
   return (
     <>
@@ -153,14 +149,14 @@ export async function ProfileView({
           <div className={`pt-idwrap ${sewn.items.length ? "sewn" : ""}`}>
             <IdCard profile={profile} season={active} />
             {sewn.items.length > 0 && (
-              <a className="pt-sewn" href="#patches" aria-label={`Нашивки ${name}: ${sewn.count} из ${PATCH_ORDER.length}`}>
+              <a className="pt-sewn" href="#patches" aria-label={`Нашивки ${name}, ${shown?.name}: ${sewn.count} из ${PATCH_ORDER.length}`}>
                 <span>
                   {sewn.items.map((p) => (
                     <PatchArt key={p.code} code={p.code} tier={p.tier} night />
                   ))}
                 </span>
                 <small>
-                  {sewn.count} из {PATCH_ORDER.length} нашивок ↓
+                  {sewn.count} из {PATCH_ORDER.length} нашивок · {shown?.name} ↓
                 </small>
               </a>
             )}

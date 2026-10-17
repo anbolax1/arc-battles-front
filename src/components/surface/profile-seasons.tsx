@@ -8,6 +8,7 @@ import { fmtAverage } from "@/lib/format";
 import type { KnockStats, MapStat, MmrPoint, MmrStats, OpponentStat, PatchCode, PlayerPatch, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
 import { ProfileChart, type ChartSegment } from "@/components/surface/profile-chart";
 import { ProfilePatches } from "@/components/surface/profile-patches";
+import { firstProfileSeason } from "@/components/surface/profile-season";
 import { fullDate, matchesWord } from "@/components/surface/fmt";
 
 /** Вкладка «все сезоны»: id сезона таким не бывает. */
@@ -146,7 +147,7 @@ export function ProfileSeasons({
   ];
   if (tabs.length > 1) tabs.push({ id: ALL, label: "Все сезоны" });
 
-  const [sel, setSel] = React.useState(() => (active && groups.has(active.id) ? active.id : (tabs[0]?.id ?? ALL)));
+  const [sel, setSel] = React.useState(() => firstProfileSeason(timeline1x1, seasons)?.id ?? tabs[0]?.id ?? ALL);
 
   const seasonOf = (key: string) => seasons.find((s) => s.id === key);
   const labelOf = (key: string) => seasonOf(key)?.name ?? "Вне сезонов";
