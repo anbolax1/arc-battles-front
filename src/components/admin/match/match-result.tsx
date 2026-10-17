@@ -39,7 +39,7 @@ export function MatchResult({ st, sides }: { st: MatchState; sides: [Participant
             <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-md bg-surface-2 px-3 py-2.5">
               <span className="font-display text-[0.68rem] uppercase text-primary-2">Раунд {r.number}</span>
               <span className="min-w-0 flex-1 text-sm">
-                {r.map || "—"} <span className="text-xs text-muted">· {loadoutLabel(r.number)}</span>
+                {r.map || "—"} <span className="text-xs text-muted">· {loadoutLabel(t, r.number)}</span>
               </span>
               <span className="font-display tnum">
                 {r.status === "pending" ? "не сыгран" : `${roundScore(st, r.number, a?.id)} : ${roundScore(st, r.number, b?.id)}`}

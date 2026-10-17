@@ -73,7 +73,7 @@ function RoundCard({ st, r, now, sides }: { st: MatchState; r: Round; now: boole
           {now ? " · идёт" : r.status === "finished" ? " · сыгран" : " · впереди"}
         </div>
         <div className="truncate text-sm">
-          {r.map || "—"} <span className="text-xs text-muted">· {loadoutLabel(r.number)}</span>
+          {r.map || "—"} <span className="text-xs text-muted">· {loadoutLabel(st.tournament, r.number)}</span>
         </div>
       </div>
       <span className={`flex-none font-display text-lg tnum ${r.status === "pending" ? "text-muted" : ""}`}>

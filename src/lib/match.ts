@@ -133,9 +133,9 @@ export function roundsLabel(n: number): string {
   return n === 1 ? "1 раунд" : `${n} раунда`;
 }
 
-/** Набор на раунд по правилам 3 сезона: в первом - бесплатный, дальше - свой. */
-export function loadoutLabel(round: number): string {
-  return round === 1 ? "бесплатный набор" : "свой набор";
+/** Набор на раунд по правилам 3 сезона: в первом - бесплатный, дальше - свой; в шоу-матче всегда свой. */
+export function loadoutLabel(t: Pick<Tournament, "format">, round: number): string {
+  return round === 1 && !isShowMatch(t) ? "бесплатный набор" : "свой набор";
 }
 
 /** Задание для показа: у задания на карту описание уже начинается с локации. */

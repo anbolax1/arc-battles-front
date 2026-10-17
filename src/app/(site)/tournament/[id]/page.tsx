@@ -186,7 +186,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
                     <div>
                       <div className="font-display text-xs uppercase text-primary-2">
                         Раунд {r.number}
-                        {rounds.length > 1 ? ` · ${loadoutLabel(r.number)}` : ""}
+                        {rounds.length > 1 ? ` · ${loadoutLabel(t, r.number)}` : ""}
                         {r.status === "live" ? " · идёт" : ""}
                       </div>
                       <div className="font-display text-lg uppercase">{r.map || "Карта не указана"}</div>

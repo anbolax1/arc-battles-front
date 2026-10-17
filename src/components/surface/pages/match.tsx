@@ -189,7 +189,7 @@ function RoundArt({ r, many, st, sides, scored }: { r: Round; many: boolean; st:
       <span className="sf-round-body">
         <span className="sf-round-n">
           Раунд {r.number}
-          {many ? ` · ${loadoutLabel(r.number)}` : ""}
+          {many ? ` · ${loadoutLabel(st.tournament, r.number)}` : ""}
           {r.status === "live" ? " · идёт" : ""}
         </span>
         <span className="sf-round-map">{r.map || "Карта не указана"}</span>
