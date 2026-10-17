@@ -5,7 +5,7 @@ import type { WidgetProps } from "./types";
 type Tone = "a" | "b";
 
 const TONE: Record<Tone, { text: string; bar: string; glow: string }> = {
-  a: { text: "text-primary-2", bar: "bg-[var(--primary)]", glow: "shadow-[0_0_16px_2px_rgba(255,106,26,0.6)]" },
+  a: { text: "text-primary-2", bar: "bg-[var(--primary)]", glow: "shadow-[0_0_16px_2px_var(--primary-glow)]" },
   b: { text: "text-accent", bar: "bg-[var(--accent)]", glow: "shadow-[0_0_16px_2px_rgba(34,211,238,0.55)]" },
 };
 

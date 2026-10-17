@@ -7,6 +7,7 @@ import { DEFAULT_LAYOUT } from "./default-layout";
 import { WIDGET_REGISTRY } from "./widgets/registry";
 import { PatchToasts } from "./patch-toasts";
 import { PreviewBgLayer, type PreviewBg } from "./preview-bg";
+import { accentVars } from "./accent";
 
 export const STAGE_W = 1920;
 export const STAGE_H = 1080;
@@ -77,7 +78,7 @@ export function OverlayStage({
     zoom: scale,
     opacity: scale > 0 ? 1 : 0,
     transition: "opacity 200ms ease",
-    ...(lay.accent ? ({ "--primary": lay.accent } as CSSProperties) : {}),
+    ...accentVars(lay.accent),
   };
 
   const widgets = [...lay.widgets].filter((w) => w.visible).sort((a, b) => a.z - b.z);
@@ -101,7 +102,7 @@ export function OverlayStage({
             transform: inst.scale && inst.scale !== 1 ? `scale(${inst.scale})` : undefined,
             transformOrigin: "top left",
             zIndex: inst.z,
-            ...(inst.accent ? ({ "--primary": inst.accent } as CSSProperties) : {}),
+            ...accentVars(inst.accent),
           };
           return (
             <div key={inst.id} style={wStyle}>

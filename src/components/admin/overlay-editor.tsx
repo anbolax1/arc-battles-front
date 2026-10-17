@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { STAGE_W, STAGE_H } from "@/components/overlay/overlay-stage";
 import { DEFAULT_LAYOUT, makeWidget } from "@/components/overlay/default-layout";
 import { PreviewBgLayer, PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
+import { accentVars } from "@/components/overlay/accent";
 import { WIDGET_LABELS, WIDGET_ORDER, WIDGET_REGISTRY } from "@/components/overlay/widgets/registry";
 
 const DEFAULT_PAD = 48; // отступ от края при выравнивании, px сцены (по умолчанию)
@@ -526,7 +527,7 @@ export function OverlayEditor({
             opacity: scale > 0 ? 1 : 0,
             backgroundImage: GRID,
             backgroundSize: "40px 40px",
-            ...(layout.accent ? ({ "--primary": layout.accent } as CSSProperties) : {}),
+            ...accentVars(layout.accent),
           }}
         >
           <PreviewBgLayer bg={bg} />
@@ -895,14 +896,26 @@ export function OverlayEditor({
               />
               <span className="w-9 text-right text-xs text-muted tnum">{layout.stageBg?.on ? `${Math.round(layout.stageBg.opacity * 100)}%` : "—"}</span>
             </SettingRow>
-            <SettingRow label="Акцент">
+            <SettingRow label="Основной цвет">
               <input
                 type="color"
                 value={layout.accent ?? "#ff6a1a"}
                 onChange={(e) => onChange({ ...layout, accent: e.target.value })}
-                className="h-6 w-8 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0"
-                aria-label="акцентный цвет сцены"
+                className="h-6 w-8 flex-none cursor-pointer rounded border border-[var(--border)] bg-transparent p-0"
+                aria-label="основной цвет сцены"
+                title="вместо оранжевого: сторона A на табло, свои задания и их очки"
               />
+              <span className="min-w-0 text-[0.7rem] leading-snug text-muted">сторона A, свои задания и очки</span>
+              {layout.accent && (
+                <button
+                  type="button"
+                  className="ml-auto flex-none text-xs text-muted hover:text-fg"
+                  onClick={() => onChange({ ...layout, accent: undefined })}
+                  title="вернуть оранжевый цвет лиги"
+                >
+                  ↺ как у лиги
+                </button>
+              )}
             </SettingRow>
           </PanelSection>
           <div className="border-t border-[var(--border)] pt-2.5">
