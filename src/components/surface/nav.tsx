@@ -6,7 +6,7 @@ import * as React from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { LogoutIcon } from "@/components/icons";
-import { Mark } from "@/components/surface/stripes";
+import { Mark, Wordmark } from "@/components/surface/stripes";
 import { SfAvatar } from "@/components/surface/ui";
 import { ShortCountdown } from "@/components/surface/motion";
 
@@ -96,9 +96,9 @@ export function SurfaceNav({ live }: { live: NavLive | null }) {
   return (
     <header className="sf-nav">
       <div className="sf-wrap sf-nav-in">
-        <Link href="/" className="sf-brand" aria-label="Лига, на главную">
+        <Link href="/" className="sf-brand" aria-label="GOARC.PRO, на главную">
           <Mark />
-          <b>Лига</b>
+          <Wordmark />
         </Link>
         <nav className="sf-links" aria-label="Разделы">
           {links.map((l) => (

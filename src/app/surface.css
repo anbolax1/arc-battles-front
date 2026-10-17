@@ -399,9 +399,35 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
+.sf-wordmark {
+  display: flex;
+  align-items: center;
+}
+.sf-wordmark i {
+  font-style: normal;
+  opacity: 0.45;
+}
+/* Плашка со скосом, как полосы перехода между страницами; свой слой держит её под буквами. */
+.sf-wordmark em {
+  position: relative;
+  isolation: isolate;
+  margin-left: 4px;
+  padding: 3px 6px 2px;
+  font-style: normal;
+  color: var(--sf-ink);
+}
+.sf-wordmark em::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sf-amber);
+  transform: skewX(-12deg);
+}
+/* Шире 22px нельзя: у организатора рядом с названием, «Кабинетом» и отсчётом в плашке шапка вылезет за край. */
 .sf-links {
   display: flex;
-  gap: clamp(14px, 1.7vw, 26px);
+  gap: clamp(14px, 1.7vw, 22px);
   margin-left: auto;
 }
 .sf-links a {
@@ -628,20 +654,10 @@
 .sf-progress i:nth-child(4) {
   background: var(--sf-s4);
 }
-/* Шесть разделов меню рядом с полным названием и плашкой эфира в строку не помещаются: на средней
-   ширине и при плашке от бренда остаётся знак, на узкой плашка прячется. */
-@media (max-width: 1319px) {
+/* Отсчёт до шоу-матча в плашке эфира рядом с названием и разделами помещается только с 1366px,
+   на более узкой шапке плашка прячется. */
+@media (max-width: 1365px) {
   .sf-nav-cta .sf-live-chip {
-    display: none;
-  }
-}
-@media (min-width: 1081px) and (max-width: 1365px) {
-  .sf-nav .sf-brand b {
-    display: none;
-  }
-}
-@media (min-width: 1320px) {
-  .sf-nav:has(.sf-live-chip) .sf-brand b {
     display: none;
   }
 }

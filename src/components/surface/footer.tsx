@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BoostyIcon, DiscordIcon, TelegramIcon, TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { BOOSTY_URL, STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
-import { Mark } from "@/components/surface/stripes";
+import { Mark, Wordmark } from "@/components/surface/stripes";
 
 /** Сезон для ссылки на его итоги: идущий, а между сезонами - последний. */
 export interface FooterSeason {
@@ -38,7 +38,7 @@ export function SurfaceFooter({ season }: { season?: FooterSeason | null }) {
         <div className="sf-foot-top">
           <Link href="/" className="sf-brand">
             <Mark />
-            <b>Лига</b>
+            <Wordmark />
           </Link>
           <nav className="sf-foot-links" aria-label="Разделы сайта">
             {links(season).map((l) => (

@@ -26,6 +26,16 @@ export function Stripes({
   );
 }
 
+/** Название сайта - его домен, PRO на янтарной плашке. */
+export function Wordmark() {
+  return (
+    <b className="sf-wordmark">
+      GOARC<i>.</i>
+      <em>PRO</em>
+    </b>
+  );
+}
+
 /** Знак: молния из четырёх лент в сливовом круге. */
 export function Mark() {
   const colors = ["var(--sf-s1)", "var(--sf-s2)", "var(--sf-s3)", "var(--sf-s4)"];
