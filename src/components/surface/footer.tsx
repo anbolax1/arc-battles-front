@@ -57,8 +57,8 @@ export function SurfaceFooter({ season }: { season?: FooterSeason | null }) {
         </div>
         <div className="sf-foot-bottom">
           <p>
-            © {new Date().getFullYear()} Лига. Турниры сообщества ARC Raiders в эфире у Дениса Блима. Фанатский турнир, не является
-            официальным продуктом Embark Studios AB.
+            © {new Date().getFullYear()} GOARC.PRO. Лига, Турниры и Шоу-Матчи в ARC Raiders от создателя Денис Блим. Фанатский проект, не
+            является официальным продуктом Embark Studios AB.
           </p>
           <p>
             Разработка и поддержка — <Link href="/profile/Istwood">Istwood</Link>

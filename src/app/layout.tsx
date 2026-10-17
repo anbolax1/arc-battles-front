@@ -29,9 +29,9 @@ const martian = Martian_Mono({ subsets: ["latin", "cyrillic"], variable: "--font
 const surfaceFonts = [sofia, sofiaSemi, sofiaCond, science, martian].map((f) => f.variable).join(" ");
 
 export const metadata: Metadata = {
-  title: "Лига — турниры по ARC Raiders",
+  title: "GOARC.PRO – Лига и Турниры по ARC Raiders",
   description:
-    "Серия турниров по ARC Raiders в прямом эфире. Ведущий — Денис Блим. Рейтинг, расписание, регистрация и кабинет организатора.",
+    "Лига, Турниры и Шоу-Матчи в ARC Raiders от создателя Денис Блим в прямом эфире. Матчи, рейтинг, правила и профили игроков.",
 };
 
 export default function RootLayout({

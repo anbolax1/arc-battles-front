@@ -88,7 +88,8 @@ export function Hero({
             ) : null}
           </h1>
           <p className="sf-lead">
-            Матчи 1×1 и 2×2 по ARC Raiders в прямом эфире. Пики и баны карт, задания и рейтинг по MMR. Участвуй в лиге и получи звание чемпиона.
+            Матчи 1×1 и 2×2 по ARC Raiders в прямом эфире. Пики и баны карт, задания и рейтинг по MMR. Участвуй в лиге, получи звание
+            чемпиона и выиграй призы.
           </p>
           <div className="sf-hero-actions">
             <Link href="/join" className="sf-btn sf-btn-amber">
