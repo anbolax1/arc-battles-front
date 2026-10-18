@@ -5,12 +5,17 @@ import { api, errorText } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel } from "@/components/ui/card";
-import type { CatalogTask, MapInfo, TaskCategory, TaskKind } from "@/lib/types";
+import type { CatalogTask, MapInfo, TaskCategory, TaskKind, TaskTag } from "@/lib/types";
 
 const KINDS: Array<[TaskKind, string]> = [
   ["pvp", "PvP"],
   ["pve", "PvE"],
   ["pvpve", "Для всех"],
+];
+
+const TAGS: Array<[TaskTag, string]> = [
+  ["normal", "Обычное"],
+  ["timed", "На время"],
 ];
 
 // Баллы храним строкой, чтобы поле можно было стереть и вписать заново.
@@ -19,6 +24,7 @@ type Draft = {
   name: string;
   text: string;
   kind: TaskKind;
+  tag: TaskTag;
   mapCodes: string[];
   points: string;
   active: boolean;
@@ -41,6 +47,8 @@ const emptyDraft = (category: TaskCategory, kind: TaskKind, mapCode: string): Dr
   name: "",
   text: "",
   kind,
+  // протокол выполняют до 15-й минуты, он на время
+  tag: category === "protocol" ? "timed" : "normal",
   mapCodes: mapCode ? [mapCode] : [],
   points: category === "protocol" ? "1" : "2",
   active: true,
@@ -195,7 +203,8 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
       </div>
       <p className="text-sm text-muted">
         В матче каждой стороне на раунд выпадает общее задание, задание на карту раунда и протокол — из пула под тип игроков, без
-        повторов в матче. Задание стоит 2 балла (соперник за чужое получает 1), протокол — 1 балл.
+        повторов в матче. Задание стоит 2 балла (соперник за чужое получает 1), протокол — 1 балл. Тег «обычное» или «на время»
+        виден на стриме в виджете «Задания V2».
       </p>
 
       <Panel className="flex flex-wrap items-end gap-x-6 gap-y-3 p-4">
@@ -271,6 +280,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                       </div>
                     )}
                   </div>
+                  {t.tag === "timed" && <span className="badge badge-champ"><span>на время</span></span>}
                   <span className="badge badge-official"><span>{KINDS.find(([k]) => k === t.kind)?.[1] ?? t.kind}</span></span>
                   <span className="pts pts-orange"><span>+{t.points}</span></span>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => toggle(t)}>
@@ -285,6 +295,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                         name: t.name ?? "",
                         text: t.text,
                         kind: t.kind,
+                        tag: t.tag,
                         mapCodes: t.mapCodes,
                         points: String(t.points),
                         active: t.active,
@@ -329,8 +340,8 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
               </label>
               <textarea id="d-text" className="input min-h-[80px]" value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} />
             </div>
-            {category === "task" && (
-              <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {category === "task" && (
                 <div className="space-y-1.5">
                   <label className="field-label" htmlFor="d-kind">
                     Пул
@@ -343,8 +354,18 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                     ))}
                   </select>
                 </div>
+              )}
+              <div className="space-y-1.5">
+                <span className="field-label block">Тег</span>
+                <div className="seg">
+                  {TAGS.map(([k, label]) => (
+                    <button key={k} type="button" className="seg-btn" aria-pressed={draft.tag === k} onClick={() => setDraft({ ...draft, tag: k })}>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
+            </div>
             {category === "task" && (
               <div className="space-y-1.5">
                 <span className="field-label">Карты</span>

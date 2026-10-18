@@ -346,6 +346,8 @@ export interface TeamProfile {
 }
 
 export type TaskCategory = "task" | "protocol";
+/** Тег задания на экране: «обычное» или «на время». */
+export type TaskTag = "normal" | "timed";
 
 export interface CatalogTask {
   id: string;
@@ -359,6 +361,7 @@ export interface CatalogTask {
   /** Название задания, например «Голыми руками». */
   name?: string;
   category: TaskCategory;
+  tag: TaskTag;
   /** Карты задания; пусто - общее, на любую карту. */
   mapCodes: string[];
   /** Выключенные не раздаются, но остаются в истории матчей. */
@@ -481,6 +484,7 @@ export interface LiveComplication {
   reward?: number;
   /** Протокол 3 сезона выполнен. */
   done?: boolean;
+  tag?: TaskTag;
 }
 
 /** Ход пиков-банов в оверлее. */
@@ -561,6 +565,7 @@ export interface LiveBonus {
   who?: string; // имя стороны-владельца
   opponent?: boolean; // задание противника фокусной стороны
   category?: "task" | "map" | "protocol";
+  tag?: TaskTag;
 }
 
 /** Типы виджетов модульного оверлея. */
@@ -600,7 +605,7 @@ export interface WidgetInstance {
   showRoundScore?: boolean;
   /** Контракты: показывать и контракты противника (что можно «украсть» за +1). */
   showOpponentContracts?: boolean;
-  /** Задания: плашка «карта» у задания на карту раунда; в «Заданиях V2» - «на карту» вместо «обычное». */
+  /** Задания: плашка «карта» у задания на карту раунда. */
   showTags?: boolean;
   /** Табло: показывать MMR сторон. */
   showMmr?: boolean;
