@@ -6,6 +6,7 @@ import { ComplicationsWidget } from "./complications-widget";
 import { StandingsWidget } from "./standings-widget";
 import { RoundTasksWidget } from "./round-tasks-widget";
 import { BonusTasksWidget } from "./bonus-tasks-widget";
+import { TasksV2Widget } from "./tasks-v2-widget";
 import { TextWidget } from "./text-widget";
 import { LogoWidget } from "./logo-widget";
 import { VetoWidget } from "./veto-widget";
@@ -20,6 +21,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, ComponentType<WidgetProps>> = {
   standings: StandingsWidget,
   roundTasks: RoundTasksWidget,
   bonusTasks: BonusTasksWidget,
+  tasksV2: TasksV2Widget,
   text: TextWidget,
   logo: LogoWidget,
   veto: VetoWidget,
@@ -33,6 +35,7 @@ export const WIDGET_LABELS: Record<WidgetType, string> = {
   standings: "Таблица мест",
   roundTasks: "Основные задания",
   bonusTasks: "Задания",
+  tasksV2: "Задания V2",
   text: "Текст",
   logo: "Логотип",
   veto: "Пики-баны",
@@ -46,6 +49,7 @@ export const WIDGET_ORDER: WidgetType[] = [
   "standings",
   "roundTasks",
   "bonusTasks",
+  "tasksV2",
   "veto",
   "text",
   "logo",

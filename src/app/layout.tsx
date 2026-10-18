@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Russo_One, Chakra_Petch, Sofia_Sans, Sofia_Sans_Semi_Condensed, Sofia_Sans_Condensed, Science_Gothic, Martian_Mono } from "next/font/google";
+import { Russo_One, Chakra_Petch, Sofia_Sans, Sofia_Sans_Semi_Condensed, Sofia_Sans_Condensed, Science_Gothic, Martian_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
 import "./surface.css";
 import { ErrorReporter } from "@/components/error-reporter";
@@ -28,6 +28,9 @@ const science = Science_Gothic({ subsets: ["latin", "cyrillic"], axes: ["wdth"],
 const martian = Martian_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-martian", display: "swap", preload: false });
 const surfaceFonts = [sofia, sofiaSemi, sofiaCond, science, martian].map((f) => f.variable).join(" ");
 
+// Шрифт виджета «Задания V2» в оверлее: файл качается, только когда виджет на экране.
+const montserrat = Montserrat({ weight: ["800", "900"], subsets: ["latin", "cyrillic"], variable: "--font-montserrat", display: "swap", preload: false });
+
 export const metadata: Metadata = {
   title: "GOARC.PRO – Лига и Турниры по ARC Raiders",
   description:
@@ -38,7 +41,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" className={`${russo.variable} ${chakra.variable} ${surfaceFonts}`}>
+    <html lang="ru" className={`${russo.variable} ${chakra.variable} ${surfaceFonts} ${montserrat.variable}`}>
       <body>
         <ErrorReporter />
         {children}

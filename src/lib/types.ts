@@ -571,6 +571,7 @@ export type WidgetType =
   | "standings"
   | "roundTasks"
   | "bonusTasks"
+  | "tasksV2"
   | "text"
   | "logo"
   | "veto";
@@ -599,7 +600,7 @@ export interface WidgetInstance {
   showRoundScore?: boolean;
   /** Контракты: показывать и контракты противника (что можно «украсть» за +1). */
   showOpponentContracts?: boolean;
-  /** Задания: плашка «карта» у задания на карту раунда. */
+  /** Задания: плашка «карта» у задания на карту раунда; в «Заданиях V2» - «на карту» вместо «обычное». */
   showTags?: boolean;
   /** Табло: показывать MMR сторон. */
   showMmr?: boolean;

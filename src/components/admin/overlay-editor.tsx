@@ -144,6 +144,12 @@ function showOptions(w: WidgetInstance): ShowOption[] {
       { key: "tags", label: "Тег «карта»", title: "плашка «карта» у заданий на карту раунда", on: !!w.showTags, patch: (on) => ({ showTags: on }) },
     );
   }
+  if (w.type === "tasksV2") {
+    out.push(
+      { key: "opp", label: "Задания противника", title: "задания противника, которые сторона в рейде может украсть за +1", on: !!w.showOpponentContracts, patch: (on) => ({ showOpponentContracts: on }) },
+      { key: "tags", label: "Тег «на карту»", title: "у заданий на карту раунда плашка «на карту» вместо «обычное»", on: !!w.showTags, patch: (on) => ({ showTags: on }) },
+    );
+  }
   return out;
 }
 

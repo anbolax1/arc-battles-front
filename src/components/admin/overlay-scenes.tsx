@@ -58,17 +58,17 @@ const SAMPLE_STATE: LiveState = {
 };
 
 /** Данные, которых в идущем матче может не быть: задания и протоколы сервер выдаёт с началом раунда,
-    основные задания есть только в старом пульте. */
-const SAMPLE_PARTS: { type: WidgetType; missing: string; has: (s: LiveState) => boolean; part: Partial<LiveState> }[] = [
-  { type: "bonusTasks", missing: "заданий", has: (s) => !!s.bonusTasks?.length, part: { bonusTasks: SAMPLE_STATE.bonusTasks } },
-  { type: "roundTasks", missing: "основных заданий", has: (s) => !!s.roundTasks?.length, part: { roundTasks: SAMPLE_STATE.roundTasks } },
+    основные задания есть только в старом пульте. types - виджеты, которые эти данные показывают. */
+const SAMPLE_PARTS: { types: WidgetType[]; missing: string; has: (s: LiveState) => boolean; part: Partial<LiveState> }[] = [
+  { types: ["bonusTasks", "tasksV2"], missing: "заданий", has: (s) => !!s.bonusTasks?.length, part: { bonusTasks: SAMPLE_STATE.bonusTasks } },
+  { types: ["roundTasks"], missing: "основных заданий", has: (s) => !!s.roundTasks?.length, part: { roundTasks: SAMPLE_STATE.roundTasks } },
   {
-    type: "complications",
+    types: ["complications", "tasksV2"],
     missing: "протоколов",
     has: (s) => !!s.complications?.length || !!s.complication,
     part: { complications: SAMPLE_STATE.complications },
   },
-  { type: "veto", missing: "пиков-банов", has: (s) => !!s.veto?.length, part: { veto: SAMPLE_STATE.veto } },
+  { types: ["veto"], missing: "пиков-банов", has: (s) => !!s.veto?.length, part: { veto: SAMPLE_STATE.veto } },
 ];
 
 /** Что показать в превью: настоящий матч, а чего в нём ещё нет - из примера, иначе виджет не расставить. */
@@ -82,7 +82,7 @@ function previewOf(state: LiveState | null, layout: OverlayLayout): { data: Live
   const gaps = SAMPLE_PARTS.filter((p) => !p.has(state));
   const data = gaps.reduce<LiveState>((s, p) => ({ ...s, ...p.part }), state);
   const shown = new Set(layout.widgets.filter((w) => w.visible).map((w) => w.type));
-  const names = gaps.filter((p) => shown.has(p.type)).map((p) => p.missing);
+  const names = gaps.filter((p) => p.types.some((t) => shown.has(t))).map((p) => p.missing);
   if (!names.length) return { data };
   const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} и ${names[names.length - 1]}` : names[0];
   return { data, note: `В матче пока нет ${list}: в превью они для примера. В OBS такие виджеты не видны, пока данных нет.` };
