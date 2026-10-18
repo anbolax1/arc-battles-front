@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { hasScore, mapImage, matchSides, roundScore, taskTitle, totalScore } from "@/lib/match";
 import type { MatchState, Participant, VetoAction } from "@/lib/types";
 import { SecHead } from "@/components/surface/ui";
-import { CountUp } from "@/components/surface/motion";
+import { CountUp, FitBoard } from "@/components/surface/motion";
 import { RoundCard, type RoundTaskView } from "@/components/surface/round-card";
 import { MmrMove } from "@/components/surface/home-parts";
 import { dayMonth } from "@/components/surface/fmt";
@@ -69,7 +69,7 @@ export function LastMatch({ st }: { st: MatchState }) {
           title="последний рейд"
           action={winner ? <span className="sf-stamp win">Победа {winner.name}</span> : <span className="sf-stamp">Ничья</span>}
         />
-        <div className="sf-board">
+        <FitBoard className="sf-board">
           <div className="sf-side">
             <span className="sf-corner" style={{ background: "var(--sf-a)" }} />
             <span className="sf-side-name">{a?.name ?? "—"}</span>
@@ -103,7 +103,7 @@ export function LastMatch({ st }: { st: MatchState }) {
               </span>
             )}
           </div>
-        </div>
+        </FitBoard>
         {rounds.length > 0 && (
           <div className="sf-rounds" style={{ "--n": Math.min(rounds.length, 3) } as CSSProperties}>
             {rounds.map((r) => (

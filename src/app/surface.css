@@ -1674,9 +1674,10 @@
 }
 
 /* ---------- табло матча ---------- */
+/* колонка не уже ника: длинный ник сдвигает счёт к сопернику */
 .sf-board {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr);
   align-items: center;
   gap: clamp(12px, 3vw, 40px);
   padding-block: 8px 36px;
@@ -1703,7 +1704,7 @@
 .sf-side-name {
   font: 900 clamp(30px, 4.6vw, 64px) / 0.9 var(--sf-ff-d);
   letter-spacing: -0.03em;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   text-decoration: none;
   color: inherit;
 }
@@ -1768,7 +1769,7 @@ a.sf-side-name:hover {
 }
 @media (max-width: 760px) {
   .sf-board {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(min-content, 1fr) minmax(min-content, 1fr);
   }
   .sf-score {
     grid-column: 1 / -1;
@@ -3735,14 +3736,14 @@ a.sf-tr:hover,
 /* страница матча */
 .sf-mh-board {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr);
   align-items: center;
   gap: clamp(12px, 3vw, 40px);
   margin-top: 20px;
 }
 @media (max-width: 760px) {
   .sf-mh-board {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(min-content, 1fr) minmax(min-content, 1fr);
   }
   .sf-mh-board .sf-score {
     grid-column: 1 / -1;

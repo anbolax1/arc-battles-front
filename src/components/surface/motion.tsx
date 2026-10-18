@@ -220,3 +220,55 @@ export function FitLine({ children }: { children: string }) {
   }, [children]);
   return <span ref={ref}>{children}</span>;
 }
+
+/** Табло: ник в одну строку. Длинный ник сдвигает счёт к сопернику, а если места нет и так - ужимается. */
+export function FitBoard({ className, children }: { className: string; children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const board = ref.current;
+    if (!board) return;
+    const names = [...board.querySelectorAll<HTMLElement>(".sf-side-name")];
+    const score = board.querySelector<HTMLElement>(".sf-score");
+    if (names.length !== 2) return;
+    const fit = () => {
+      names.forEach((el) => (el.style.fontSize = ""));
+      const cs = getComputedStyle(board);
+      const gap = parseFloat(cs.columnGap) || 0;
+      // На узком экране счёт стоит строкой выше, и ники делят всю ширину.
+      const inRow = cs.gridTemplateColumns.split(" ").length === 3;
+      const room = board.clientWidth - gap * (inRow ? 2 : 1) - (inRow && score ? score.getBoundingClientRect().width : 0);
+      if (room <= 0) return;
+      const widths = names.map((el) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        return r.getBoundingClientRect().width;
+      });
+      // Короткий ник не трогаем, длинный ужимается до оставшегося места, но не меньше половины.
+      const cap = Math.max(room / 2, room - Math.min(...widths));
+      names.forEach((el, i) => {
+        if (widths[i] <= cap) return;
+        const size = parseFloat(getComputedStyle(el).fontSize) * (cap / widths[i]);
+        el.style.fontSize = `${Math.floor(size * 10) / 10}px`;
+      });
+    };
+    fit();
+    // Подгонка - в следующем кадре: высота табло зависит от ников, и правка внутри ResizeObserver дала бы ошибку цикла.
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(fit);
+    });
+    ro.observe(board);
+    if (score) ro.observe(score);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [children]);
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
+}

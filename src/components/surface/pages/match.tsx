@@ -26,7 +26,7 @@ import {
 import type { HeadToHeadMatch, MatchState, Matchup, MatchupSide, Participant, ParticipantMmr, Round } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack, TagChips, signed } from "@/components/surface/ui";
-import { CountUp, FlipCountdown } from "@/components/surface/motion";
+import { CountUp, FitBoard, FlipCountdown } from "@/components/surface/motion";
 import { MmrMove, Odds, VetoOrder } from "@/components/surface/home-parts";
 import { SurfaceHighlights } from "@/components/surface/highlights";
 import { MatchVeto } from "@/components/surface/match-veto";
@@ -449,7 +449,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
             )}
           </div>
 
-          <div className="sf-mh-board">
+          <FitBoard className="sf-mh-board">
             <BoardSide
               p={a}
               i={0}
@@ -483,7 +483,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
               winner={!!b && t.winnerParticipantId === b.id}
               beltLine={b?.userId && b.userId === holderId ? beltLine : undefined}
             />
-          </div>
+          </FitBoard>
 
           {(chance || t.prize) && (
             <div className="sf-mh-extra">

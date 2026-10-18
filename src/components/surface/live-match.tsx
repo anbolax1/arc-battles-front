@@ -4,7 +4,7 @@ import { TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, YOUTUBE_URL } from "@/lib/links";
 import { hasScore, isShowMatch, mapImage, matchSides, roundScore, roundsLabel, stageLabel, totalScore } from "@/lib/match";
 import type { Belt, MatchState, Matchup, MatchupSide } from "@/lib/types";
-import { CountUp } from "@/components/surface/motion";
+import { CountUp, FitBoard } from "@/components/surface/motion";
 import { RoundCard } from "@/components/surface/round-card";
 import { roundTasks, VetoChips } from "@/components/surface/last-match";
 import { Odds } from "@/components/surface/home-parts";
@@ -62,7 +62,7 @@ export function LiveMatch({ st, matchup, organizer, belt = null }: { st: MatchSt
               {mark && <span className="sf-live-tag belt">{beltMarkLabel(mark)}</span>}
               <p className="sf-eyebrow">{eyebrow}</p>
             </div>
-            <div className="sf-board">
+            <FitBoard className="sf-board">
               <div className="sf-side">
                 <span className="sf-corner" style={{ background: "var(--sf-a)" }} />
                 <span className="sf-side-name">{a?.name ?? "—"}</span>
@@ -90,7 +90,7 @@ export function LiveMatch({ st, matchup, organizer, belt = null }: { st: MatchSt
                 <Standing s={ib} />
                 {holder && b?.userId === holder && <span className="sf-side-mmr sf-live-belt">{beltLine}</span>}
               </div>
-            </div>
+            </FitBoard>
             {vetoNow && <VetoChips veto={st.veto} />}
             {withMaps && (
               <div className="sf-rounds" style={{ "--n": Math.min(rounds.length, 3) } as CSSProperties}>
