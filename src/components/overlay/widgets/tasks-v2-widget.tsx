@@ -16,12 +16,15 @@ function toRow(r: { tag?: string; label?: string; points: number; done: boolean;
   return { ...r, tag, label: r.label ?? TAG_LABELS[tag] };
 }
 
-/** Галочка вместо баллов. viewBox обрезан по краям линии, чтобы высота галочки совпала с заглавной буквой. */
-function Check() {
+/** Знак в квадрате слева: плюс - задание выполнено, минус - ещё нет. Знак 13px в поле 14px:
+    чётный размер браузер ставит точно по центру квадрата, нечётный сдвигает на полпикселя. */
+function Mark({ done }: { done: boolean }) {
   return (
-    <svg className="tw-check" viewBox="1.44 3.05 13.22 11.68" aria-hidden>
-      <path d="M2.5 8.5l4 4 7-8.5" fill="none" stroke="currentColor" strokeWidth="3" />
-    </svg>
+    <span className="tw-mark">
+      <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden>
+        <path d={done ? "M4.5.5h5v4h4v5h-4v4h-5v-4h-4v-5h4z" : "M.5 5h13v4H.5z"} fill="currentColor" />
+      </svg>
+    </span>
   );
 }
 
@@ -46,8 +49,9 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
       <div className="tw-list">
         {rows.map((r, i) => (
           <React.Fragment key={i}>
+            <Mark done={r.done} />
             <span className="tw-kind">{r.label}</span>
-            <span className={`tw-pts tw-pts-${r.tag}`}>{r.done ? <Check /> : `+${r.points}`}</span>
+            <span className={`tw-pts tw-pts-${r.tag}`}>+{r.points}</span>
             <span className="tw-text">{r.text}</span>
           </React.Fragment>
         ))}

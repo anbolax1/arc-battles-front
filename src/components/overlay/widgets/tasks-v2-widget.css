@@ -11,13 +11,25 @@
    если высоту виджета задали больше, и не обрезают верх, если меньше. */
 .tw-list {
   display: grid;
-  grid-template-columns: max-content max-content minmax(0, 1fr);
+  grid-template-columns: repeat(3, max-content) minmax(0, 1fr);
   column-gap: 5px;
   row-gap: 10px;
   /* по линии текста: при центровке каждой ячейки отдельно масштаб сцены разводит надписи на пиксель */
   align-items: baseline;
   margin: auto 0;
   padding: 36px 10px;
+}
+/* Квадрат по верху строки, вровень с плашками: знак центруется по квадрату, а не по линии текста */
+.tw-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #eba900;
+  background: #120918;
+  color: #ebe2cf;
 }
 /* Строка текста высотой с плашку: надпись по центру плашки и на общей линии с названием */
 .tw-kind,
@@ -41,12 +53,6 @@
 }
 .tw-pts-timed {
   background: #57ef7e;
-}
-/* Галочка стоит на линии текста и высотой с заглавную букву Montserrat (0.7em), как цифры баллов */
-.tw-check {
-  display: inline-block;
-  height: 0.7em;
-  vertical-align: baseline;
 }
 .tw-text {
   color: #ebe2cf;
