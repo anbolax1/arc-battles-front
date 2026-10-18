@@ -1777,6 +1777,49 @@ a.sf-side-name:hover {
     justify-content: center;
   }
 }
+/* ники со счётом не влезли в строку: стороны друг под другом, у каждой свой счёт справа */
+.sf-board.stacked,
+.sf-mh-board.stacked {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 18px;
+}
+.stacked > .sf-side {
+  grid-column: 1;
+}
+.stacked > .sf-side.b {
+  grid-row: 2;
+  text-align: left;
+  justify-items: start;
+}
+.stacked > .sf-side.b :is(.sf-side-mmr, .sf-side-tags, .sf-side-roster) {
+  justify-content: flex-start;
+}
+.sf-mh-board.stacked .sf-side.b .sf-stamp {
+  justify-self: start;
+}
+.stacked > .sf-score {
+  display: contents;
+  font-size: clamp(44px, 7vw, 96px);
+}
+.stacked > .sf-score.vs {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.stacked > .sf-score > i {
+  display: none;
+}
+.stacked > .sf-score > b {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.stacked > .sf-score > b:last-of-type {
+  grid-row: 2;
+}
+.stacked > .sf-score > b:only-of-type {
+  grid-row: 1 / span 2;
+}
 
 /* штамп (теги, победа) */
 .sf-stamp {

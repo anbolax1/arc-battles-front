@@ -221,7 +221,10 @@ export function FitLine({ children }: { children: string }) {
   return <span ref={ref}>{children}</span>;
 }
 
-/** Табло: ник в одну строку. Длинный ник сдвигает счёт к сопернику, а если места нет и так - ужимается. */
+/**
+ * Табло: ник в одну строку. Длинный ник сдвигает счёт к сопернику, а если оба ника со счётом
+ * не влезают в строку - стороны встают друг под другом, каждая со своим счётом.
+ */
 export function FitBoard({ className, children }: { className: string; children: React.ReactNode }) {
   const ref = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
@@ -230,39 +233,49 @@ export function FitBoard({ className, children }: { className: string; children:
     const names = [...board.querySelectorAll<HTMLElement>(".sf-side-name")];
     const score = board.querySelector<HTMLElement>(".sf-score");
     if (names.length !== 2) return;
+    // Счёт при показе досчитывает до итога и сначала уже - берём самый широкий, иначе табло прыгало бы между видами.
+    const widest = { at: 0, row: 0, stacked: 0 };
     const fit = () => {
+      if (board.clientWidth !== widest.at) Object.assign(widest, { at: board.clientWidth, row: 0, stacked: 0 });
       names.forEach((el) => (el.style.fontSize = ""));
+      board.classList.remove("stacked");
       const cs = getComputedStyle(board);
       const gap = parseFloat(cs.columnGap) || 0;
       // На узком экране счёт стоит строкой выше, и ники делят всю ширину.
       const inRow = cs.gridTemplateColumns.split(" ").length === 3;
-      const room = board.clientWidth - gap * (inRow ? 2 : 1) - (inRow && score ? score.getBoundingClientRect().width : 0);
-      if (room <= 0) return;
+      if (inRow && score) widest.row = Math.max(widest.row, score.getBoundingClientRect().width);
       const widths = names.map((el) => {
         const r = document.createRange();
         r.selectNodeContents(el);
         return r.getBoundingClientRect().width;
       });
-      // Короткий ник не трогаем, длинный ужимается до оставшегося места, но не меньше половины.
-      const cap = Math.max(room / 2, room - Math.min(...widths));
+      if (widths[0] + widths[1] <= board.clientWidth - gap * (inRow ? 2 : 1) - (inRow ? widest.row : 0)) return;
+      board.classList.add("stacked");
+      widest.stacked = Math.max(widest.stacked, parseFloat(getComputedStyle(board).gridTemplateColumns.split(" ")[1]) || 0);
+      // Ник не влез даже рядом со своим счётом - ужимается.
+      const room = board.clientWidth - gap - widest.stacked;
       names.forEach((el, i) => {
-        if (widths[i] <= cap) return;
-        const size = parseFloat(getComputedStyle(el).fontSize) * (cap / widths[i]);
+        if (room <= 0 || widths[i] <= room) return;
+        const size = parseFloat(getComputedStyle(el).fontSize) * (room / widths[i]);
         el.style.fontSize = `${Math.floor(size * 10) / 10}px`;
       });
     };
     fit();
     // Подгонка - в следующем кадре: высота табло зависит от ников, и правка внутри ResizeObserver дала бы ошибку цикла.
     let raf = 0;
-    const ro = new ResizeObserver(() => {
+    const later = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(fit);
-    });
+    };
+    const ro = new ResizeObserver(later);
     ro.observe(board);
-    if (score) ro.observe(score);
+    if (score) [score, ...score.querySelectorAll("b")].forEach((el) => ro.observe(el));
+    const mo = new MutationObserver(later);
+    names.forEach((el) => mo.observe(el, { characterData: true, childList: true, subtree: true }));
     document.fonts?.ready.then(fit).catch(() => {});
     return () => {
       ro.disconnect();
+      mo.disconnect();
       cancelAnimationFrame(raf);
     };
   }, [children]);
