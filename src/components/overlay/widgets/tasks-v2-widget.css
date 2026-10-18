@@ -14,18 +14,18 @@
   grid-template-columns: max-content max-content minmax(0, 1fr);
   column-gap: 5px;
   row-gap: 10px;
-  align-items: center;
+  /* по линии текста: при центровке каждой ячейки отдельно масштаб сцены разводит надписи на пиксель */
+  align-items: baseline;
   margin: auto 0;
   padding: 36px 10px;
 }
+/* Строка текста высотой с плашку: надпись по центру плашки и на общей линии с названием */
 .tw-kind,
 .tw-pts {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   height: 36px;
   color: #120918;
-  font: 900 18px/1 var(--font-montserrat), sans-serif;
+  font: 900 18px/36px var(--font-montserrat), sans-serif;
+  text-align: center;
   text-transform: uppercase;
   white-space: nowrap;
   /* у плашек сплошной фон: тень .ov-legible при выключенном фоне виджета только смазала бы текст */
@@ -41,6 +41,12 @@
 }
 .tw-pts-timed {
   background: #57ef7e;
+}
+/* Галочка стоит на линии текста и высотой с заглавную букву Montserrat (0.7em), как цифры баллов */
+.tw-check {
+  display: inline-block;
+  height: 0.7em;
+  vertical-align: baseline;
 }
 .tw-text {
   color: #ebe2cf;

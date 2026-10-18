@@ -16,9 +16,10 @@ function toRow(r: { tag?: string; label?: string; points: number; done: boolean;
   return { ...r, tag, label: r.label ?? TAG_LABELS[tag] };
 }
 
+/** Галочка вместо баллов. viewBox обрезан по краям линии, чтобы высота галочки совпала с заглавной буквой. */
 function Check() {
   return (
-    <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden>
+    <svg className="tw-check" viewBox="1.44 3.05 13.22 11.68" aria-hidden>
       <path d="M2.5 8.5l4 4 7-8.5" fill="none" stroke="currentColor" strokeWidth="3" />
     </svg>
   );
