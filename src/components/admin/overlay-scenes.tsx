@@ -48,7 +48,7 @@ const SAMPLE_STATE: LiveState = {
     { text: "Комплекс Гидропонного Купола: Уничтожьте 4 роботов в здании.", points: 2, valueType: "fixed", times: 0, category: "map" },
     { text: "Сапёр: Найдите и уничтожьте 5 Взрывоботов.", points: 1, valueType: "fixed", times: 0, category: "task", opponent: true },
   ],
-  complications: [{ text: "S.O.S: Первые 3 минуты рейда: Вызовите Эвакуацию.", penalty: 0, valueType: "fixed", reward: 1 }],
+  complications: [{ text: "S.O.S: Первые 3 минуты рейда: Вызовите Эвакуацию.", penalty: 0, valueType: "fixed", reward: 1, tag: "timed" }],
   veto: [
     { mapCode: "spaceport", mapName: "Космопорт", action: "ban", side: "A", sideName: "Игрок A" },
     { mapCode: "blue_gate", mapName: "Синие ворота", action: "ban", side: "B", sideName: "Игрок B" },
@@ -58,7 +58,7 @@ const SAMPLE_STATE: LiveState = {
 };
 
 /** Данные, которых в идущем матче может не быть: задания и протоколы сервер выдаёт с началом раунда,
-    основные задания есть только в старом пульте. types - виджеты, которые эти данные показывают. */
+    основные задания есть только в старом пульте, поэтому «Заданиям V2» их из примера не подставляем. */
 const SAMPLE_PARTS: { types: WidgetType[]; missing: string; has: (s: LiveState) => boolean; part: Partial<LiveState> }[] = [
   { types: ["bonusTasks", "tasksV2"], missing: "заданий", has: (s) => !!s.bonusTasks?.length, part: { bonusTasks: SAMPLE_STATE.bonusTasks } },
   { types: ["roundTasks"], missing: "основных заданий", has: (s) => !!s.roundTasks?.length, part: { roundTasks: SAMPLE_STATE.roundTasks } },
@@ -79,10 +79,10 @@ function previewOf(state: LiveState | null, layout: OverlayLayout): { data: Live
       note: "Матча сейчас нет: в превью пример с условными игроками. Во время матча здесь и в OBS будут его настоящие данные.",
     };
   }
-  const gaps = SAMPLE_PARTS.filter((p) => !p.has(state));
-  const data = gaps.reduce<LiveState>((s, p) => ({ ...s, ...p.part }), state);
   const shown = new Set(layout.widgets.filter((w) => w.visible).map((w) => w.type));
-  const names = gaps.filter((p) => p.types.some((t) => shown.has(t))).map((p) => p.missing);
+  const gaps = SAMPLE_PARTS.filter((p) => !p.has(state) && p.types.some((t) => shown.has(t)));
+  const data = gaps.reduce<LiveState>((s, p) => ({ ...s, ...p.part }), state);
+  const names = gaps.map((p) => p.missing);
   if (!names.length) return { data };
   const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} и ${names[names.length - 1]}` : names[0];
   return { data, note: `В матче пока нет ${list}: в превью они для примера. В OBS такие виджеты не видны, пока данных нет.` };

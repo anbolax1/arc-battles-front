@@ -1,16 +1,19 @@
 import * as React from "react";
-import type { LiveBonus } from "@/lib/types";
+import type { LiveBonus, TaskTag } from "@/lib/types";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 import "./tasks-v2-widget.css";
 
 const MAX_ROWS = 8;
 
-type Row = { kind: string; points: number; done: boolean; protocol?: boolean; text: string };
+const TAG_LABELS: Record<TaskTag, string> = { normal: "Обычное", timed: "На время" };
 
-function taskKind(b: LiveBonus, mapTag: boolean): string {
-  if (b.opponent) return "Чужое";
-  return mapTag && b.category === "map" ? "На карту" : "Обычное";
+type Row = { label: string; tag: TaskTag; points: number; done: boolean; text: string };
+
+/** Строка блока; задание без тега или с тегом, которого виджет ещё не знает, - «обычное». */
+function toRow(r: { tag?: string; label?: string; points: number; done: boolean; text: string }): Row {
+  const tag: TaskTag = r.tag === "timed" ? "timed" : "normal";
+  return { ...r, tag, label: r.label ?? TAG_LABELS[tag] };
 }
 
 function Check() {
@@ -21,15 +24,19 @@ function Check() {
   );
 }
 
-/** Виджет «Задания V2»: протокол и задания стороны в рейде одним блоком, по опции - и задания соперника за +1. */
+/** Виджет «Задания V2»: протоколы, задания и основные задания стороны в рейде одним блоком, у каждого свой тег.
+    По опции показываются и задания соперника за +1. */
 export function TasksV2Widget({ state, instance }: WidgetProps) {
-  const protocols: Row[] = (state.complications ?? [])
-    .filter((c) => c.reward) // протокол-штраф старого пульта остаётся в виджете «Протоколы»
-    .map((c) => ({ kind: "На время", points: c.reward ?? 0, done: !!c.done, protocol: true, text: c.text }));
-  const tasks: Row[] = (state.bonusTasks ?? [])
-    .filter((b) => instance.showOpponentContracts || !b.opponent)
-    .map((b) => ({ kind: taskKind(b, !!instance.showTags), points: b.points, done: b.times > 0, text: b.text }));
-  const all = [...protocols, ...tasks];
+  const bonus = (b: LiveBonus) => toRow({ tag: b.tag, label: b.opponent ? "Чужое" : undefined, points: b.points, done: b.times > 0, text: b.text });
+  const all: Row[] = [
+    ...(state.complications ?? [])
+      .filter((c) => c.reward) // протокол-штраф старого пульта остаётся в виджете «Протоколы»
+      .map((c) => toRow({ tag: c.tag, points: c.reward ?? 0, done: !!c.done, text: c.text })),
+    ...(state.bonusTasks ?? []).filter((b) => !b.opponent).map(bonus),
+    ...(state.roundTasks ?? []).map((t) => toRow({ points: t.points, done: t.completed, text: t.text })),
+    // задания соперника - после всего, что выполняет сторона в рейде
+    ...(instance.showOpponentContracts ? (state.bonusTasks ?? []).filter((b) => b.opponent).map(bonus) : []),
+  ];
   if (!all.length) return null;
   const rows = all.slice(0, MAX_ROWS);
   const rest = all.length - rows.length;
@@ -38,8 +45,8 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
       <div className="tw-list">
         {rows.map((r, i) => (
           <React.Fragment key={i}>
-            <span className="tw-kind">{r.kind}</span>
-            <span className={`tw-pts ${r.protocol ? "tw-pts-protocol" : ""}`}>{r.done ? <Check /> : `+${r.points}`}</span>
+            <span className="tw-kind">{r.label}</span>
+            <span className={`tw-pts tw-pts-${r.tag}`}>{r.done ? <Check /> : `+${r.points}`}</span>
             <span className="tw-text">{r.text}</span>
           </React.Fragment>
         ))}
