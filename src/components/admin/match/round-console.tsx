@@ -3,18 +3,7 @@
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
 import { CheckIcon } from "@/components/icons";
-import {
-  CROSS_POINTS,
-  KNOCK_POINTS,
-  loadoutLabel,
-  roundBreakdown,
-  roundScore,
-  taskDescription,
-  taskKindLabel,
-  taskTitle,
-  totalScore,
-  type RoundBreakdown,
-} from "@/lib/match";
+import { KNOCK_POINTS, loadoutLabel, roundBreakdown, roundScore, taskDescription, taskKindLabel, taskTitle, totalScore } from "@/lib/match";
 import type { CatalogLegendary, MatchLogEntry, MatchState, Participant, Round, RoundBonusTask } from "@/lib/types";
 
 /** Цвета сторон как на табло: A - оранжевая, B - бирюзовая. */
@@ -63,7 +52,7 @@ function RoundCard({ st, r, now, sides }: { st: MatchState; r: Round; now: boole
   const [a, b] = sides;
   return (
     <div
-      className={`flex items-center justify-between gap-3 rounded-md px-3.5 py-2.5 ${
+      className={`flex items-center justify-between gap-3 rounded-md px-3.5 py-2 ${
         now ? "bg-[rgba(255,106,26,0.12)] shadow-[inset_0_0_0_1px_rgba(255,106,26,0.45)]" : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
       }`}
     >
@@ -83,136 +72,97 @@ function RoundCard({ st, r, now, sides }: { st: MatchState; r: Round; now: boole
   );
 }
 
+/** Задание стороны одной строкой: что сделать слева, зачёт справа. Задания соперника не засчитываются. */
 function TaskRow({
   t,
-  owner,
-  opponent,
   onMark,
   onReroll,
 }: {
   t: RoundBonusTask;
-  owner: Participant;
-  opponent: Participant | null;
-  onMark: (id: string, by: "owner" | "opponent" | "none") => void;
+  onMark: (id: string, by: "owner" | "none") => void;
   onReroll: (id: string) => void;
 }) {
   const kind = taskKindLabel(t);
-  const byOwner = t.completedBy === t.participantId;
-  const byOpp = !!t.completedBy && !byOwner;
+  const done = !!t.completedBy;
   const desc = taskDescription(t);
   return (
     <div
-      className={`space-y-2.5 rounded-md p-3 ${
-        byOwner
-          ? "bg-[rgba(52,211,153,0.08)] shadow-[inset_0_0_0_1px_rgba(52,211,153,0.4)]"
-          : byOpp
-            ? "bg-[rgba(34,211,238,0.07)] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.4)]"
-            : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
+      className={`flex items-center gap-3 rounded-md px-3 py-2 ${
+        done ? "bg-[rgba(52,211,153,0.08)] shadow-[inset_0_0_0_1px_rgba(52,211,153,0.4)]" : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
       }`}
     >
-      <div className="flex flex-wrap items-start gap-x-2.5 gap-y-1.5">
-        <span className={`badge ${KIND_STYLE[kind]}`}>
-          <span>
-            {kind} · {t.points}
-            {t.category === "protocol" ? " · до 15:00" : ""}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={`badge ${KIND_STYLE[kind]}`}>
+            <span>
+              {kind} · {t.points}
+              {t.category === "protocol" ? " · до 15:00" : ""}
+            </span>
           </span>
-        </span>
-        <div className="min-w-[200px] flex-1">
-          <div className="text-[0.95rem] font-semibold leading-snug">«{taskTitle(t)}»</div>
-          {desc && <div className="text-sm text-muted">{desc}</div>}
+          <span className="text-[0.95rem] font-semibold leading-snug">«{taskTitle(t)}»</span>
         </div>
+        {desc && <div className="mt-0.5 text-sm leading-snug text-muted">{desc}</div>}
       </div>
-      {t.completedBy ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${byOwner ? "text-ok" : "text-accent"}`}>
-            <CheckIcon className="h-4 w-4" />
-            {byOwner ? `Выполнил ${owner.name} · +${t.points}` : `Выполнил соперник ${opponent?.name ?? ""} · +${CROSS_POINTS} ему`}
+      {done ? (
+        <>
+          <span className="inline-flex flex-none items-center gap-1.5 text-sm font-semibold text-ok">
+            <CheckIcon className="h-4 w-4" />+{t.points}
           </span>
           <button
             type="button"
-            className="ml-auto min-h-[44px] px-2 text-sm text-muted underline transition hover:text-fg"
+            className="min-h-[36px] flex-none px-1 text-sm text-muted underline transition hover:text-fg"
             onClick={() => onMark(t.id, "none")}
           >
             Отменить
           </button>
-        </div>
+        </>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <>
           <button
             type="button"
-            className="btn btn-sm min-h-[44px] text-ok [&::before]:bg-[rgba(52,211,153,0.12)] [&::before]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.5)]"
+            className="btn btn-sm flex-none text-ok [&::before]:bg-[rgba(52,211,153,0.12)] [&::before]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.5)]"
             onClick={() => onMark(t.id, "owner")}
           >
             <CheckIcon />
-            <span>Своё +{t.points}</span>
+            <span>Засчитать +{t.points}</span>
           </button>
-          {t.category !== "protocol" && (
-            <button type="button" className="btn btn-cyan btn-sm min-h-[44px]" onClick={() => onMark(t.id, "opponent")}>
-              <span>Соперник +{CROSS_POINTS}</span>
-            </button>
-          )}
           <button
             type="button"
-            className="ml-auto flex h-11 w-11 items-center justify-center rounded-md bg-surface text-muted transition hover:text-fg"
+            className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-surface text-muted transition hover:text-fg"
             onClick={() => onReroll(t.id)}
             title="Перебросить задание"
             aria-label={`Перебросить задание «${taskTitle(t)}»`}
           >
             ↻
           </button>
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-/** Из чего сложились очки стороны в раунде, кроме ноков; ручные правятся прямо здесь, на месте своего числа. */
-function ScoreParts({
-  parts,
-  onManual,
-}: {
-  parts: RoundBreakdown;
-  onManual: (delta: number, label: string) => void;
-}) {
-  const num = (v: number) => <span className={`font-display text-xl leading-none tnum ${v ? "" : "text-muted"}`}>{v}</span>;
+/** Ручные очки ведущего без ноков: правка на месте числа. */
+function ManualPoints({ value, onChange }: { value: number; onChange: (delta: number, label: string) => void }) {
   const step =
-    "flex h-8 w-8 items-center justify-center rounded-md bg-surface text-lg leading-none text-muted transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30";
-  const cells: Array<{ label: string; hint?: string; value: React.ReactNode }> = [
-    { label: "Задания", hint: "Свои задания стороны", value: num(parts.tasks) },
-    { label: "Чужие", hint: `Задания соперника, которые выполнила эта сторона: +${CROSS_POINTS} за каждое`, value: num(parts.cross) },
-    {
-      label: "Ручные",
-      value: (
-        <span className="flex items-center gap-1" role="group" aria-label="Поправка ручных очков">
-          <button
-            type="button"
-            className={step}
-            disabled={parts.manual <= 0}
-            onClick={() => onManual(-1, "поправка")}
-            title={parts.manual > 0 ? "Убрать 1 ручное очко" : "Ручных очков нет - убирать нечего"}
-            aria-label="Убрать 1 ручное очко"
-          >
-            −
-          </button>
-          <span className="w-7 text-center">{num(parts.manual)}</span>
-          <button type="button" className={step} onClick={() => onManual(1, "ручные очки")} aria-label="Добавить 1 ручное очко">
-            +
-          </button>
-        </span>
-      ),
-    },
-    { label: "Легендарка", hint: "Легендарные контракты в этом раунде", value: num(parts.legendary) },
-  ];
-
+    "flex h-9 w-9 items-center justify-center rounded-md bg-surface-2 text-lg leading-none text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30";
   return (
-    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-      {cells.map((c) => (
-        <div key={c.label} className="flex flex-col items-center rounded-md bg-surface-2 px-1 py-2 shadow-[inset_0_0_0_1px_var(--border)]" title={c.hint}>
-          <span className="field-label">{c.label}</span>
-          <span className="flex h-8 items-center">{c.value}</span>
-        </div>
-      ))}
-    </div>
+    <span className="flex flex-none items-center gap-1.5" role="group" aria-label="Ручные очки">
+      <span className="field-label">Ручные</span>
+      <button
+        type="button"
+        className={step}
+        disabled={value <= 0}
+        onClick={() => onChange(-1, "поправка")}
+        title={value > 0 ? "Убрать 1 ручное очко" : "Ручных очков нет - убирать нечего"}
+        aria-label="Убрать 1 ручное очко"
+      >
+        −
+      </button>
+      <span className={`w-6 text-center font-display text-xl leading-none tnum ${value ? "" : "text-muted"}`}>{value}</span>
+      <button type="button" className={step} onClick={() => onChange(1, "ручные очки")} aria-label="Добавить 1 ручное очко">
+        +
+      </button>
+    </span>
   );
 }
 
@@ -300,10 +250,10 @@ export function RoundConsole({
   online: boolean;
   /** Есть запросы, на которые сервер ещё не ответил. */
   saving: boolean;
-  /** Кнопки хода матча: следующий раунд, завершение, отмена. */
+  /** Кнопки хода матча: следующий игрок или раунд, завершение, отмена. */
   actions: React.ReactNode;
   onFocus: (participantId: string) => void;
-  onMark: (id: string, by: "owner" | "opponent" | "none") => void;
+  onMark: (id: string, by: "owner" | "none") => void;
   onReroll: (id: string) => void;
   onKnock: (participantId: string, delta: 1 | -1) => void;
   onPoints: (participantId: string, delta: number, label: string) => void;
@@ -316,14 +266,14 @@ export function RoundConsole({
   const available = legendary.filter((l) => l.status === "available");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Panel>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-5 pb-4 pt-5">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-5 pb-3 pt-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <SideTag i={0} />
             <span className="truncate font-display text-xl uppercase text-primary-2 sm:text-2xl">{a?.name ?? "—"}</span>
           </div>
-          <div className="flex items-center gap-3 font-display text-5xl leading-none tnum" aria-label="Счёт матча">
+          <div className="flex items-center gap-3 font-display text-4xl leading-none tnum" aria-label="Счёт матча">
             <span className="text-primary-2">{totalScore(st, a?.id)}</span>
             <span className="text-2xl text-muted">:</span>
             <span className="text-accent">{totalScore(st, b?.id)}</span>
@@ -334,15 +284,15 @@ export function RoundConsole({
           </div>
         </div>
 
-        <div className={`grid gap-2 px-5 pb-5 ${rounds.length > 2 ? "md:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <div className={`grid gap-2 px-5 pb-4 ${rounds.length > 2 ? "md:grid-cols-3" : "sm:grid-cols-2"}`}>
           {rounds.map((r) => (
             <RoundCard key={r.id} st={st} r={r} now={r.number === round} sides={sides} />
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-[var(--border)] bg-surface-2/50 px-5 py-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-[var(--border)] bg-surface-2/50 px-5 py-2.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="field-label">Оверлей показывает рейд</span>
+            <span className="field-label">В рейде</span>
             <div className="seg">
               {sides.map((p) =>
                 p ? (
@@ -365,34 +315,32 @@ export function RoundConsole({
         </div>
       </Panel>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-3 xl:grid-cols-2">
         {sides.map((p, i) => {
           if (!p) return null;
           const side = i === 0 ? 0 : 1;
           const style = SIDE_STYLE[side];
-          const opp = sides[1 - i];
           const tasks = st.tasks.filter((t) => t.roundNumber === round && t.participantId === p.id);
           const done = tasks.filter((t) => t.completedBy === p.id).length;
           const parts = roundBreakdown(st, round, p.id);
           return (
             <Panel key={p.id} className={`flex flex-col border-t-[3px] ${style.edge}`}>
-              <div className="space-y-3 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5 pt-1">
+              <div className="space-y-2.5 px-4 pb-3 pt-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <SideTag i={side} />
                     <h3 className="truncate font-display text-lg uppercase">{p.name}</h3>
                   </div>
-                  <div className="flex-none text-right">
+                  <div className="flex flex-none items-baseline gap-2">
                     <span className="field-label">Раунд {round}</span>
-                    <div className={`font-display text-4xl leading-none tnum ${style.text}`}>{roundScore(st, round, p.id)}</div>
+                    <span className={`font-display text-3xl leading-none tnum ${style.text}`}>{roundScore(st, round, p.id)}</span>
                   </div>
                 </div>
-                <ScoreParts parts={parts} onManual={(delta, label) => onPoints(p.id, delta, label)} />
-                {/* Отступ справа - под скос кнопки, чтобы её угол не вылезал за край плиток с очками. */}
-                <div className="flex items-center gap-3 pr-1.5">
+                {/* Промежутки шире обычных - под скос кнопок: иначе угол «Нока» заходит на соседей. */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <button
                     type="button"
-                    className="flex h-11 w-11 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-10 w-10 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
                     disabled={parts.knocks <= 0}
                     onClick={() => onKnock(p.id, -1)}
                     title={parts.knocks > 0 ? "Снять ошибочный нок" : "Ноков нет - снимать нечего"}
@@ -402,44 +350,22 @@ export function RoundConsole({
                   </button>
                   <button
                     type="button"
-                    className={`btn min-h-[44px] flex-1 ${style.knock}`}
+                    className={`btn min-w-[120px] flex-1 ${style.knock}`}
                     onClick={() => onKnock(p.id, 1)}
                     title={`Нок рейдера: +${KNOCK_POINTS} очка`}
                   >
                     <span>Нок{parts.knocks > 0 ? ` · ${parts.knocks}` : ""}</span>
                   </button>
-                </div>
-              </div>
-
-              <div className="space-y-2.5 border-t border-[var(--border)] p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="field-label">Задания раунда</span>
-                  {tasks.length > 0 && (
-                    <span className="text-xs text-muted tnum">
-                      выполнено {done} из {tasks.length}
-                    </span>
-                  )}
-                </div>
-                {tasks.length ? (
-                  tasks.map((t) => (
-                    <TaskRow key={t.id} t={t} owner={p} opponent={opp} onMark={onMark} onReroll={onReroll} />
-                  ))
-                ) : (
-                  <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
-                )}
-              </div>
-
-              <div className="mt-auto space-y-3 border-t border-[var(--border)] p-4">
-                <div className="flex flex-wrap items-center gap-3">
+                  <ManualPoints value={parts.manual} onChange={(delta, label) => onPoints(p.id, delta, label)} />
                   <button
                     type="button"
-                    className="btn btn-sm min-h-[44px] text-gold [&::before]:bg-[rgba(255,197,61,0.08)] [&::before]:shadow-[inset_0_0_0_1px_rgba(255,197,61,0.45)]"
+                    className="btn btn-sm text-gold [&::before]:bg-[rgba(255,197,61,0.08)] [&::before]:shadow-[inset_0_0_0_1px_rgba(255,197,61,0.45)]"
                     aria-expanded={legFor === p.id}
                     onClick={() => setLegFor((x) => (x === p.id ? null : p.id))}
+                    title="Легендарный контракт: один раз за всё время"
                   >
                     <span>Легендарка +10</span>
                   </button>
-                  <span className="text-xs text-muted">легендарный контракт: один раз за всё время</span>
                 </div>
                 {legFor === p.id && (
                   <LegendaryPicker
@@ -449,6 +375,22 @@ export function RoundConsole({
                       setLegFor(null);
                     }}
                   />
+                )}
+              </div>
+
+              <div className="space-y-2 border-t border-[var(--border)] px-4 pb-4 pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="field-label">Задания раунда</span>
+                  {tasks.length > 0 && (
+                    <span className="text-xs text-muted tnum">
+                      выполнено {done} из {tasks.length}
+                    </span>
+                  )}
+                </div>
+                {tasks.length ? (
+                  tasks.map((t) => <TaskRow key={t.id} t={t} onMark={onMark} onReroll={onReroll} />)
+                ) : (
+                  <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
                 )}
               </div>
             </Panel>
