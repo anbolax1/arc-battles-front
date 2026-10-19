@@ -14,6 +14,8 @@ const SIDE_STYLE = [
     edge: "border-t-[var(--primary)]",
     tag: "pts-orange",
     knock: "text-primary-2 [&::before]:bg-[rgba(255,106,26,0.1)] [&::before]:shadow-[inset_0_0_0_1px_rgba(255,106,26,0.55)]",
+    raid: "bg-[var(--primary)] text-[#1a0c02]",
+    ring: "shadow-[0_0_0_2px_rgba(255,106,26,0.85),0_0_28px_-8px_rgba(255,106,26,0.7)]",
   },
   {
     letter: "B",
@@ -21,6 +23,8 @@ const SIDE_STYLE = [
     edge: "border-t-[var(--accent)]",
     tag: "pts-cyan",
     knock: "text-accent [&::before]:bg-[rgba(34,211,238,0.08)] [&::before]:shadow-[inset_0_0_0_1px_rgba(34,211,238,0.55)]",
+    raid: "bg-[var(--accent)] text-[#04232a]",
+    ring: "shadow-[0_0_0_2px_rgba(34,211,238,0.85),0_0_28px_-8px_rgba(34,211,238,0.6)]",
   },
 ] as const;
 
@@ -34,6 +38,15 @@ function SideTag({ i }: { i: 0 | 1 }) {
   return (
     <span className={`pts ${SIDE_STYLE[i].tag}`}>
       <span>{SIDE_STYLE[i].letter}</span>
+    </span>
+  );
+}
+
+/** Метка стороны в рейде: её задания и счёт сейчас показывает оверлей. */
+function RaidLabel({ i }: { i: 0 | 1 }) {
+  return (
+    <span className={`inline-flex flex-none items-center gap-2 rounded px-2.5 py-1.5 font-display text-sm uppercase leading-none ${SIDE_STYLE[i].raid}`}>
+      <span className="h-2 w-2 animate-pulse rounded-full bg-current" aria-hidden />В рейде
     </span>
   );
 }
@@ -72,7 +85,7 @@ function RoundCard({ st, r, now, sides }: { st: MatchState; r: Round; now: boole
   );
 }
 
-/** Задание стороны одной строкой: что сделать слева, зачёт справа. Задания соперника не засчитываются. */
+/** Задание стороны: что сделать слева, зачёт справа. Задания соперника не засчитываются. */
 function TaskRow({
   t,
   onMark,
@@ -92,16 +105,17 @@ function TaskRow({
       }`}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={`badge ${KIND_STYLE[kind]}`}>
+        {/* Плашка и название - один абзац: длинное название переносится по словам рядом с плашкой, а не уходит под неё целиком. */}
+        <p className="text-[0.95rem] font-semibold leading-snug">
+          <span className={`badge mr-2 ${KIND_STYLE[kind]}`}>
             <span>
               {kind} · {t.points}
               {t.category === "protocol" ? " · до 15:00" : ""}
             </span>
           </span>
-          <span className="text-[0.95rem] font-semibold leading-snug">«{taskTitle(t)}»</span>
-        </div>
-        {desc && <div className="mt-0.5 text-sm leading-snug text-muted">{desc}</div>}
+          «{taskTitle(t)}»
+        </p>
+        {desc && <p className="mt-0.5 text-sm leading-snug text-muted">{desc}</p>}
       </div>
       {done ? (
         <>
@@ -118,13 +132,16 @@ function TaskRow({
         </>
       ) : (
         <>
+          {/* Кнопка узкая, без слова: место в строке отдано названию задания. */}
           <button
             type="button"
             className="btn btn-sm flex-none text-ok [&::before]:bg-[rgba(52,211,153,0.12)] [&::before]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.5)]"
             onClick={() => onMark(t.id, "owner")}
+            title={`Засчитать: +${t.points}`}
+            aria-label={`Засчитать «${taskTitle(t)}», +${t.points}`}
           >
             <CheckIcon />
-            <span>Засчитать +{t.points}</span>
+            <span>+{t.points}</span>
           </button>
           <button
             type="button"
@@ -292,16 +309,6 @@ export function RoundConsole({
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-[var(--border)] bg-surface-2/50 px-5 py-2.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="field-label">В рейде</span>
-            <div className="seg">
-              {sides.map((p) =>
-                p ? (
-                  <button key={p.id} type="button" className="seg-btn" aria-pressed={focusId === p.id} onClick={() => onFocus(p.id)}>
-                    <span>{p.name}</span>
-                  </button>
-                ) : null,
-              )}
-            </div>
             <OverlayStatus online={online} />
             {/* Проявляется с задержкой: быстрый ответ сервера её не покажет, и панель не мигает на каждый клик. */}
             <span
@@ -323,24 +330,32 @@ export function RoundConsole({
           const tasks = st.tasks.filter((t) => t.roundNumber === round && t.participantId === p.id);
           const done = tasks.filter((t) => t.completedBy === p.id).length;
           const parts = roundBreakdown(st, round, p.id);
+          const raiding = focusId === p.id;
           return (
-            <Panel key={p.id} className={`flex flex-col border-t-[3px] ${style.edge}`}>
+            <Panel key={p.id} className={`flex flex-col border-t-[3px] transition-shadow ${style.edge} ${raiding ? style.ring : ""}`}>
               <div className="space-y-2.5 px-4 pb-3 pt-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="group flex min-w-0 items-center gap-2.5 text-left"
+                    aria-pressed={raiding}
+                    onClick={() => onFocus(p.id)}
+                    title={raiding ? `${p.name} сейчас в рейде` : `Перевести рейд на ${p.name}`}
+                  >
                     <SideTag i={side} />
-                    <h3 className="truncate font-display text-lg uppercase">{p.name}</h3>
-                  </div>
-                  <div className="flex flex-none items-baseline gap-2">
+                    <span className="truncate font-display text-lg uppercase decoration-2 underline-offset-4 group-hover:underline">{p.name}</span>
+                  </button>
+                  {raiding && <RaidLabel i={side} />}
+                  <div className="ml-auto flex flex-none items-baseline gap-2">
                     <span className="field-label">Раунд {round}</span>
                     <span className={`font-display text-3xl leading-none tnum ${style.text}`}>{roundScore(st, round, p.id)}</span>
                   </div>
                 </div>
                 {/* Промежутки шире обычных - под скос кнопок: иначе угол «Нока» заходит на соседей. */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    className="flex h-10 w-10 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-[42px] w-10 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
                     disabled={parts.knocks <= 0}
                     onClick={() => onKnock(p.id, -1)}
                     title={parts.knocks > 0 ? "Снять ошибочный нок" : "Ноков нет - снимать нечего"}
@@ -350,32 +365,14 @@ export function RoundConsole({
                   </button>
                   <button
                     type="button"
-                    className={`btn min-w-[120px] flex-1 ${style.knock}`}
+                    className={`btn min-w-[96px] flex-1 ${style.knock}`}
                     onClick={() => onKnock(p.id, 1)}
                     title={`Нок рейдера: +${KNOCK_POINTS} очка`}
                   >
                     <span>Нок{parts.knocks > 0 ? ` · ${parts.knocks}` : ""}</span>
                   </button>
                   <ManualPoints value={parts.manual} onChange={(delta, label) => onPoints(p.id, delta, label)} />
-                  <button
-                    type="button"
-                    className="btn btn-sm text-gold [&::before]:bg-[rgba(255,197,61,0.08)] [&::before]:shadow-[inset_0_0_0_1px_rgba(255,197,61,0.45)]"
-                    aria-expanded={legFor === p.id}
-                    onClick={() => setLegFor((x) => (x === p.id ? null : p.id))}
-                    title="Легендарный контракт: один раз за всё время"
-                  >
-                    <span>Легендарка +10</span>
-                  </button>
                 </div>
-                {legFor === p.id && (
-                  <LegendaryPicker
-                    available={available}
-                    onPick={(id) => {
-                      onLegendary(id, p.id);
-                      setLegFor(null);
-                    }}
-                  />
-                )}
               </div>
 
               <div className="space-y-2 border-t border-[var(--border)] px-4 pb-4 pt-3">
@@ -391,6 +388,24 @@ export function RoundConsole({
                   tasks.map((t) => <TaskRow key={t.id} t={t} onMark={onMark} onReroll={onReroll} />)
                 ) : (
                   <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
+                )}
+                <button
+                  type="button"
+                  className="flex min-h-[40px] w-full items-center justify-between gap-3 rounded-md border border-dashed border-[rgba(255,197,61,0.35)] px-3 text-left transition hover:bg-[rgba(255,197,61,0.06)]"
+                  aria-expanded={legFor === p.id}
+                  onClick={() => setLegFor((x) => (x === p.id ? null : p.id))}
+                >
+                  <span className="font-display text-xs uppercase text-gold">+ Легендарка +10</span>
+                  <span className="text-xs text-muted">один раз за всё время</span>
+                </button>
+                {legFor === p.id && (
+                  <LegendaryPicker
+                    available={available}
+                    onPick={(id) => {
+                      onLegendary(id, p.id);
+                      setLegFor(null);
+                    }}
+                  />
                 )}
               </div>
             </Panel>
