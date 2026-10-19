@@ -72,7 +72,7 @@ function ResizeHandles({ scaleFactor, onStart }: { scaleFactor: number; onStart:
 }
 
 /** Типы виджетов, у которых есть заголовок/подпись (для тумблера «Заголовок»). */
-const HAS_TITLE = new Set<string>(["roundTasks", "bonusTasks", "standings", "complications", "round"]);
+const HAS_TITLE = new Set<string>(["roundTasks", "bonusTasks", "tasksV2", "standings", "complications", "round"]);
 
 /** Слои снизу вверх, как их рисует сцена: по z, а при равном z выше тот, кто позже в раскладке. */
 function bottomUp(widgets: WidgetInstance[]): WidgetInstance[] {
@@ -143,9 +143,6 @@ function showOptions(w: WidgetInstance): ShowOption[] {
       { key: "opp", label: "Задания противника", title: "задания противника, которые сторона в рейде может украсть за +1", on: !!w.showOpponentContracts, patch: (on) => ({ showOpponentContracts: on }) },
       { key: "tags", label: "Тег «карта»", title: "плашка «карта» у заданий на карту раунда", on: !!w.showTags, patch: (on) => ({ showTags: on }) },
     );
-  }
-  if (w.type === "tasksV2") {
-    out.push({ key: "opp", label: "Задания противника", title: "задания противника, которые сторона в рейде может украсть за +1", on: !!w.showOpponentContracts, patch: (on) => ({ showOpponentContracts: on }) });
   }
   return out;
 }
@@ -768,6 +765,23 @@ export function OverlayEditor({
               />
               <span className="w-9 text-right text-xs text-muted tnum">{sel.bg.on ? `${Math.round(sel.bg.opacity * 100)}%` : "—"}</span>
             </SettingRow>
+            {sel.type === "tasksV2" && (
+              <SettingRow label="Тема">
+                <div className="seg" role="group" aria-label="тема виджета">
+                  {(["dark", "light"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className="seg-btn"
+                      aria-pressed={(sel.props?.theme === "light" ? "light" : "dark") === t}
+                      onClick={() => patch(sel.id, { props: { ...sel.props, theme: t } })}
+                    >
+                      <span>{t === "dark" ? "Тёмная" : "Светлая"}</span>
+                    </button>
+                  ))}
+                </div>
+              </SettingRow>
+            )}
           </PanelSection>
 
           {/* Положение свёрнуто в сводку: обычно виджет двигают на макете. */}

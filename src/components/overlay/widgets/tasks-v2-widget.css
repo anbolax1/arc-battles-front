@@ -1,11 +1,82 @@
-/* Виджет «Задания V2»: px сцены 1920×1080, цвета макета без переменных дизайна.
-   Стили вне слоёв, поэтому перекрывают общую панель .ov-panel. */
+/* Виджет «Задания V2»: px сцены 1920×1080, цвета макетов без переменных дизайна.
+   Стили вне слоёв, поэтому перекрывают общую панель .ov-panel. Фон и рамки панели гаснут
+   вместе с фоном виджета, плашки строк - нет. */
 .tw-panel {
+  --tw-bg: 18, 9, 24;
+  --tw-ink: #ebe2cf;
+  --tw-tag: #eba900;
+  --tw-normal: #f55841;
+  --tw-timed: #57ef7e;
+  --tw-plate-ink: #120918;
+  --tw-mark: #120918;
+  --tw-mark-edge: #eba900;
+  --tw-mark-sign: #ebe2cf;
+  /* светлая: тёмная рамка слилась бы с панелью */
+  --tw-pts-edge: #ebe2cf;
   display: flex;
   flex-direction: column;
-  border-radius: 30px;
-  background-color: rgba(18, 9, 24, var(--ov-bg-alpha, 1));
+  align-items: flex-start;
+  border-radius: 0;
+  background-color: transparent;
   box-shadow: none;
+}
+/* Светлая тема - по макету: бумажная панель в тёмной рамке */
+.tw-light {
+  --tw-bg: 236, 226, 208;
+  --tw-ink: #130918;
+  --tw-tag: #f1aa1c;
+  --tw-normal: #ff5a47;
+  --tw-timed: #2bef83;
+  --tw-plate-ink: #130918;
+  --tw-mark: #130918;
+  --tw-mark-edge: #f1aa1c;
+  --tw-mark-sign: #ece2d0;
+  --tw-pts-edge: #130918;
+}
+/* Шапка - светлый ярлык над панелью; в тёмной теме он заходит на панель на 10px */
+.tw-head {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 200px;
+  height: 42px;
+  margin-bottom: -10px;
+  padding: 0 10px;
+  background-color: rgba(236, 226, 208, var(--ov-bg-alpha, 1));
+  color: #130918;
+  font: 900 22px/42px var(--font-montserrat), sans-serif;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: none;
+}
+/* В макете надпись уже, чем у Montserrat той же высоты: сжимаем по ширине до 180px ярлыка */
+.tw-head span {
+  display: inline-block;
+  transform: scaleX(0.8);
+  transform-origin: 0 50%;
+}
+.tw-box {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+  border-radius: 30px;
+  background-color: rgba(var(--tw-bg), var(--ov-bg-alpha, 1));
+}
+/* Угол под ярлыком прямой: скругление оставило бы просвет между ярлыком и панелью */
+.tw-head + .tw-box {
+  border-top-left-radius: 0;
+}
+.tw-light .tw-head {
+  margin-bottom: 0;
+  border: 1px solid rgba(19, 9, 24, var(--ov-bg-alpha, 1));
+  line-height: 40px;
+}
+.tw-light .tw-box {
+  border: 1px solid rgba(19, 9, 24, var(--ov-bg-alpha, 1));
+  border-radius: 0;
 }
 /* Общая сетка на все строки: плашки вида одной ширины. Поля auto ставят строки по центру,
    если высоту виджета задали больше, и не обрезают верх, если меньше. */
@@ -27,15 +98,15 @@
   align-self: start;
   width: 36px;
   height: 36px;
-  border: 1px solid #eba900;
-  background: #120918;
-  color: #ebe2cf;
+  border: 1px solid var(--tw-mark-edge);
+  background: var(--tw-mark);
+  color: var(--tw-mark-sign);
 }
 /* Строка текста высотой с плашку: надпись по центру плашки и на общей линии с названием */
 .tw-kind,
 .tw-pts {
   height: 36px;
-  color: #120918;
+  color: var(--tw-plate-ink);
   font: 900 18px/36px var(--font-montserrat), sans-serif;
   text-align: center;
   text-transform: uppercase;
@@ -45,22 +116,25 @@
 }
 .tw-kind {
   padding: 0 6px;
-  background: #eba900;
+  background: var(--tw-tag);
 }
+/* Рамка тенью внутрь: размер плашки и линия текста не сдвигаются */
 .tw-pts {
   width: 36px;
-  background: #f55841;
+  background: var(--tw-normal);
+  box-shadow: inset 0 0 0 1px var(--tw-pts-edge);
 }
 .tw-pts-timed {
-  background: #57ef7e;
+  background: var(--tw-timed);
 }
 .tw-text {
-  color: #ebe2cf;
+  color: var(--tw-ink);
   font: 800 18px/1.25 var(--font-montserrat), sans-serif;
   overflow-wrap: anywhere;
 }
 .tw-more {
   grid-column: 1 / -1;
-  color: rgba(235, 226, 207, 0.6);
+  color: var(--tw-ink);
+  opacity: 0.6;
   font: 800 16px/1 var(--font-montserrat), sans-serif;
 }

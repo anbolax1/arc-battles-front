@@ -11,9 +11,9 @@ const TAG_LABELS: Record<TaskTag, string> = { normal: "Обычное", timed: "
 type Row = { label: string; tag: TaskTag; points: number; done: boolean; text: string };
 
 /** Строка блока; задание без тега или с тегом, которого виджет ещё не знает, - «обычное». */
-function toRow(r: { tag?: string; label?: string; points: number; done: boolean; text: string }): Row {
+function toRow(r: { tag?: string; points: number; done: boolean; text: string }): Row {
   const tag: TaskTag = r.tag === "timed" ? "timed" : "normal";
-  return { ...r, tag, label: r.label ?? TAG_LABELS[tag] };
+  return { ...r, tag, label: TAG_LABELS[tag] };
 }
 
 /** Знак в квадрате слева: плюс - задание выполнено, минус - ещё нет. Знак 13px в поле 14px:
@@ -29,33 +29,39 @@ function Mark({ done }: { done: boolean }) {
 }
 
 /** Виджет «Задания V2»: протоколы, задания и основные задания стороны в рейде одним блоком, у каждого свой тег.
-    По опции показываются и задания соперника за +1. */
+    Задания соперника не показываются: выполнить их нельзя. */
 export function TasksV2Widget({ state, instance }: WidgetProps) {
-  const bonus = (b: LiveBonus) => toRow({ tag: b.tag, label: b.opponent ? "Чужое" : undefined, points: b.points, done: b.times > 0, text: b.text });
+  const bonus = (b: LiveBonus) => toRow({ tag: b.tag, points: b.points, done: b.times > 0, text: b.text });
   const all: Row[] = [
     ...(state.complications ?? [])
       .filter((c) => c.reward) // протокол-штраф старого пульта остаётся в виджете «Протоколы»
       .map((c) => toRow({ tag: c.tag, points: c.reward ?? 0, done: !!c.done, text: c.text })),
     ...(state.bonusTasks ?? []).filter((b) => !b.opponent).map(bonus),
     ...(state.roundTasks ?? []).map((t) => toRow({ points: t.points, done: t.completed, text: t.text })),
-    // задания соперника - после всего, что выполняет сторона в рейде
-    ...(instance.showOpponentContracts ? (state.bonusTasks ?? []).filter((b) => b.opponent).map(bonus) : []),
   ];
   if (!all.length) return null;
   const rows = all.slice(0, MAX_ROWS);
   const rest = all.length - rows.length;
+  const theme = instance.props?.theme === "light" ? "light" : "dark";
   return (
-    <WidgetFrame instance={instance} className="tw-panel">
-      <div className="tw-list">
-        {rows.map((r, i) => (
-          <React.Fragment key={i}>
-            <Mark done={r.done} />
-            <span className="tw-kind">{r.label}</span>
-            <span className={`tw-pts tw-pts-${r.tag}`}>+{r.points}</span>
-            <span className="tw-text">{r.text}</span>
-          </React.Fragment>
-        ))}
-        {rest > 0 && <span className="tw-more">+{rest} ещё</span>}
+    <WidgetFrame instance={instance} className={`tw-panel tw-${theme}`}>
+      {!instance.hideTitle && (
+        <div className="tw-head">
+          <span>Задания раунда</span>
+        </div>
+      )}
+      <div className="tw-box">
+        <div className="tw-list">
+          {rows.map((r, i) => (
+            <React.Fragment key={i}>
+              <Mark done={r.done} />
+              <span className="tw-kind">{r.label}</span>
+              <span className={`tw-pts tw-pts-${r.tag}`}>+{r.points}</span>
+              <span className="tw-text">{r.text}</span>
+            </React.Fragment>
+          ))}
+          {rest > 0 && <span className="tw-more">+{rest} ещё</span>}
+        </div>
       </div>
     </WidgetFrame>
   );
