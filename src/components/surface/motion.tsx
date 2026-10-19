@@ -1,7 +1,7 @@
 "use client";
 
 /* Движение нового дизайна: счётчики, отсчёт с перелистыванием цифр, наклон плаката,
-   параллакс героя. Всё показывает итоговое значение и без JavaScript. */
+   параллакс героя, добивание на табло. Всё показывает итоговое значение и без JavaScript. */
 
 import * as React from "react";
 
@@ -281,6 +281,95 @@ export function FitBoard({ className, children }: { className: string; children:
   }, [children]);
   return (
     <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
+}
+
+/** Вся сцена добивания, мс: прыжок, корона, полоса и блик - как в surface.css у .is-stomp. */
+const STOMP_MS = 3000;
+/** Пауза перед первым добиванием, мс: сначала счёт докручивается до итога (CountUp - 1 с). */
+const STOMP_DELAY_MS = 1100;
+
+type StompScene = "leap" | "pound";
+
+/**
+ * Добивание на табло последнего рейда: ник победителя втаптывает ник проигравшего - прыжком на него
+ * или ударом в землю с волной. Играет, когда табло попало в кадр, и снова - при наведении или нажатии.
+ */
+export function Stomp({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const box = ref.current;
+    const win = box?.querySelector<HTMLElement>(".is-win .sf-side-name");
+    const lose = box?.querySelector<HTMLElement>(".is-lose .sf-side-name");
+    if (!box || !win || !lose || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let busy = false;
+    let start = 0;
+    let stop = 0;
+    let bag: StompScene[] = [];
+    const play = () => {
+      if (busy) return;
+      busy = true;
+      // Путь прыжка - по тому, как ники стоят сейчас: табло перестраивается от ширины экрана.
+      const w = win.getBoundingClientRect();
+      const l = lose.getBoundingClientRect();
+      const px = (name: string, v: number) => box.style.setProperty(name, `${Math.round(v)}px`);
+      // Счёт над никами (узкий экран) - только удар в землю: прыжок закрыл бы цифры. Стороны друг под другом -
+      // только прыжок: волне до соперника не дойти. В строку - обе сцены по очереди в случайном порядке.
+      const score = box.querySelector(".sf-score")?.getBoundingClientRect();
+      const above = !!score && score.bottom <= w.top;
+      let scene: StompScene;
+      if (above) scene = "pound";
+      else if (box.querySelector(".sf-board.stacked")) scene = "leap";
+      else {
+        if (!bag.length) bag = Math.random() < 0.5 ? ["leap", "pound"] : ["pound", "leap"];
+        scene = bag.shift() ?? "leap";
+      }
+      box.classList.toggle("is-pound", scene === "pound");
+      if (scene === "pound") {
+        const r = box.getBoundingClientRect();
+        const right = l.left > w.left;
+        const from = (right ? w.right : w.left) - r.left;
+        const to = l.left + l.width / 2 - r.left;
+        px("--up", Math.max(6, Math.min(w.height * 0.8, above ? w.top - score.bottom - 4 : Infinity)));
+        px("--wx", Math.min(from, to));
+        px("--ww", Math.abs(to - from));
+        px("--wy", w.bottom - r.top);
+        box.style.setProperty("--wo", right ? "left" : "right");
+      } else {
+        px("--sx", l.left + l.width / 2 - (w.left + w.width / 2));
+        px("--sy", l.top - w.bottom + l.height * 0.3);
+        px("--sp", l.height * 0.5);
+        px("--up", w.height * 1.2);
+      }
+      box.classList.add("is-stomp");
+      stop = window.setTimeout(() => {
+        box.classList.remove("is-stomp");
+        busy = false;
+      }, STOMP_MS);
+    };
+    const io = new IntersectionObserver(
+      (es) => {
+        if (!es.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        start = window.setTimeout(play, STOMP_DELAY_MS);
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(box);
+    box.addEventListener("pointerenter", play);
+    box.addEventListener("click", play);
+    return () => {
+      io.disconnect();
+      clearTimeout(start);
+      clearTimeout(stop);
+      box.removeEventListener("pointerenter", play);
+      box.removeEventListener("click", play);
+    };
+  }, []);
+  return (
+    <div ref={ref} className="sf-stomp">
       {children}
     </div>
   );

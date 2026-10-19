@@ -1821,6 +1821,342 @@ a.sf-side-name:hover {
   grid-row: 1 / span 2;
 }
 
+/* ---------- последний рейд: победитель втаптывает проигравшего ---------- */
+/* в покое ник победителя на янтарной полосе и с короной, ник проигравшего блёклый, как его счёт */
+.sf-side.is-win {
+  position: relative;
+  z-index: 2;
+}
+.is-win .sf-side-name {
+  position: relative;
+  justify-self: start;
+  background: linear-gradient(transparent 58%, var(--sf-amber) 58%, var(--sf-amber) 92%, transparent 92%) no-repeat 0 0 / 100% 100%;
+}
+.sf-side.b.is-win .sf-side-name {
+  justify-self: end;
+}
+.stacked > .sf-side.b.is-win .sf-side-name {
+  justify-self: start;
+}
+.is-win .sf-side-name::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 0.6em;
+  height: 0.42em;
+  margin: 0 0 0.06em -0.3em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 28'%3E%3Cpath d='M5 25 3 8l9.5 7.5L20 3l7.5 12.5L37 8l-2 17z' fill='%23f1aa1c' stroke='%231a0e1e' stroke-width='2.6' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+/* блик по нику после добивания */
+.is-win .sf-side-name::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 40%, rgba(255, 255, 255, 0.9) 50%, transparent 60%) no-repeat 200% 0 / 250% 100%;
+  mix-blend-mode: overlay;
+  opacity: 0;
+  pointer-events: none;
+}
+.is-lose .sf-side-name {
+  position: relative;
+  color: rgba(26, 14, 30, 0.38);
+}
+/* плющится от низа: ник вдавливают в землю, а не в середину */
+.sf-hit {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+.sf-dust {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+}
+/* на телефоне ник мелкий: пыль не меньше 6px, иначе удара не видно */
+.sf-dust i {
+  position: absolute;
+  width: max(0.14em, 6px);
+  height: max(0.14em, 6px);
+  margin: min(-0.07em, -3px);
+  border-radius: 1px;
+  background: var(--sf-ink);
+  opacity: 0;
+}
+.sf-dust i:nth-child(1) {
+  --dx: -2.2em;
+  --dy: -0.5em;
+}
+.sf-dust i:nth-child(2) {
+  --dx: -1.4em;
+  --dy: -1em;
+  background: var(--sf-amber);
+}
+.sf-dust i:nth-child(3) {
+  --dx: -0.6em;
+  --dy: -1.3em;
+}
+.sf-dust i:nth-child(4) {
+  --dx: 0.7em;
+  --dy: -1.2em;
+  background: var(--sf-amber);
+}
+.sf-dust i:nth-child(5) {
+  --dx: 1.5em;
+  --dy: -0.9em;
+}
+.sf-dust i:nth-child(6) {
+  --dx: 2.3em;
+  --dy: -0.4em;
+  background: var(--sf-amber);
+}
+/* сцена: прыжок на соперника и удар с пылью и тряской, потом корона, полоса и блик;
+   путь прыжка --sx, --sy, его высоту --up и глубину вдавливания --sp ставит Stomp */
+.sf-stomp.is-stomp .is-win .sf-side-name {
+  animation:
+    sf-jump 1.8s both,
+    sf-mark 0.35s 1.8s both;
+}
+.sf-stomp.is-stomp .is-win .sf-side-name::after {
+  animation: sf-crown 0.45s 1.85s both;
+}
+.sf-stomp.is-stomp .is-win .sf-side-name::before {
+  animation: sf-glint 0.7s 2.25s both;
+}
+.sf-stomp.is-stomp .sf-hit {
+  animation: sf-squash 1.8s both;
+}
+/* без заливки до старта: пока ник летит, пыли не видно */
+.sf-stomp.is-stomp .sf-dust i {
+  animation: sf-dust 0.7s 0.95s forwards;
+}
+.sf-stomp.is-stomp .sf-board {
+  animation: sf-shake 0.36s 0.95s;
+}
+/* удар в землю на месте и волна по земле до соперника; начало и длину волны ставит Stomp */
+.sf-stomp {
+  position: relative;
+}
+/* волна позади табло: на компьютере она проходит под цифрами счёта, а не поверх них */
+.sf-stomp::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: var(--wx, 0);
+  top: var(--wy, 0);
+  width: var(--ww, 0);
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: var(--sf-amber);
+  transform-origin: var(--wo, left) center;
+  transform: scaleX(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.sf-stomp.is-stomp.is-pound .is-win .sf-side-name {
+  animation:
+    sf-pound 1.8s both,
+    sf-mark 0.35s 1.8s both;
+}
+.sf-stomp.is-stomp.is-pound .sf-hit {
+  animation: sf-knock 1.8s both;
+}
+.sf-stomp.is-stomp.is-pound::after {
+  animation: sf-wave 0.32s 0.86s forwards;
+}
+.sf-stomp.is-stomp.is-pound .sf-dust i {
+  animation-delay: 1.22s;
+}
+.sf-stomp.is-stomp.is-pound .sf-board {
+  animation-delay: 0.86s;
+}
+@keyframes sf-jump {
+  0% {
+    transform: none;
+    animation-timing-function: ease-out;
+  }
+  8% {
+    transform: translateY(0.08em) scale(1.06, 0.9);
+    animation-timing-function: ease-out;
+  }
+  32% {
+    transform: translate(calc(var(--sx) * 0.5), calc(min(var(--sy), 0px) - var(--up)));
+    animation-timing-function: ease-in;
+  }
+  52% {
+    transform: translate(var(--sx), var(--sy));
+    animation-timing-function: ease-out;
+  }
+  58% {
+    transform: translate(var(--sx), calc(var(--sy) + var(--sp))) scale(1.08, 0.92);
+  }
+  70% {
+    transform: translate(var(--sx), calc(var(--sy) + var(--sp)));
+    animation-timing-function: ease-out;
+  }
+  86% {
+    transform: translate(calc(var(--sx) * 0.5), calc(min(var(--sy), 0px) - var(--up) * 0.75));
+    animation-timing-function: ease-in;
+  }
+  96% {
+    transform: translateY(0.04em) scale(1.04, 0.95);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes sf-squash {
+  0%,
+  51% {
+    transform: none;
+  }
+  55% {
+    transform: scale(1.03, 0.6);
+  }
+  58% {
+    transform: scale(1.06, 0.26);
+  }
+  70% {
+    transform: scale(1.05, 0.3);
+    animation-timing-function: ease-out;
+  }
+  84% {
+    transform: scale(0.96, 1.08);
+  }
+  92% {
+    transform: scale(1.02, 0.97);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes sf-pound {
+  0% {
+    transform: none;
+    animation-timing-function: ease-out;
+  }
+  10% {
+    transform: translateY(0.08em) scale(1.06, 0.9);
+    animation-timing-function: ease-out;
+  }
+  32% {
+    transform: translateY(calc(-1 * var(--up))) scale(0.96, 1.06);
+    animation-timing-function: ease-in;
+  }
+  40% {
+    transform: translateY(calc(-1 * var(--up)));
+    animation-timing-function: ease-in;
+  }
+  48% {
+    transform: translateY(0.06em) scale(1.12, 0.8);
+  }
+  56% {
+    transform: scale(0.97, 1.05);
+  }
+  64%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes sf-knock {
+  0%,
+  60% {
+    transform: none;
+    animation-timing-function: ease-out;
+  }
+  64% {
+    transform: translateY(-0.35em) scale(0.96, 1.06);
+    animation-timing-function: ease-in;
+  }
+  69% {
+    transform: scale(1.06, 0.26);
+  }
+  78% {
+    transform: scale(1.05, 0.3);
+    animation-timing-function: ease-out;
+  }
+  88% {
+    transform: scale(0.96, 1.08);
+  }
+  95% {
+    transform: scale(1.02, 0.97);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes sf-wave {
+  0% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  70% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+@keyframes sf-dust {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.4);
+  }
+}
+@keyframes sf-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translate(-5px, 3px);
+  }
+  40% {
+    transform: translate(4px, -2px);
+  }
+  60% {
+    transform: translate(-3px, 1px);
+  }
+  80% {
+    transform: translate(2px, 0);
+  }
+}
+@keyframes sf-mark {
+  from {
+    background-size: 0% 100%;
+  }
+}
+@keyframes sf-crown {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.8em);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(0.06em);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sf-glint {
+  from {
+    opacity: 1;
+    background-position: 200% 0;
+  }
+  to {
+    opacity: 1;
+    background-position: -100% 0;
+  }
+}
+
 /* штамп (теги, победа) */
 .sf-stamp {
   display: inline-block;

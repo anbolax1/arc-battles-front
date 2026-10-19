@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { hasScore, mapImage, matchSides, roundScore, taskTitle, totalScore } from "@/lib/match";
 import type { MatchState, Participant, VetoAction } from "@/lib/types";
 import { SecHead } from "@/components/surface/ui";
-import { CountUp, FitBoard } from "@/components/surface/motion";
+import { CountUp, FitBoard, Stomp } from "@/components/surface/motion";
 import { RoundCard, type RoundTaskView } from "@/components/surface/round-card";
 import { MmrMove } from "@/components/surface/home-parts";
 import { dayMonth } from "@/components/surface/fmt";
@@ -45,6 +45,26 @@ export function VetoChips({ veto }: { veto: VetoAction[] }) {
   );
 }
 
+type SideRole = "" | "is-win" | "is-lose";
+
+/** Ник на табло; у проигравшего - пыль, которая разлетается, когда его втаптывают. */
+function SideName({ p, role }: { p: Participant | null; role: SideRole }) {
+  if (role !== "is-lose") return <span className="sf-side-name">{p?.name ?? "—"}</span>;
+  return (
+    <span className="sf-side-name">
+      <span className="sf-hit">{p?.name ?? "—"}</span>
+      <span className="sf-dust" aria-hidden>
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+    </span>
+  );
+}
+
 /** Последний сыгранный матч: табло, раунды с заданиями и пики-баны. */
 export function LastMatch({ st }: { st: MatchState }) {
   const t = st.tournament;
@@ -59,51 +79,53 @@ export function LastMatch({ st }: { st: MatchState }) {
   const ca = a ? changes.get(a.id) : undefined;
   const cb = b ? changes.get(b.id) : undefined;
   const eyebrow = ["Последний матч", dayMonth(t.startsAt), t.ratingMultiplier > 1 ? `рейтинг ×${t.ratingMultiplier}` : ""].filter(Boolean).join(" · ");
+  const role = (p: Participant | null): SideRole => (!winner || !p ? "" : p.id === winner.id ? "is-win" : "is-lose");
+
+  const board = (
+    <FitBoard className="sf-board">
+      <div className={`sf-side ${role(a)}`}>
+        <span className="sf-corner" style={{ background: "var(--sf-a)" }} />
+        <SideName p={a} role={role(a)} />
+        {role(a) === "is-win" && <span className="sr-only">победитель</span>}
+        {ca && (
+          <span className="sf-side-mmr sf-tnum">
+            <MmrMove {...ca} />
+          </span>
+        )}
+      </div>
+      <div className="sf-score" aria-label={scored ? `Счёт ${sa}:${sb}` : "Счёт не вёлся"}>
+        {scored ? (
+          <>
+            <b className={sa >= sb ? "w" : "l"}>
+              <CountUp value={sa} />
+            </b>
+            <i>:</i>
+            <b className={sb >= sa ? "w" : "l"}>
+              <CountUp value={sb} />
+            </b>
+          </>
+        ) : (
+          <b className="w">VS</b>
+        )}
+      </div>
+      <div className={`sf-side b ${role(b)}`}>
+        <span className="sf-corner" style={{ background: "var(--sf-b)" }} />
+        <SideName p={b} role={role(b)} />
+        {role(b) === "is-win" && <span className="sr-only">победитель</span>}
+        {cb && (
+          <span className="sf-side-mmr sf-tnum">
+            <MmrMove {...cb} />
+          </span>
+        )}
+      </div>
+    </FitBoard>
+  );
 
   return (
     <section className="sf-sec sf-paper sf-grain" aria-labelledby="last-t">
       <div className="sf-wrap">
-        <SecHead
-          id="last-t"
-          eyebrow={eyebrow}
-          title="последний рейд"
-          action={winner ? <span className="sf-stamp win">Победа {winner.name}</span> : <span className="sf-stamp">Ничья</span>}
-        />
-        <FitBoard className="sf-board">
-          <div className="sf-side">
-            <span className="sf-corner" style={{ background: "var(--sf-a)" }} />
-            <span className="sf-side-name">{a?.name ?? "—"}</span>
-            {ca && (
-              <span className="sf-side-mmr sf-tnum">
-                <MmrMove {...ca} />
-              </span>
-            )}
-          </div>
-          <div className="sf-score" aria-label={scored ? `Счёт ${sa}:${sb}` : "Счёт не вёлся"}>
-            {scored ? (
-              <>
-                <b className={sa >= sb ? "w" : "l"}>
-                  <CountUp value={sa} />
-                </b>
-                <i>:</i>
-                <b className={sb >= sa ? "w" : "l"}>
-                  <CountUp value={sb} />
-                </b>
-              </>
-            ) : (
-              <b className="w">VS</b>
-            )}
-          </div>
-          <div className="sf-side b">
-            <span className="sf-corner" style={{ background: "var(--sf-b)" }} />
-            <span className="sf-side-name">{b?.name ?? "—"}</span>
-            {cb && (
-              <span className="sf-side-mmr sf-tnum">
-                <MmrMove {...cb} />
-              </span>
-            )}
-          </div>
-        </FitBoard>
+        <SecHead id="last-t" eyebrow={eyebrow} title="последний рейд" action={winner ? undefined : <span className="sf-stamp">Ничья</span>} />
+        {winner && a && b ? <Stomp>{board}</Stomp> : board}
         {rounds.length > 0 && (
           <div className="sf-rounds" style={{ "--n": Math.min(rounds.length, 3) } as CSSProperties}>
             {rounds.map((r) => (
