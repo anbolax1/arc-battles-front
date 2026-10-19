@@ -42,13 +42,10 @@ export default async function JoinPage() {
             <h3 className="font-display text-lg uppercase">Сначала войди</h3>
             <p className="text-sm text-muted">
               Заявка на турнир доступна после входа — это нужно, чтобы привязать её
-              к твоему аккаунту. Создай аккаунт или войди по логину и паролю.
+              к твоему аккаунту. Войди по логину и паролю.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/register" className="btn btn-primary">
-                <span>Регистрация</span>
-              </Link>
-              <Link href="/login?redirect=/join" className="btn btn-ghost">
+              <Link href="/login?redirect=/join" className="btn btn-primary">
                 <span>Войти</span>
               </Link>
             </div>

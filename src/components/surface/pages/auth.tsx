@@ -111,12 +111,9 @@ export async function SurfaceJoin() {
         <SurfaceJoinForm user={user} />
       ) : (
         <div className="au-form">
-          <p className="au-text">Заявка доступна после входа — так она привяжется к твоему аккаунту. Создай аккаунт или войди по логину и паролю.</p>
+          <p className="au-text">Заявка доступна после входа — так она привяжется к твоему аккаунту. Войди по логину и паролю.</p>
           <div className="au-actions">
-            <Link className="sf-btn sf-btn-amber" href="/register">
-              Регистрация
-            </Link>
-            <Link className="sf-btn sf-btn-ink-line" href="/login?redirect=/join">
+            <Link className="sf-btn sf-btn-amber" href="/login?redirect=/join">
               Войти
             </Link>
           </div>

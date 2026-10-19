@@ -77,17 +77,11 @@ export function SurfaceAuthForm({ mode, redirectTo }: { mode: "login" | "registe
       <button type="submit" className="sf-btn sf-btn-amber au-submit" disabled={f.sending}>
         {f.sending ? "Подождите…" : isRegister ? "Зарегистрироваться" : "Войти"}
       </button>
-      <p className="au-switch">
-        {isRegister ? (
-          <>
-            Уже есть аккаунт? <Link href="/login">Войти</Link>
-          </>
-        ) : (
-          <>
-            Нет аккаунта? <Link href="/register">Регистрация</Link>
-          </>
-        )}
-      </p>
+      {isRegister && (
+        <p className="au-switch">
+          Уже есть аккаунт? <Link href="/login">Войти</Link>
+        </p>
+      )}
     </form>
   );
 }

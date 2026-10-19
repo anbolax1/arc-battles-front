@@ -35,9 +35,6 @@ export default async function ProfilePage() {
             <Link href="/login?redirect=/profile" className="btn btn-primary">
               <span>Войти</span>
             </Link>
-            <Link href="/register" className="btn btn-ghost">
-              <span>Регистрация</span>
-            </Link>
           </div>
         </Panel>
       </div>

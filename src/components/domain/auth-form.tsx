@@ -154,23 +154,14 @@ export function AuthForm({
         </button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-muted">
-        {isRegister ? (
-          <>
-            Уже есть аккаунт?{" "}
-            <Link href="/login" className="text-accent transition hover:underline">
-              Войти
-            </Link>
-          </>
-        ) : (
-          <>
-            Нет аккаунта?{" "}
-            <Link href="/register" className="text-accent transition hover:underline">
-              Регистрация
-            </Link>
-          </>
-        )}
-      </p>
+      {isRegister && (
+        <p className="mt-4 text-center text-sm text-muted">
+          Уже есть аккаунт?{" "}
+          <Link href="/login" className="text-accent transition hover:underline">
+            Войти
+          </Link>
+        </p>
+      )}
     </Panel>
   );
 }
