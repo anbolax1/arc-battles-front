@@ -7,11 +7,11 @@ import { dayMonth, winrate } from "@/components/surface/fmt";
 import { PatchArt } from "@/components/surface/patch-art";
 import { RaiderCard, type CardStat } from "@/components/surface/raider-card";
 import {
-  HUNTER_TIERS,
   MARATHON_GOAL,
   PATCH_GROUPS,
   PATCH_INFO,
   PATCH_ORDER,
+  PATCH_TIERS,
   ROMAN,
   STREAK_GOAL,
   cardRarity,
@@ -19,7 +19,6 @@ import {
   patchName,
   patchResult,
 } from "@/components/surface/patch-meta";
-import { pluralKnocks } from "@/lib/format";
 import "@/components/surface/patches.css";
 
 /** Сезон рейдера для карточки и полосок «сколько осталось». */
@@ -32,6 +31,7 @@ export interface PatchStatsInput {
   bestStreak: number;
   games: number;
   knocks: number;
+  tasks: number;
   bestMap: string;
 }
 
@@ -110,15 +110,17 @@ export function ProfilePatches({
       row.href = p.matchId ? `/tournament/${p.matchId}` : undefined;
       row.title = `Получена ${dayMonth(p.earnedAt)}`;
     }
-    if (code === "hunter") {
-      const next = HUNTER_TIERS[on ? tier : 0];
-      if (next !== undefined && (on || stats.knocks > 0)) {
-        const left = next - stats.knocks;
+    const tiers = PATCH_TIERS[code];
+    if (tiers) {
+      const have = code === "hunter" ? stats.knocks : stats.tasks;
+      const next = tiers.need[on ? tier : 0];
+      if (next !== undefined && (on || have > 0)) {
+        const left = next - have;
         row.progress = {
-          cur: stats.knocks,
+          cur: have,
           goal: next,
-          label: on ? `до ${ROMAN[tier + 1]} ещё ${left}` : `${stats.knocks} из ${next}`,
-          left: `ещё ${left} ${pluralKnocks(left)}`,
+          label: on ? `до ${ROMAN[tier + 1]} ещё ${left}` : `${have} из ${next}`,
+          left: `ещё ${left} ${tiers.unit(left)}`,
         };
       }
     } else if (!on && code === "streak" && stats.bestStreak > 0) {
@@ -259,7 +261,7 @@ export function ProfilePatches({
             </section>
           )}
 
-          <p className="pt-note">Ноки считаются в матчах, где их записали: в пульте эфира или на arcarena.</p>
+          <p className="pt-note">Ноки и задания считаются в матчах, где их записали: в пульте эфира или на arcarena.</p>
         </div>
       </div>
     </section>

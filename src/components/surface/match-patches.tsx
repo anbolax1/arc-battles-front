@@ -1,7 +1,6 @@
 import type { MatchPatch, Participant, PatchCode } from "@/lib/types";
 import { PatchArt } from "@/components/surface/patch-art";
-import { HUNTER_TIERS, PATCH_INFO, ROMAN, patchName, patchResult } from "@/components/surface/patch-meta";
-import { pluralKnocks } from "@/lib/format";
+import { PATCH_INFO, PATCH_TIERS, ROMAN, patchName, patchResult } from "@/components/surface/patch-meta";
 import "@/components/surface/patches.css";
 
 /** У этих нашивок подробности - про матч, где она получена: соперник и счёт. У остальных - итоги сезона. */
@@ -9,9 +8,10 @@ const ABOUT_MATCH: PatchCode[] = ["regicide", "photo", "shutout", "pacifist", "r
 
 function reason(p: MatchPatch): string {
   if (ABOUT_MATCH.includes(p.code)) return patchResult({ ...p, earnedAt: "" });
-  if (p.code === "hunter") {
-    const need = HUNTER_TIERS[p.tier - 1] ?? HUNTER_TIERS[0];
-    return `ступень ${ROMAN[p.tier]}: ${need} ${pluralKnocks(need)} за сезон`;
+  const tiers = PATCH_TIERS[p.code];
+  if (tiers) {
+    const need = tiers.need[p.tier - 1] ?? tiers.need[0];
+    return `ступень ${ROMAN[p.tier]}: ${need} ${tiers.unit(need)} за сезон`;
   }
   return PATCH_INFO[p.code].rule;
 }

@@ -26,6 +26,7 @@ const LOOK: Record<PatchCode, Colors & { shape: Shape }> = {
   photo: { shape: "circle", base: "#2a6fdb", rim: "#ece2d0", ink: "#1a0e1e", acc: "#f5eedf" },
   shutout: { shape: "circle", base: "#ece2d0", rim: "#c0261a", ink: "#c0261a", acc: "#c0261a" },
   revenge: { shape: "circle", base: "#9163d5", rim: "#1a0e1e", ink: "#ece2d0", acc: "#ece2d0" },
+  executor: { shape: "hex", base: "#3a1f5c", rim: "#c47a3a", ink: "#ece2d0", acc: "#2bef83" },
   hunter: { shape: "hex", base: "#4b5320", rim: "#c47a3a", ink: "#ece2d0", acc: "#ff5a47" },
   clear: { shape: "hex", base: "#1a0e1e", rim: "#ff5a47", ink: "#ece2d0", acc: "#ff5a47" },
   topknock: { shape: "hex", base: "#8f1d14", rim: "#f1aa1c", ink: "#ece2d0", acc: "#f1aa1c" },
@@ -37,8 +38,9 @@ const LOOK: Record<PatchCode, Colors & { shape: Shape }> = {
   veteran: { shape: "square", base: "#0f4d4b", rim: "#f1aa1c", ink: "#f1aa1c", acc: "#ece2d0" },
 };
 
-/** Кант «Охотника» по ступеням: бронза, серебро, золото. */
-const HUNTER_RIM = ["#c47a3a", "#c47a3a", "#d7dbe2", "#f1aa1c"];
+/** Кант нашивок со ступенями: бронза, серебро, золото. */
+const TIER_RIM = ["#c47a3a", "#c47a3a", "#d7dbe2", "#f1aa1c"];
+const TIERED = new Set<PatchCode>(["executor", "hunter"]);
 /** Несобранная нашивка - слепое тиснение по бумаге. */
 const GHOST: Colors = { base: "#e3d7c1", rim: "#d5c7ad", ink: "#c3b399", acc: "#c3b399" };
 
@@ -100,6 +102,19 @@ function star(cx: number, cy: number, big: number, small: number, fill: string):
     d += `${i ? " L" : "M"}${f1(p[0])} ${f1(p[1])}`;
   }
   return `<path d="${d} Z" fill="${fill}"/>`;
+}
+
+/** Шаг шевронов ступени по вертикали. */
+const CHEVRON_GAP = 7;
+
+/** Шевроны ступени, по одному на ступень, первый - от y вниз. */
+function chevrons(stroke: string, n: number, y: number): string {
+  let out = "";
+  for (let i = 0; i < n; i++) {
+    const top = y + i * CHEVRON_GAP;
+    out += `<path d="M48.5 ${top + 5} L60 ${top} L71.5 ${top + 5}" fill="none" stroke="${stroke}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  return out;
 }
 
 /** Нитки одного прохода: значок рисуется трижды - тень, цвет и маска для фактуры глади. */
@@ -168,19 +183,25 @@ const ICON: Record<PatchCode, (c: Ink, id: string, tier: number) => string> = {
       arrowHead(p(160), p(134), 15, 9.5, c.ink)
     );
   },
+  executor: (c, _id, tier) => {
+    // планшет с галочкой и шевроны ступени под ним; вся группа по центру нашивки
+    const n = Math.max(1, tier);
+    const dy = 60 - (21 + 83 + (n - 1) * CHEVRON_GAP) / 2;
+    return (
+      `<g transform="translate(0 ${f1(dy)})"><rect x="44" y="25" width="32" height="44" rx="4.5" fill="none" stroke="${c.ink}" stroke-width="4.4"/>` +
+      `<rect x="52" y="21" width="16" height="8" rx="2.5" fill="${c.ink}"/>` +
+      `<path d="M51 47.5 L57.5 54 L69.5 41" fill="none" stroke="${c.acc}" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `${chevrons(c.tier || c.acc, n, 76)}</g>`
+    );
+  },
   hunter: (c, _id, tier) => {
     // прицел и шевроны ступени под ним; вся группа по центру нашивки
-    const n = Math.max(1, tier), gap = 7;
-    let ch = "";
-    for (let i = 0; i < n; i++) {
-      const y = 74 + i * gap;
-      ch += `<path d="M48.5 ${y + 5} L60 ${y} L71.5 ${y + 5}" fill="none" stroke="${c.tier || c.acc}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
-    }
-    const dy = 60 - (21 + 79 + (n - 1) * gap) / 2;
+    const n = Math.max(1, tier);
+    const dy = 60 - (21 + 79 + (n - 1) * CHEVRON_GAP) / 2;
     return (
       `<g transform="translate(0 ${f1(dy)})"><circle cx="60" cy="44" r="14" fill="none" stroke="${c.ink}" stroke-width="4.4"/>` +
       `<path d="M60 21 V35 M60 53 V67 M37 44 H51 M69 44 H83" stroke="${c.ink}" stroke-width="4.4" stroke-linecap="round"/>` +
-      `<circle cx="60" cy="44" r="3.4" fill="${c.acc}"/>${ch}</g>`
+      `<circle cx="60" cy="44" r="3.4" fill="${c.acc}"/>${chevrons(c.tier || c.acc, n, 74)}</g>`
     );
   },
   clear: (c) => {
@@ -264,8 +285,8 @@ export function patchSvgInner(code: PatchCode, o: PatchSvgOptions): string {
   const id = o.id;
   const col: Colors = o.ghost ? { ...GHOST } : { base: look.base, rim: look.rim, ink: look.ink, acc: look.acc };
   let tierInk: string | undefined;
-  if (code === "hunter" && !o.ghost) {
-    col.rim = HUNTER_RIM[Math.min(tier, 3)];
+  if (TIERED.has(code) && !o.ghost) {
+    col.rim = TIER_RIM[Math.min(tier, 3)];
     tierInk = col.rim;
   }
   const d = SHAPE_D[look.shape];

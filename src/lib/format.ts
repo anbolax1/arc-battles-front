@@ -48,6 +48,16 @@ export function knocksLabel(n: number): string {
   return `${n} ${pluralKnocks(n)}`;
 }
 
+/** Склонение «задание / задания / заданий» по числу. */
+export function pluralTasks(n: number): string {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return "заданий";
+  if (b === 1) return "задание";
+  if (b >= 2 && b <= 4) return "задания";
+  return "заданий";
+}
+
 /** Среднее с одним знаком после запятой: «2,5»; делить не на что - прочерк. */
 export function fmtAverage(sum: number, count: number): string {
   return count > 0 ? (sum / count).toFixed(1).replace(".", ",") : "—";

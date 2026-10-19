@@ -2,12 +2,12 @@
 
 import type { PatchCode, PlayerPatch, Season } from "@/lib/types";
 import { dayMonth, matchesWord } from "@/components/surface/fmt";
-import { pluralKnocks } from "@/lib/format";
+import { pluralKnocks, pluralTasks } from "@/lib/format";
 
 export const PATCH_GROUPS: Array<{ name: string; codes: PatchCode[] }> = [
   { name: "Рейтинг", codes: ["top1", "belt", "regicide"] },
   { name: "Матчи", codes: ["streak", "flawless", "david", "comeback", "double", "photo", "shutout", "revenge"] },
-  { name: "Ноки и карты", codes: ["hunter", "clear", "topknock", "pacifist", "king"] },
+  { name: "Задания, ноки и карты", codes: ["executor", "hunter", "clear", "topknock", "pacifist", "king"] },
   { name: "Сезон", codes: ["first", "final", "marathon", "veteran"] },
 ];
 
@@ -15,6 +15,14 @@ export const PATCH_ORDER: PatchCode[] = PATCH_GROUPS.flatMap((g) => g.codes);
 
 /** Ступени «Охотника»: ноков за сезон. */
 export const HUNTER_TIERS = [10, 25, 50];
+/** Ступени «Исполнителя»: своих выполненных заданий за сезон. */
+export const EXECUTOR_TIERS = [10, 25, 50];
+
+/** Нашивки со ступенями: пороги и слово к числу - «25 ноков», «10 заданий». */
+export const PATCH_TIERS: Partial<Record<PatchCode, { need: number[]; unit: (n: number) => string }>> = {
+  executor: { need: EXECUTOR_TIERS, unit: pluralTasks },
+  hunter: { need: HUNTER_TIERS, unit: pluralKnocks },
+};
 /** «Неудержимый» и «Марафонец»: сколько нужно, для полоски «сколько осталось». */
 export const STREAK_GOAL = 5;
 export const MARATHON_GOAL = 20;
@@ -43,6 +51,7 @@ export const PATCH_INFO: Record<PatchCode, PatchInfo> = {
   photo: { name: "Фотофиниш", rule: "победа в одно очко", about: "Матч выигран с разницей ровно в одно очко." },
   shutout: { name: "Всухую", rule: "соперник без единого очка", about: "Победа, а у соперника за матч ни одного очка." },
   revenge: { name: "Реванш", rule: "обыграл того, кому проигрывал", about: "Победа над тем, кто раньше в сезоне обыграл тебя." },
+  executor: { name: "Исполнитель", rule: "10, 25 и 50 заданий за сезон", about: "Свои выполненные задания за сезон, протоколы тоже в счёт. Три ступени: 10, 25 и 50." },
   hunter: { name: "Охотник", rule: "10, 25 и 50 ноков за сезон", about: "Ноки за сезон, три ступени: 10, 25 и 50." },
   clear: { name: "Зачистка", rule: "8 ноков за один рейд", about: "Восемь ноков или больше за один рейд." },
   topknock: { name: "Главный охотник", rule: "больше всех ноков за сезон", about: "Больше всех ноков за сезон.", seasonEnd: true },
@@ -68,7 +77,7 @@ function wins(n: number): string {
 /** Название с учётом ступени: «Охотник II». */
 export function patchName(code: PatchCode, tier = 1): string {
   const n = PATCH_INFO[code].name;
-  return code === "hunter" && tier > 0 ? `${n} ${ROMAN[Math.min(tier, 3)]}` : n;
+  return PATCH_TIERS[code] && tier > 0 ? `${n} ${ROMAN[Math.min(tier, 3)]}` : n;
 }
 
 /** Свой результат по нашивке: «8 подряд», «7:6 с LUGOVOISES». mapName приводит карту к написанию справочника. */
@@ -97,6 +106,8 @@ export function patchResult(p: Pick<PlayerPatch, "code" | "tier" | "detail" | "e
     case "shutout":
     case "pacifist":
       return score;
+    case "executor":
+      return `${d.tasks ?? 0} ${pluralTasks(d.tasks ?? 0)}`;
     case "hunter":
     case "topknock":
       return `${d.knocks ?? 0} ${pluralKnocks(d.knocks ?? 0)}`;

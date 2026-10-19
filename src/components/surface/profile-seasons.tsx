@@ -37,12 +37,14 @@ function Segs({ wins, losses }: { wins: number; losses: number }) {
   );
 }
 
-/** Сводка по картам, соперникам и нокам за несколько сезонов: одинаковые записи складываются. */
+/** Сводка по картам, соперникам, нокам и заданиям за несколько сезонов: одинаковые записи складываются. */
 export function mergeAnalytics(list: SeasonAnalytics[]): SeasonAnalytics {
   const maps = new Map<string, MapStat>();
   const opps = new Map<string, OpponentStat>();
   const knocks: KnockStats = { matches: 0, knocks: 0, best: 0 };
+  let tasks = 0;
   for (const a of list) {
+    tasks += a.tasks ?? 0;
     if (a.knocks) {
       knocks.matches += a.knocks.matches;
       knocks.knocks += a.knocks.knocks;
@@ -77,7 +79,7 @@ export function mergeAnalytics(list: SeasonAnalytics[]): SeasonAnalytics {
     }
   }
   const byGames = <T extends { games: number }>(x: T, y: T) => y.games - x.games;
-  return { maps: [...maps.values()].sort(byGames), opponents: [...opps.values()].sort(byGames), knocks };
+  return { maps: [...maps.values()].sort(byGames), opponents: [...opps.values()].sort(byGames), knocks, tasks };
 }
 
 /** Ноки игрока: среднее - только по матчам, где ноки записаны, иначе нули занизили бы его. */
@@ -281,6 +283,7 @@ export function ProfileSeasons({
             bestStreak: stats.bestWinStreak,
             games: stats.games,
             knocks: analytics?.knocks?.knocks ?? 0,
+            tasks: analytics?.tasks ?? 0,
             bestMap: bestMap ? mapName(bestMap.map) : "",
           }}
           mapName={mapName}

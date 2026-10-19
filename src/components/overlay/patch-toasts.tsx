@@ -4,7 +4,7 @@ import * as React from "react";
 import type { PatchFlash } from "@/lib/types";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_INFO, patchName } from "@/components/surface/patch-meta";
-import { knocksLabel } from "@/lib/format";
+import { knocksLabel, pluralTasks } from "@/lib/format";
 import "./patch-toasts.css";
 
 /** Сколько висит одна плашка, мс; совпадает с анимацией ухода в patch-toasts.css. */
@@ -14,8 +14,10 @@ const GAP_MS = 400;
 
 function line(f: PatchFlash): string {
   const k = f.detail?.knocks ?? 0;
+  const t = f.detail?.tasks ?? 0;
   if (f.code === "clear") return `${f.name} · ${knocksLabel(k)} за рейд`;
   if (f.code === "hunter") return `${f.name} · ${knocksLabel(k)} за сезон`;
+  if (f.code === "executor") return `${f.name} · ${t} ${pluralTasks(t)} за сезон`;
   return `${f.name} · ${PATCH_INFO[f.code].rule}`;
 }
 

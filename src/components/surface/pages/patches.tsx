@@ -3,14 +3,13 @@ import { getPatchCatalog, getSeasons } from "@/lib/queries";
 import type { PatchCode, PatchStat } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { PatchArt } from "@/components/surface/patch-art";
-import { HUNTER_TIERS, PATCH_GROUPS, PATCH_INFO, PATCH_RARITIES, ROMAN, patchRarity } from "@/components/surface/patch-meta";
-import { pluralKnocks } from "@/lib/format";
+import { PATCH_GROUPS, PATCH_INFO, PATCH_RARITIES, PATCH_TIERS, ROMAN, patchRarity } from "@/components/surface/patch-meta";
 import "@/components/surface/patches.css";
 
 const GROUP_ABOUT: Record<string, string> = {
   "Рейтинг": "место, пояс и победы над лидером",
   "Матчи": "серии и характер побед",
-  "Ноки и карты": "ноки пульт пишет по рейдам, 3 очка за нок",
+  "Задания, ноки и карты": "задания и ноки пульт пишет по рейдам, 3 очка за нок",
   "Сезон": "от первого игрового дня до последнего",
 };
 
@@ -28,7 +27,8 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
   const shown = stat.top.slice(0, 3);
   const more = stat.holders - shown.length;
   const pct = players ? Math.max(stat.holders ? 2 : 0, Math.round((stat.holders * 100) / players)) : 0;
-  const best = stat.code === "hunter" ? Math.max(1, ...stat.top.map((h) => h.tier)) : 1;
+  const tiers = PATCH_TIERS[stat.code];
+  const best = tiers ? Math.max(1, ...stat.top.map((h) => h.tier)) : 1;
   return (
     <li className="pt-cat-card">
       <PatchArt code={stat.code} tier={best} />
@@ -38,11 +38,11 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
           {info.seasonEnd && <small>в конце сезона</small>}
         </div>
         <p className="pt-cat-about">{info.about}</p>
-        {stat.code === "hunter" && (
+        {tiers && (
           <div className="pt-cat-tiers">
-            {HUNTER_TIERS.map((need, i) => (
+            {tiers.need.map((need, i) => (
               <span key={need}>
-                <PatchArt code="hunter" tier={i + 1} label={`Охотник ${ROMAN[i + 1]}: ${need} ${pluralKnocks(need)}`} />
+                <PatchArt code={stat.code} tier={i + 1} label={`${info.name} ${ROMAN[i + 1]}: ${need} ${tiers.unit(need)}`} />
                 {ROMAN[i + 1]} · {need}
                 <small>{stat.tiers?.[i] ? `${stat.tiers[i]} ${raiders(stat.tiers[i])}` : "пока никто"}</small>
               </span>
@@ -61,7 +61,7 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
             {shown.map((h) => (
               <Link key={h.login} className={h.provisional ? "prov" : undefined} href={`/profile/${h.login}`} title={h.provisional ? "претендент: закрепится в конце сезона" : undefined}>
                 {h.displayName}
-                {stat.code === "hunter" ? ` ${ROMAN[h.tier]}` : ""}
+                {tiers ? ` ${ROMAN[h.tier]}` : ""}
               </Link>
             ))}
             {more > 0 && <span>+{more}</span>}

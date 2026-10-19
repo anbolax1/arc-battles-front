@@ -221,11 +221,13 @@ export interface OpponentStat {
   losses: number;
 }
 
-/** Разбивка матчей одного сезона по картам и соперникам и ноки игрока. */
+/** Разбивка матчей одного сезона по картам и соперникам, ноки и задания игрока. */
 export interface SeasonAnalytics {
   maps: MapStat[];
   opponents: OpponentStat[];
   knocks: KnockStats;
+  /** Свои выполненные задания: по ним растёт «Исполнитель». */
+  tasks?: number;
 }
 
 /** Ноки игрока за сезон - только по матчам, где ноки записаны хотя бы одной стороне. */
@@ -242,7 +244,7 @@ export interface KnockStats {
 export type PatchCode =
   | "top1" | "belt" | "regicide"
   | "streak" | "flawless" | "david" | "comeback" | "double" | "photo" | "shutout" | "revenge"
-  | "hunter" | "clear" | "topknock" | "pacifist" | "king"
+  | "executor" | "hunter" | "clear" | "topknock" | "pacifist" | "king"
   | "first" | "final" | "marathon" | "veteran";
 
 /** Подробности нашивки для подписи; набор полей свой у каждой. */
@@ -253,6 +255,7 @@ export interface PatchDetail {
   best?: number;
   wins?: number;
   knocks?: number;
+  tasks?: number;
   map?: string;
   maps?: string[];
   games?: number;
