@@ -44,7 +44,7 @@
   filter: drop-shadow(0 22px 24px rgba(0, 0, 0, 0.5));
 }
 .bl-art.vacant svg {
-  transform: rotate(-7deg) translateY(6%) scale(0.92);
+  transform: translateY(6%) scale(0.92);
   filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.35)) grayscale(0.35) brightness(0.9);
 }
 .bl-art.vacant::before {
@@ -54,7 +54,7 @@
   position: absolute;
   left: 50%;
   top: 74%;
-  transform: translate(-50%, -50%) rotate(-4deg);
+  transform: translate(-50%, -50%);
   font: 800 clamp(11px, 1.3vw, 14px) / 1 var(--sf-ff-c);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -103,7 +103,6 @@ a.bl-name:hover {
   border: 2px solid currentColor;
   border-radius: 3px;
   padding: 6px 8px 5px;
-  transform: rotate(-4deg);
   white-space: nowrap;
 }
 
@@ -456,7 +455,6 @@ a.bl-name:hover {
   border: 1.5px solid currentColor;
   border-radius: 2px;
   padding: 3px 5px 2px;
-  transform: rotate(-4deg);
 }
 
 /* ---------- страница: рекорды ---------- */

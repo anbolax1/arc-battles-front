@@ -118,7 +118,7 @@
   filter: drop-shadow(0 6px 7px rgba(26, 14, 30, 0.32));
 }
 .pt-row:hover .pt-art svg {
-  transform: rotate(-6deg) scale(1.07);
+  transform: scale(1.07);
 }
 .pt-row.off .pt-c {
   opacity: 0;
@@ -528,19 +528,16 @@ a.pt-res:hover {
 .pt-sewn svg:nth-child(1) {
   width: 96px;
   height: 96px;
-  transform: rotate(-9deg);
 }
 .pt-sewn svg:nth-child(2) {
   width: 86px;
   height: 86px;
   margin-left: -20px;
-  transform: rotate(7deg);
 }
 .pt-sewn svg:nth-child(3) {
   width: 80px;
   height: 80px;
   margin-left: -18px;
-  transform: rotate(-4deg);
 }
 .pt-sewn:hover svg {
   translate: 0 -3px;

@@ -116,10 +116,6 @@
   border-radius: 3px;
   font: 900 20px/1 var(--sf-ff-cc);
   color: var(--sf-amber);
-  transform: rotate(-4deg);
-}
-.au-steps li:nth-child(even) .au-step-n {
-  transform: rotate(3deg);
 }
 .au-steps b {
   display: block;

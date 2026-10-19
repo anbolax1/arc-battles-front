@@ -913,7 +913,7 @@
 @keyframes sf-cardin {
   from {
     opacity: 0;
-    transform: translateY(30px) rotate(1.5deg);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -1511,7 +1511,7 @@
   position: absolute;
   right: 6cqi;
   bottom: 5cqi;
-  transform: translateZ(70px) rotate(-6deg);
+  transform: translateZ(70px);
   background: var(--sf-amber);
   color: var(--sf-ink);
   padding: 1.6cqi 3.4cqi 2cqi;
@@ -1830,11 +1830,7 @@ a.sf-side-name:hover {
   border: 2px solid currentColor;
   border-radius: 3px;
   padding: 6px 8px 5px;
-  transform: rotate(-4deg);
   white-space: nowrap;
-}
-.sf-stamp:nth-child(even) {
-  transform: rotate(3deg);
 }
 .sf-stamp.win {
   color: var(--sf-win-ink);
@@ -2822,11 +2818,10 @@ a.sf-side-name:hover {
   border-radius: 4px;
   padding: 11px 14px;
   box-shadow: 0 10px 30px -18px #000;
-  transform: rotate(var(--r, 0deg));
   transition: transform 0.3s;
 }
 .sf-tcard:hover {
-  transform: rotate(0) translateX(6px);
+  transform: translateX(6px);
 }
 .sf-tcard b {
   font: 800 15px/1.2 var(--sf-ff-d);
@@ -2853,15 +2848,15 @@ a.sf-side-name:hover {
 }
 .sf-tasks3.scrub .sf-tcard {
   opacity: 0;
-  transform: translateX(46px) rotate(calc(var(--r, 0deg) * 4));
+  transform: translateX(46px);
   transition: opacity 0.35s, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .sf-tasks3.scrub .sf-tcard.in {
   opacity: 1;
-  transform: rotate(var(--r, 0deg));
+  transform: none;
 }
 .sf-tasks3.scrub .sf-tcard.in:hover {
-  transform: rotate(0) translateX(6px);
+  transform: translateX(6px);
 }
 /* 4. калькулятор MMR */
 .sf-calc {
@@ -3814,7 +3809,6 @@ a.sf-tr:hover,
   background: var(--sf-amber);
   color: var(--sf-ink);
   font: 900 22px/1 var(--sf-ff-cc);
-  transform: rotate(-2deg);
 }
 .sf-prize small {
   font: 600 10px/1 var(--sf-ff-m);
