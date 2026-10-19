@@ -213,7 +213,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
           </div>
           {hasTasks && (
             <p className="text-xs text-muted">
-              Слева у задания — сколько очков оно даёт. Задание соперника тоже можно выполнить: это +{CROSS_POINTS}.
+              Слева у задания — сколько очков оно даёт.
             </p>
           )}
         </section>

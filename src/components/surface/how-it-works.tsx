@@ -101,11 +101,10 @@ const ICON_REPLAY = (
 );
 
 const TASKS = [
-  { b: "Своё задание", s: "общее или на карту раунда", v: 2, r: "-2deg" },
-  { b: "Задание соперника", s: "выполнил чужое", v: 1, r: "1.5deg" },
-  { b: "Протокол", s: "до 15-й минуты рейда", v: 1, r: "-1deg" },
-  { b: "Нок рейдера", s: "ручные очки ведущего", v: 3, r: "2deg" },
-  { b: "Легендарное задание", s: "один раз навсегда", v: 10, r: "-1.5deg", leg: true },
+  { b: "Задание", s: "общее или на карту раунда", v: 2 },
+  { b: "Протокол", s: "до 15-й минуты рейда", v: 1 },
+  { b: "Нок рейдера", s: "ручные очки ведущего", v: 3 },
+  { b: "Легендарное задание", s: "один раз навсегда", v: 10, leg: true },
 ];
 
 export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[]; example: HowExample | null; k: number; start: number; calc: HowCalc }) {
@@ -537,7 +536,7 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
               </button>
               <div className="sf-tasks3 scrub">
                 {TASKS.map((t, j) => (
-                  <div key={t.b} className={`sf-tcard ${t.leg ? "leg" : ""} ${j < t3N ? "in" : ""}`} style={{ "--r": t.r } as React.CSSProperties}>
+                  <div key={t.b} className={`sf-tcard ${t.leg ? "leg" : ""} ${j < t3N ? "in" : ""}`}>
                     <b>{t.b}</b>
                     <small>{t.s}</small>
                     <em>{j < t3N ? <Tween value={t.v} ms={520} replay={j < t3N ? 1 : 0} format={(v) => `+${v}`} /> : "+0"}</em>

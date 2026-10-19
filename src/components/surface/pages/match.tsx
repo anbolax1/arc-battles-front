@@ -225,7 +225,7 @@ function Rounds({ st, rounds, sides, finished }: { st: MatchState; rounds: Round
               </article>
             ))}
           </div>
-          {st.tasks.length > 0 && <p className="sf-rd-foot">Справа у задания — сколько очков оно дало. Задание соперника тоже можно выполнить: это +{CROSS_POINTS} тому, кто выполнил.</p>}
+          {st.tasks.length > 0 && <p className="sf-rd-foot">Справа у задания — сколько очков оно дало.</p>}
         </>
       ) : (
         <>
