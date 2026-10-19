@@ -33,7 +33,7 @@
   --tw-mark-sign: #ece2d0;
   --tw-pts-edge: #130918;
 }
-/* Шапка - светлый ярлык над панелью; в тёмной теме он заходит на панель на 10px */
+/* Шапка - ярлык в цвет панели; в тёмной теме он заходит на панель на 10px и сливается с ней */
 .tw-head {
   position: relative;
   z-index: 1;
@@ -42,13 +42,12 @@
   height: 42px;
   margin-bottom: -10px;
   padding: 0 10px;
-  background-color: rgba(236, 226, 208, var(--ov-bg-alpha, 1));
-  color: #130918;
+  background-color: rgba(var(--tw-bg), var(--ov-bg-alpha, 1));
+  color: var(--tw-ink);
   font: 900 22px/42px var(--font-montserrat), sans-serif;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   white-space: nowrap;
-  text-shadow: none;
 }
 /* В макете надпись уже, чем у Montserrat той же высоты: сжимаем по ширине до 180px ярлыка */
 .tw-head span {
