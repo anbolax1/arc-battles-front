@@ -17,7 +17,7 @@ import { MatchResult } from "@/components/admin/match/match-result";
 import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
 import { putShowPreview } from "@/components/admin/match/show-preview";
 import { PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
-import type { CatalogLegendary, LiveState, MapInfo, MatchState } from "@/lib/types";
+import type { CatalogLegendary, LiveState, MapInfo, MatchState, Participant } from "@/lib/types";
 
 type Confirm = "finish" | "early" | "cancel" | null;
 
@@ -98,8 +98,11 @@ export function MatchConsole({
   const sides = matchSides(st);
   const [a, b] = sides;
   const total = st.tournament.rounds?.length ?? 2;
-  const focusId =
-    feed.state?.tournamentId === id ? (feed.state?.currentParticipantId ?? a?.id ?? null) : (a?.id ?? null);
+  // Сторону в рейде присылает сервер вместе с матчем: кнопка хода не зависит от связи с оверлеем.
+  const focusId = st.focus ?? a?.id ?? null;
+  const order = sides.filter((p): p is Participant => !!p);
+  const raidAt = order.findIndex((p) => p.id === focusId);
+  const nextSide = raidAt >= 0 && raidAt < order.length - 1 ? order[raidAt + 1] : null;
   // Пояс лиги считает сервер для оверлея: пульт показывает то же, что видят зрители на табло.
   const liveBelt = feed.state?.tournamentId === id ? (feed.state.belt ?? null) : null;
   const beltHolder = sides.find((p) => p && p.id === liveBelt?.holderParticipantId)?.name;
@@ -213,6 +216,22 @@ export function MatchConsole({
   }
 
   const lastRound = st.currentRound >= total;
+  const finishNext = lastRound && !nextSide;
+  const nextLabel = nextSide
+    ? `${st.tournament.mode === "2x2" ? "Следующая команда" : "Следующий игрок"}: ${nextSide.name} →`
+    : lastRound
+      ? "Завершить матч"
+      : "Следующий раунд →";
+
+  // Ход матча одной кнопкой: рейды сторон по очереди, потом следующий раунд, после последнего - итог.
+  // Второй щелчок двойного нажатия отбрасываем: подпись кнопки к нему уже сменилась на следующий шаг.
+  function nextStep(e: React.MouseEvent) {
+    if (e.detail > 1) return;
+    if (nextSide) void step(() => api.post<MatchState>(`/tournaments/${id}/focus`, { participantId: nextSide.id }));
+    else if (lastRound) setConfirm("finish");
+    else void run(`/tournaments/${id}/rounds/next`);
+  }
+
   const scoreA = totalScore(st, a?.id);
   const scoreB = totalScore(st, b?.id);
   const leader = scoreA === scoreB ? null : scoreA > scoreB ? a : b;
@@ -326,20 +345,14 @@ export function MatchConsole({
               <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => setConfirm("cancel")}>
                 <span>Отменить матч</span>
               </button>
-              {!lastRound && (
+              {!finishNext && (
                 <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm("early")}>
                   <span>Завершить досрочно</span>
                 </button>
               )}
-              {lastRound ? (
-                <button type="button" className="btn btn-primary" disabled={busy} onClick={() => setConfirm("finish")}>
-                  <span>Завершить матч</span>
-                </button>
-              ) : (
-                <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run(`/tournaments/${id}/rounds/next`)}>
-                  <span>Следующий раунд →</span>
-                </button>
-              )}
+              <button type="button" className="btn btn-primary" disabled={busy} onClick={nextStep}>
+                <span>{nextLabel}</span>
+              </button>
             </>
           }
           onFocus={(pid) => act(`/tournaments/${id}/focus`, { participantId: pid })}
