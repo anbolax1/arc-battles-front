@@ -40,7 +40,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto w-full max-w-md space-y-8 px-6 py-12 sm:py-16">
       <SectionHead eyebrow="С возвращением" title="Вход" />
-      <AuthForm mode="login" redirectTo={redirectTo} />
+      <AuthForm redirectTo={redirectTo} />
     </div>
   );
 }

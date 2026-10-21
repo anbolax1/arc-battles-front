@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import "./auth.css";
 import { getClaimInfo, getMe } from "@/lib/queries";
-import { JOIN_STEPS } from "@/lib/display";
+import { JOIN_STEPS, REGISTER_CLOSED_TEXT } from "@/lib/display";
 import { Stripes } from "@/components/surface/stripes";
 import { SurfaceMissing } from "@/components/surface/missing";
 import { SurfaceAuthForm, SurfaceClaimForm, SurfaceJoinForm } from "@/components/surface/auth-forms";
@@ -37,21 +37,19 @@ function AuthLayout({ eyebrow, title, lead, aside, card, children }: { eyebrow: 
 export function SurfaceLogin({ redirectTo }: { redirectTo?: string }) {
   return (
     <AuthLayout eyebrow="С возвращением" title="вход" lead="Профиль, заявки на матчи и свои клипы — по логину и паролю." card="Вход по логину">
-      <SurfaceAuthForm mode="login" redirectTo={redirectTo} />
+      <SurfaceAuthForm redirectTo={redirectTo} />
     </AuthLayout>
   );
 }
 
+/** Регистрации нет: аккаунты заводит организатор, вход игроку выдаёт ссылкой. */
 export function SurfaceRegister() {
   return (
-    <AuthLayout
-      eyebrow="Новый рейдер"
-      title="регистрация"
-      lead="Аккаунт нужен, чтобы записываться на матчи, вести профиль и присылать клипы с эфиров."
-      card="Создай аккаунт"
-    >
-      <SurfaceAuthForm mode="register" />
-    </AuthLayout>
+    <SurfaceMissing eyebrow="Регистрация" title="вход по ссылке" lead={REGISTER_CLOSED_TEXT}>
+      <Link className="sf-btn sf-btn-amber" href="/login">
+        Ко входу
+      </Link>
+    </SurfaceMissing>
   );
 }
 

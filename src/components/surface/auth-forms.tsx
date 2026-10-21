@@ -6,10 +6,9 @@ import { useAuthForm } from "@/components/domain/auth-form";
 import { useClaimForm } from "@/components/domain/claim-form";
 import { useJoinRequest } from "@/components/domain/register-form";
 
-/** Вход или регистрация по логину и паролю в новом дизайне. */
-export function SurfaceAuthForm({ mode, redirectTo }: { mode: "login" | "register"; redirectTo?: string }) {
-  const isRegister = mode === "register";
-  const f = useAuthForm(mode, redirectTo);
+/** Вход по логину и паролю в новом дизайне. */
+export function SurfaceAuthForm({ redirectTo }: { redirectTo?: string }) {
+  const f = useAuthForm(redirectTo);
 
   return (
     <form className="au-form" onSubmit={f.onSubmit}>
@@ -31,7 +30,6 @@ export function SurfaceAuthForm({ mode, redirectTo }: { mode: "login" | "registe
           onChange={(e) => f.setLogin(e.target.value)}
           required
         />
-        {isRegister && <p className="sf-field-note">3–32 символа: латиница, цифры и подчёркивание</p>}
       </div>
       <div className="sf-field">
         <label className="sf-field-label" htmlFor="au-password">
@@ -42,46 +40,22 @@ export function SurfaceAuthForm({ mode, redirectTo }: { mode: "login" | "registe
           name="password"
           type="password"
           className="sf-input"
-          autoComplete={isRegister ? "new-password" : "current-password"}
+          autoComplete="current-password"
           maxLength={128}
-          placeholder={isRegister ? "минимум 8 символов" : "••••••••"}
+          placeholder="••••••••"
           value={f.password}
           onChange={(e) => f.setPassword(e.target.value)}
           required
         />
       </div>
-      {isRegister && (
-        <div className="sf-field">
-          <label className="sf-field-label" htmlFor="au-confirm">
-            Повтори пароль
-          </label>
-          <input
-            id="au-confirm"
-            name="confirm-password"
-            type="password"
-            className="sf-input"
-            autoComplete="new-password"
-            maxLength={128}
-            placeholder="ещё раз"
-            value={f.confirm}
-            onChange={(e) => f.setConfirm(e.target.value)}
-            required
-          />
-        </div>
-      )}
       {f.error && (
         <p className="sf-field-note bad" role="alert">
           {f.error}
         </p>
       )}
       <button type="submit" className="sf-btn sf-btn-amber au-submit" disabled={f.sending}>
-        {f.sending ? "Подождите…" : isRegister ? "Зарегистрироваться" : "Войти"}
+        {f.sending ? "Подождите…" : "Войти"}
       </button>
-      {isRegister && (
-        <p className="au-switch">
-          Уже есть аккаунт? <Link href="/login">Войти</Link>
-        </p>
-      )}
     </form>
   );
 }

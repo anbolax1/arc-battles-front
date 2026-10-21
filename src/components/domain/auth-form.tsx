@@ -1,32 +1,25 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, errorText } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Panel } from "@/components/ui/card";
 import type { User } from "@/lib/types";
 
-/* Форма входа/регистрации по логину и паролю. mode переключает заголовки, набор полей
-   (подтверждение пароля только при регистрации) и эндпоинт. После успеха обновляем
-   контекст авторизации (refresh) и SSR-данные (router.refresh) и уходим на target. */
+/* Форма входа по логину и паролю. После успеха обновляем контекст авторизации (refresh)
+   и SSR-данные (router.refresh) и уходим на target. */
 
 const fieldCls =
   "w-full bg-surface-2 px-3.5 py-2.5 text-sm text-fg shadow-[inset_0_0_0_1px_var(--border)] outline-none transition focus:shadow-[inset_0_0_0_1px_var(--primary)]";
 
-const LOGIN_RE = /^[A-Za-z0-9_]{3,32}$/;
-const MIN_PASSWORD = 8;
-
-/** Вход и регистрация: проверки полей, запрос и переход после успеха; общая для обоих дизайнов. */
-export function useAuthForm(mode: "login" | "register", redirectTo?: string) {
-  const isRegister = mode === "register";
+/** Вход: проверка полей, запрос и переход после успеха; общая для обоих дизайнов. */
+export function useAuthForm(redirectTo?: string) {
   const router = useRouter();
   const { refresh } = useAuth();
 
   const [login, setLogin] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [confirm, setConfirm] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -35,37 +28,19 @@ export function useAuthForm(mode: "login" | "register", redirectTo?: string) {
     setError("");
     const l = login.trim();
 
-    if (isRegister) {
-      if (!LOGIN_RE.test(l)) {
-        setError("Логин: 3–32 символа, латиница, цифры и подчёркивание.");
-        return;
-      }
-      if (password.length < MIN_PASSWORD) {
-        setError("Пароль должен быть не короче 8 символов.");
-        return;
-      }
-      // Лимит bcrypt — 72 байта (для не-ASCII символ может быть >1 байта).
-      if (new TextEncoder().encode(password).length > 72) {
-        setError("Пароль слишком длинный (не более 72 байт).");
-        return;
-      }
-      if (password !== confirm) {
-        setError("Пароли не совпадают.");
-        return;
-      }
-    } else if (!l || !password) {
+    if (!l || !password) {
       setError("Укажите логин и пароль.");
       return;
     }
 
     setSending(true);
     try {
-      await api.post<User>(isRegister ? "/auth/register" : "/auth/login", {
+      await api.post<User>("/auth/login", {
         login: l,
         password,
       });
       await refresh();
-      router.push(redirectTo || (isRegister ? "/profile" : "/"));
+      router.push(redirectTo || "/");
       router.refresh();
     } catch (err) {
       setError(errorText(err, "Не удалось выполнить вход. Попробуйте ещё раз."));
@@ -73,18 +48,11 @@ export function useAuthForm(mode: "login" | "register", redirectTo?: string) {
     }
   }
 
-  return { login, setLogin, password, setPassword, confirm, setConfirm, sending, error, onSubmit };
+  return { login, setLogin, password, setPassword, sending, error, onSubmit };
 }
 
-export function AuthForm({
-  mode,
-  redirectTo,
-}: {
-  mode: "login" | "register";
-  redirectTo?: string;
-}) {
-  const isRegister = mode === "register";
-  const { login, setLogin, password, setPassword, confirm, setConfirm, sending, error, onSubmit } = useAuthForm(mode, redirectTo);
+export function AuthForm({ redirectTo }: { redirectTo?: string }) {
+  const { login, setLogin, password, setPassword, sending, error, onSubmit } = useAuthForm(redirectTo);
 
   return (
     <Panel glow className="p-6">
@@ -118,50 +86,21 @@ export function AuthForm({
             name="password"
             type="password"
             className={fieldCls}
-            autoComplete={isRegister ? "new-password" : "current-password"}
+            autoComplete="current-password"
             maxLength={128}
-            placeholder={isRegister ? "минимум 8 символов" : "••••••••"}
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
 
-        {isRegister && (
-          <div className="space-y-1.5">
-            <label htmlFor="auth-confirm" className="text-xs uppercase tracking-wide text-muted">
-              Повтори пароль
-            </label>
-            <input
-              id="auth-confirm"
-              name="confirm-password"
-              type="password"
-              className={fieldCls}
-              autoComplete="new-password"
-              maxLength={128}
-              placeholder="ещё раз"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-            />
-          </div>
-        )}
-
         {error && <p className="text-sm text-danger">{error}</p>}
 
         <button type="submit" className="btn btn-primary w-full" disabled={sending}>
-          <span>{sending ? "Подождите…" : isRegister ? "Зарегистрироваться" : "Войти"}</span>
+          <span>{sending ? "Подождите…" : "Войти"}</span>
         </button>
       </form>
-
-      {isRegister && (
-        <p className="mt-4 text-center text-sm text-muted">
-          Уже есть аккаунт?{" "}
-          <Link href="/login" className="text-accent transition hover:underline">
-            Войти
-          </Link>
-        </p>
-      )}
     </Panel>
   );
 }
