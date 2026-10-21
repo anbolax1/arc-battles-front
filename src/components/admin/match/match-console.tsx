@@ -89,6 +89,7 @@ export function MatchConsole({
   const [liveId, setLiveId] = React.useState("");
   const [confirm, setConfirm] = React.useState<Confirm>(null);
   const [pending, setPending] = React.useState(0);
+  const [fixRound, setFixRound] = React.useState<number | null>(null);
   const actions = React.useRef(0);
   const queue = React.useRef<Promise<unknown>>(Promise.resolve());
   const inFlight = React.useRef(new Set<string>());
@@ -98,6 +99,9 @@ export function MatchConsole({
   const sides = matchSides(st);
   const [a, b] = sides;
   const total = st.tournament.rounds?.length ?? 2;
+  const played = (st.tournament.rounds ?? []).filter((r) => r.status === "finished").map((r) => r.number);
+  // Правка завершённого матча: очки идут в выбранный сыгранный раунд, итог сервер подводит заново.
+  const fix = st.stage === "finished" && fixRound !== null ? { round: fixRound, onRound: setFixRound } : undefined;
   // Сторону в рейде присылает сервер вместе с матчем: кнопка хода не зависит от связи с оверлеем.
   const focusId = st.focus ?? a?.id ?? null;
   const order = sides.filter((p): p is Participant => !!p);
@@ -196,7 +200,7 @@ export function MatchConsole({
   }
 
   async function creditLegendary(legendaryId: string, participantId: string) {
-    const next = await act(`/tournaments/${id}/legendary`, { legendaryId, participantId }, `legendary:${legendaryId}`);
+    const next = await act(`/tournaments/${id}/legendary`, { legendaryId, participantId, round: fix?.round }, `legendary:${legendaryId}`);
     if (next) setLegendary((xs) => xs.map((l) => (l.id === legendaryId ? { ...l, status: "done" } : l)));
   }
 
@@ -332,7 +336,7 @@ export function MatchConsole({
         </>
       )}
 
-      {st.stage === "round" && (
+      {(st.stage === "round" || fix) && (
         <RoundConsole
           st={st}
           sides={sides}
@@ -340,33 +344,42 @@ export function MatchConsole({
           focusId={focusId}
           online={!!feed.state}
           saving={pending > 0}
+          fix={fix}
           actions={
-            <>
-              <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => setConfirm("cancel")}>
-                <span>Отменить матч</span>
+            fix ? (
+              <button type="button" className="btn btn-primary" onClick={() => setFixRound(null)}>
+                <span>Готово</span>
               </button>
-              {!finishNext && (
-                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm("early")}>
-                  <span>Завершить досрочно</span>
+            ) : (
+              <>
+                <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => setConfirm("cancel")}>
+                  <span>Отменить матч</span>
                 </button>
-              )}
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={nextStep}>
-                <span>{nextLabel}</span>
-              </button>
-            </>
+                {!finishNext && (
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm("early")}>
+                    <span>Завершить досрочно</span>
+                  </button>
+                )}
+                <button type="button" className="btn btn-primary" disabled={busy} onClick={nextStep}>
+                  <span>{nextLabel}</span>
+                </button>
+              </>
+            )
           }
           onFocus={(pid) => act(`/tournaments/${id}/focus`, { participantId: pid })}
           onMark={(asg, by) => act(`/round-bonus-tasks/${asg}/mark`, { by }, `task:${asg}`)}
           onReroll={(asg) => act(`/round-bonus-tasks/${asg}/reroll`, undefined, `task:${asg}`)}
-          onKnock={(pid, delta) => act(`/tournaments/${id}/knocks`, { participantId: pid, delta })}
-          onPoints={(pid, delta, label) => act(`/tournaments/${id}/points`, { participantId: pid, delta, label })}
+          onKnock={(pid, delta) => act(`/tournaments/${id}/knocks`, { participantId: pid, delta, round: fix?.round })}
+          onPoints={(pid, delta, label) => act(`/tournaments/${id}/points`, { participantId: pid, delta, label, round: fix?.round })}
           onLegendary={creditLegendary}
         />
       )}
 
-      {st.stage === "finished" && <MatchResult st={st} sides={sides} />}
+      {st.stage === "finished" && !fix && (
+        <MatchResult st={st} sides={sides} onFix={played.length ? () => setFixRound(Math.max(...played)) : undefined} />
+      )}
 
-      {st.stage === "round" ? (
+      {st.stage === "round" || fix ? (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
           <MatchLog log={st.log} onUndo={() => act(`/tournaments/${id}/undo`, undefined, "undo")} />
           <OverlayPeek state={feed.state} matchId={id} status={false} pageLink />

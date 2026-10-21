@@ -5,7 +5,16 @@ import { loadoutLabel, roundScore, totalScore } from "@/lib/match";
 import type { MatchState, Participant } from "@/lib/types";
 
 /** Итог матча: победитель, счёт по раундам и изменение MMR. */
-export function MatchResult({ st, sides }: { st: MatchState; sides: [Participant | null, Participant | null] }) {
+export function MatchResult({
+  st,
+  sides,
+  onFix,
+}: {
+  st: MatchState;
+  sides: [Participant | null, Participant | null];
+  /** Открыть пульт для исправления счёта; нет - в матче не сыграно ни одного раунда. */
+  onFix?: () => void;
+}) {
   const t = st.tournament;
   const [a, b] = sides;
   const winner = (t.participants ?? []).find((p) => p.id === t.winnerParticipantId) ?? null;
@@ -78,6 +87,11 @@ export function MatchResult({ st, sides }: { st: MatchState; sides: [Participant
         <Link href={`/tournament/${t.id}`} className="btn btn-ghost btn-sm">
           <span>Страница матча</span>
         </Link>
+        {onFix && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onFix}>
+            <span>Исправить матч</span>
+          </button>
+        )}
         <Link href="/admin/matches" className="btn btn-primary ml-auto">
           <span>Новый матч</span>
         </Link>

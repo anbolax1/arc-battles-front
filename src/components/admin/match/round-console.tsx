@@ -61,18 +61,32 @@ export function OverlayStatus({ online }: { online: boolean }) {
   );
 }
 
-function RoundCard({ st, r, now, sides }: { st: MatchState; r: Round; now: boolean; sides: [Participant | null, Participant | null] }) {
+function RoundCard({
+  st,
+  r,
+  now,
+  sides,
+  fixing,
+  onPick,
+}: {
+  st: MatchState;
+  r: Round;
+  now: boolean;
+  sides: [Participant | null, Participant | null];
+  fixing: boolean;
+  /** Выбрать раунд для правки завершённого матча; нет - раунд не выбрать. */
+  onPick?: () => void;
+}) {
   const [a, b] = sides;
-  return (
-    <div
-      className={`flex items-center justify-between gap-3 rounded-md px-3.5 py-2 ${
-        now ? "bg-[rgba(255,106,26,0.12)] shadow-[inset_0_0_0_1px_rgba(255,106,26,0.45)]" : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
-      }`}
-    >
+  const cls = `flex w-full items-center justify-between gap-3 rounded-md px-3.5 py-2 text-left ${
+    now ? "bg-[rgba(255,106,26,0.12)] shadow-[inset_0_0_0_1px_rgba(255,106,26,0.45)]" : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
+  }`;
+  const body = (
+    <>
       <div className="min-w-0">
         <div className={`font-display text-[0.68rem] uppercase ${now ? "text-primary-2" : "text-muted"}`}>
           Раунд {r.number}
-          {now ? " · идёт" : r.status === "finished" ? " · сыгран" : " · впереди"}
+          {now ? (fixing ? " · правка" : " · идёт") : r.status === "finished" ? " · сыгран" : fixing ? " · не сыгран" : " · впереди"}
         </div>
         <div className="truncate text-sm">
           {r.map || "—"} <span className="text-xs text-muted">· {loadoutLabel(st.tournament, r.number)}</span>
@@ -81,7 +95,19 @@ function RoundCard({ st, r, now, sides }: { st: MatchState; r: Round; now: boole
       <span className={`flex-none font-display text-lg tnum ${r.status === "pending" ? "text-muted" : ""}`}>
         {r.status === "pending" ? "—" : `${roundScore(st, r.number, a?.id)} : ${roundScore(st, r.number, b?.id)}`}
       </span>
-    </div>
+    </>
+  );
+  return onPick ? (
+    <button
+      type="button"
+      aria-pressed={now}
+      onClick={onPick}
+      className={`${cls} ${now ? "" : "transition hover:shadow-[inset_0_0_0_1px_rgba(255,106,26,0.45)]"}`}
+    >
+      {body}
+    </button>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
 
@@ -93,7 +119,8 @@ function TaskRow({
 }: {
   t: RoundBonusTask;
   onMark: (id: string, by: "owner" | "none") => void;
-  onReroll: (id: string) => void;
+  /** Нет - задание не перебросить: раунд уже сыгран. */
+  onReroll?: (id: string) => void;
 }) {
   const kind = taskKindLabel(t);
   const done = !!t.completedBy;
@@ -143,15 +170,17 @@ function TaskRow({
             <CheckIcon />
             <span>+{t.points}</span>
           </button>
-          <button
-            type="button"
-            className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-surface text-muted transition hover:text-fg"
-            onClick={() => onReroll(t.id)}
-            title="Перебросить задание"
-            aria-label={`Перебросить задание «${taskTitle(t)}»`}
-          >
-            ↻
-          </button>
+          {onReroll && (
+            <button
+              type="button"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-surface text-muted transition hover:text-fg"
+              onClick={() => onReroll(t.id)}
+              title="Перебросить задание"
+              aria-label={`Перебросить задание «${taskTitle(t)}»`}
+            >
+              ↻
+            </button>
+          )}
         </>
       )}
     </div>
@@ -253,6 +282,7 @@ export function RoundConsole({
   online,
   saving,
   actions,
+  fix,
   onFocus,
   onMark,
   onReroll,
@@ -269,6 +299,8 @@ export function RoundConsole({
   saving: boolean;
   /** Кнопки хода матча: следующий игрок или раунд, завершение, отмена. */
   actions: React.ReactNode;
+  /** Правка завершённого матча: раунд выбирают среди сыгранных, рейда и переброса заданий нет. */
+  fix?: { round: number; onRound: (round: number) => void };
   onFocus: (participantId: string) => void;
   onMark: (id: string, by: "owner" | "none") => void;
   onReroll: (id: string) => void;
@@ -277,7 +309,7 @@ export function RoundConsole({
   onLegendary: (legendaryId: string, participantId: string) => void;
 }) {
   const [legFor, setLegFor] = React.useState<string | null>(null);
-  const round = st.currentRound || 1;
+  const round = fix?.round ?? (st.currentRound || 1);
   const rounds = [...(st.tournament.rounds ?? [])].sort((a, b) => a.number - b.number);
   const [a, b] = sides;
   const available = legendary.filter((l) => l.status === "available");
@@ -303,13 +335,25 @@ export function RoundConsole({
 
         <div className={`grid gap-2 px-5 pb-4 ${rounds.length > 2 ? "md:grid-cols-3" : "sm:grid-cols-2"}`}>
           {rounds.map((r) => (
-            <RoundCard key={r.id} st={st} r={r} now={r.number === round} sides={sides} />
+            <RoundCard
+              key={r.id}
+              st={st}
+              r={r}
+              now={r.number === round}
+              sides={sides}
+              fixing={!!fix}
+              onPick={fix && r.status === "finished" ? () => fix.onRound(r.number) : undefined}
+            />
           ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-[var(--border)] bg-surface-2/50 px-5 py-2.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <OverlayStatus online={online} />
+            {fix ? (
+              <span className="text-xs text-muted">Матч завершён: каждая правка сразу пересчитывает победителя, MMR и нашивки</span>
+            ) : (
+              <OverlayStatus online={online} />
+            )}
             {/* Проявляется с задержкой: быстрый ответ сервера её не покажет, и панель не мигает на каждый клик. */}
             <span
               aria-hidden
@@ -330,21 +374,30 @@ export function RoundConsole({
           const tasks = st.tasks.filter((t) => t.roundNumber === round && t.participantId === p.id);
           const done = tasks.filter((t) => t.completedBy === p.id).length;
           const parts = roundBreakdown(st, round, p.id);
-          const raiding = focusId === p.id;
+          const raiding = !fix && focusId === p.id;
+          const name = (
+            <>
+              <SideTag i={side} />
+              <span className="truncate font-display text-lg uppercase decoration-2 underline-offset-4 group-hover:underline">{p.name}</span>
+            </>
+          );
           return (
             <Panel key={p.id} className={`flex flex-col border-t-[3px] transition-shadow ${style.edge} ${raiding ? style.ring : ""}`}>
               <div className="space-y-2.5 px-4 pb-3 pt-3">
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="group flex min-w-0 items-center gap-2.5 text-left"
-                    aria-pressed={raiding}
-                    onClick={() => onFocus(p.id)}
-                    title={raiding ? `${p.name} сейчас в рейде` : `Перевести рейд на ${p.name}`}
-                  >
-                    <SideTag i={side} />
-                    <span className="truncate font-display text-lg uppercase decoration-2 underline-offset-4 group-hover:underline">{p.name}</span>
-                  </button>
+                  {fix ? (
+                    <div className="flex min-w-0 items-center gap-2.5">{name}</div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="group flex min-w-0 items-center gap-2.5 text-left"
+                      aria-pressed={raiding}
+                      onClick={() => onFocus(p.id)}
+                      title={raiding ? `${p.name} сейчас в рейде` : `Перевести рейд на ${p.name}`}
+                    >
+                      {name}
+                    </button>
+                  )}
                   {raiding && <RaidLabel i={side} />}
                   <div className="ml-auto flex flex-none items-baseline gap-2">
                     <span className="field-label">Раунд {round}</span>
@@ -385,7 +438,7 @@ export function RoundConsole({
                   )}
                 </div>
                 {tasks.length ? (
-                  tasks.map((t) => <TaskRow key={t.id} t={t} onMark={onMark} onReroll={onReroll} />)
+                  tasks.map((t) => <TaskRow key={t.id} t={t} onMark={onMark} onReroll={fix ? undefined : onReroll} />)
                 ) : (
                   <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
                 )}
