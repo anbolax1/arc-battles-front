@@ -68,13 +68,13 @@ function Head({ who, sort, onSort }: { who: string; sort: SortKey; onSort: (k: S
     <div className="sf-tr sf-th" role="row">
       <span role="columnheader">#</span>
       <span role="columnheader">{who}</span>
+      <span role="columnheader" className="num">
+        <SortButton k="mmr" sort={sort} onSort={onSort}>
+          MMR
+        </SortButton>
+      </span>
       <span role="columnheader" className="c-wl">
         Победы — поражения
-      </span>
-      <span role="columnheader" className="num">
-        <SortButton k="wr" sort={sort} onSort={onSort}>
-          Винрейт
-        </SortButton>
       </span>
       <span role="columnheader" className="num c-m">
         <SortButton k="m" sort={sort} onSort={onSort}>
@@ -82,8 +82,8 @@ function Head({ who, sort, onSort }: { who: string; sort: SortKey; onSort: (k: S
         </SortButton>
       </span>
       <span role="columnheader" className="num">
-        <SortButton k="mmr" sort={sort} onSort={onSort}>
-          MMR
+        <SortButton k="wr" sort={sort} onSort={onSort}>
+          Винрейт
         </SortButton>
       </span>
     </div>
@@ -122,15 +122,15 @@ function SoloRows({ rows, place }: { rows: LeaderboardRow[]; place: Map<string, 
                 )}
               </span>
             </span>
-            <WinLoss wins={r.wins} losses={r.losses} />
-            <span role="cell" className="num pct">
-              {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
+            <span role="cell" className="num mm">
+              {r.mmr}
             </span>
+            <WinLoss wins={r.wins} losses={r.losses} />
             <span role="cell" className="num m c-m">
               {r.tournaments}
             </span>
-            <span role="cell" className="num mm">
-              {r.mmr}
+            <span role="cell" className="num pct">
+              {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
             </span>
           </Link>
         );
@@ -172,15 +172,15 @@ function TeamRows({ rows, place }: { rows: TeamLeaderboardRow[]; place: Map<stri
               </span>
             </span>
           </span>
-          <WinLoss wins={r.wins} losses={r.losses} />
-          <span role="cell" className="num pct">
-            {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
+          <span role="cell" className="num mm">
+            {r.mmr}
           </span>
+          <WinLoss wins={r.wins} losses={r.losses} />
           <span role="cell" className="num m c-m">
             {r.games}
           </span>
-          <span role="cell" className="num mm">
-            {r.mmr}
+          <span role="cell" className="num pct">
+            {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
           </span>
         </div>
       ))}

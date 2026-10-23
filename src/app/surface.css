@@ -3930,7 +3930,7 @@ a.sf-side-name:hover {
 }
 .sf-tr {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 170px 86px 80px 96px;
+  grid-template-columns: 52px minmax(0, 1fr) 96px 190px 80px 86px;
   gap: 16px;
   align-items: center;
   padding: 12px 8px;
@@ -4028,6 +4028,10 @@ a.sf-tr:hover,
   width: 38px;
   height: 38px;
   font-size: 14px;
+}
+/* MMR прижат к правому краю своей колонки - полоске побед нужен отступ от него */
+.sf-tr .c-wl {
+  padding-left: 20px;
 }
 .sf-wl {
   display: flex;
