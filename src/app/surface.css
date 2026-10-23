@@ -3741,6 +3741,10 @@ a.sf-side-name:hover {
   margin: 0;
   max-width: 70ch;
 }
+.sf-foot-legal {
+  display: grid;
+  gap: 10px;
+}
 .sf-foot-bottom a {
   color: var(--sf-amber);
   font-weight: 700;
