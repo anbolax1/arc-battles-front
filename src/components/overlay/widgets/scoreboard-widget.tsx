@@ -1,6 +1,7 @@
 import type { LiveBelt, LiveStanding } from "@/lib/types";
 import { chancePercents, drawLabel, DRAW_SHOWN } from "@/lib/chance";
 import { useJump, useTween } from "@/lib/use-chance";
+import { JumpSwap } from "./chance-jump";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
@@ -51,21 +52,17 @@ function BeltMark({ belt }: { belt: LiveBelt }) {
   );
 }
 
-/** Шанс стороны под её счётом: число доезжает до нового значения, заметный рост отмечается стрелкой. */
+/** Шанс стороны под её счётом: число доезжает до нового значения, при заметном росте подпись сменяет стрелка. */
 function ChanceUnder({ value, tone }: { value: number; tone: Tone }) {
   const shown = useTween(value);
   const jump = useJump(value);
   const right = tone === "b";
   return (
-    <span className={`relative mt-1 flex items-baseline gap-1.5 leading-none ${right ? "flex-row-reverse" : ""}`}>
-      <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-muted">шанс</span>
+    <span className={`mt-1 flex items-baseline gap-1.5 leading-none ${right ? "flex-row-reverse" : ""}`}>
+      <JumpSwap jump={jump} end={!right} labelClassName="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-muted">
+        шанс
+      </JumpSwap>
       <span className={`font-display text-xl tnum ${TONE[tone].text}`}>{shown}%</span>
-      <span
-        className={`ov-chance-jump absolute -top-3.5 text-[0.65rem] font-bold tnum text-ok ${right ? "left-0" : "right-0"} ${jump > 0 ? "on" : ""}`}
-        aria-hidden
-      >
-        ▲{Math.max(jump, 0)}
-      </span>
     </span>
   );
 }

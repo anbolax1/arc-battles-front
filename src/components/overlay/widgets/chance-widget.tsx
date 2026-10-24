@@ -1,22 +1,28 @@
 import type { ChanceDot } from "@/lib/types";
 import { chancePercents, drawLabel, DRAW_SHOWN } from "@/lib/chance";
 import { useJump, useTween } from "@/lib/use-chance";
+import { JumpSwap } from "./chance-jump";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
 const W = 300;
 const H = 60;
 
+/** Шанс стороны с её ником: при заметном росте ник на пару секунд сменяет стрелка. */
 function Pct({ value, name, right }: { value: number; name: string; right: boolean }) {
   const shown = useTween(value);
   const jump = useJump(value);
   return (
-    <div className={`relative flex min-w-0 flex-col ${right ? "items-end text-right" : "items-start"}`}>
+    <div className={`flex min-w-0 flex-col ${right ? "items-end text-right" : "items-start"}`}>
       <span className={`font-display text-3xl leading-none tnum ${right ? "text-accent" : "text-primary-2"}`}>{shown}%</span>
-      <span className="mt-1 max-w-[7rem] truncate text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-muted">{name}</span>
-      <span className={`ov-chance-jump absolute -top-3.5 text-[0.65rem] font-bold tnum text-ok ${right ? "right-0" : "left-0"} ${jump > 0 ? "on" : ""}`} aria-hidden>
-        ▲{Math.max(jump, 0)}
-      </span>
+      <JumpSwap
+        jump={jump}
+        end={right}
+        className="mt-1 max-w-[7rem]"
+        labelClassName="truncate text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-muted"
+      >
+        {name}
+      </JumpSwap>
     </div>
   );
 }
