@@ -83,7 +83,7 @@ const SAMPLE_PARTS: { uses: (w: WidgetInstance) => boolean; missing: string; has
   { uses: ofType("chance"), missing: "шанса на победу", has: (s) => !!s.chance, part: SAMPLE_CHANCE },
   // После матча на табло остаётся только итог, поэтому и шанс под счётом в превью - из примера.
   {
-    uses: (w) => w.type === "scoreboard" && !!w.showChance,
+    uses: (w) => w.type === "scoreboard" && (!!w.showChance || !!w.showChanceBar),
     missing: "шанса на победу",
     has: (s) => !!s.chance && s.stage !== "finished",
     part: SAMPLE_CHANCE,

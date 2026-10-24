@@ -633,6 +633,8 @@ export interface WidgetInstance {
   showBelt?: boolean;
   /** Табло: шанс на победу под счётом сторон и шанс ничьей по центру. */
   showChance?: boolean;
+  /** Табло: полоса шанса под счётом - доли сторон, их шансы по краям и шанс ничьей в подписи. */
+  showChanceBar?: boolean;
   /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
   anchor?: string;
   bg: OverlayBg;

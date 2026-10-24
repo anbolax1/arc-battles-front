@@ -22,7 +22,7 @@ const BOARD: WidgetInstance = {
   z: 1,
   visible: true,
   bg: { on: true, opacity: 0.92 },
-  showChance: true,
+  showChanceBar: true,
 };
 
 /** Кто в рейде после каждой точки: в раунде первой рейдит A, её закрытый рейд передаёт ход B. */

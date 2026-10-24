@@ -137,6 +137,7 @@ function showOptions(w: WidgetInstance): ShowOption[] {
       { key: "place", label: "Место в таблице", title: "место сторон в таблице сезона рядом с ником", on: !!w.showPlace, patch: (on) => ({ showPlace: on }) },
       { key: "belt", label: "Пояс", title: "значок пояса под ником носителя и «за пояс» по центру табло", on: !!w.showBelt, patch: (on) => ({ showBelt: on }) },
       { key: "chance", label: "Шанс на победу", title: "шанс сторон под счётом и шанс ничьей по центру табло", on: !!w.showChance, patch: (on) => ({ showChance: on }) },
+      { key: "chanceBar", label: "Полоса шанса", title: "полоса под табло: доли сторон, их шансы по краям и шанс ничьей", on: !!w.showChanceBar, patch: (on) => ({ showChanceBar: on }) },
     );
   }
   if (w.type === "bonusTasks") {
