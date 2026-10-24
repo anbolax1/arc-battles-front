@@ -5,6 +5,7 @@ import { PublicTags } from "@/components/ui/tag-badge";
 import { TrophyIcon } from "@/components/icons";
 import { fmtDate } from "@/lib/format";
 import { hasScore, matchSides, totalScore } from "@/lib/match";
+import { drawLabel, DRAW_SHOWN } from "@/lib/chance";
 import type { MatchState, Matchup, MatchupSide, Participant, ParticipantMmr } from "@/lib/types";
 
 /** Цвета сторон как на табло и в оверлее: A - оранжевая, B - циановая. */
@@ -108,13 +109,17 @@ function SideBlock({
   );
 }
 
-/** Шансы сторон по Эло: полоса в цветах сторон. */
-export function ChanceBar({ a, b, before = false }: { a: number; b: number; before?: boolean }) {
+/** Шансы сторон полосой в цветах сторон; ничья (её решает дуэль) - подписью. */
+export function ChanceBar({ a, b, draw = 0, before = false }: { a: number; b: number; draw?: number; before?: boolean }) {
+  const withDraw = draw >= DRAW_SHOWN;
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-3 tnum">
         <span className="font-display text-lg text-primary-2">{a}%</span>
-        <span className="text-xs uppercase tracking-wide text-muted">{before ? "Шансы перед матчем" : "Шансы по MMR"}</span>
+        <span className="text-xs uppercase tracking-wide text-muted">
+          {before ? "Шансы перед матчем" : "Шанс на победу"}
+          {withDraw ? ` · ${drawLabel(draw)}` : ""}
+        </span>
         <span className="font-display text-lg text-accent">{b}%</span>
       </div>
       <div className="flex h-2 gap-0.5 overflow-hidden rounded-sm" aria-hidden>
@@ -168,7 +173,7 @@ export function MatchupPanel({ st, matchup }: { st: MatchState; matchup: Matchup
         )}
         {block(1)}
       </div>
-      {chance && <ChanceBar a={chance[0]} b={chance[1]} before={finished} />}
+      {chance && <ChanceBar a={chance[0]} b={chance[1]} draw={matchup?.drawChance ?? 0} before={finished} />}
     </Panel>
   );
 }

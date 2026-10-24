@@ -63,7 +63,7 @@ export function ShowMatchCard({ t, matchup, more }: { t: Tournament; matchup: Ma
         </div>
       </div>
 
-      {chance && <ChanceBar a={chance[0]} b={chance[1]} />}
+      {chance && <ChanceBar a={chance[0]} b={chance[1]} draw={matchup?.drawChance ?? 0} />}
 
       {t.prize && <PrizeBanner prize={t.prize} />}
 

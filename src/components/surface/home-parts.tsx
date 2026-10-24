@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { TelegramIcon, TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, TELEGRAM_URL, YOUTUBE_URL } from "@/lib/links";
 import { isShowMatch, mapImage, matchSides, roundsLabel, stageLabel } from "@/lib/match";
+import { drawLabel, DRAW_SHOWN } from "@/lib/chance";
 import type { LeaderboardRow, MatchState, Matchup, MatchupSide, Season, Tournament, VetoStep } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { Arrow, ScheduleIcon, SecHead, TagStamps, signed } from "@/components/surface/ui";
@@ -32,15 +33,16 @@ export function VetoOrder({ steps }: { steps: VetoStep[] }) {
   );
 }
 
-/** Шансы сторон по MMR полосой в цветах сторон. */
-export function Odds({ a, b, nameA, nameB, label }: { a: number; b: number; nameA: string; nameB: string; label: string }) {
+/** Шансы сторон полосой в цветах сторон; ничья (её решает дуэль) - подписью. */
+export function Odds({ a, b, draw = 0, nameA, nameB, label }: { a: number; b: number; draw?: number; nameA: string; nameB: string; label: string }) {
+  const withDraw = draw >= DRAW_SHOWN;
   return (
     <div className="sf-odds">
       <div className="sf-odds-head">
         <span>
           <b>{a}%</b> {nameA}
         </span>
-        <span>{label}</span>
+        <span>{withDraw ? `${label} · ${drawLabel(draw)}` : label}</span>
         <span>
           {nameB} <b>{b}%</b>
         </span>

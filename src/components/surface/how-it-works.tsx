@@ -321,7 +321,7 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
     tabRefs.current[to]?.focus({ preventScroll: true });
   };
 
-  /* ----- калькулятор: как на сайте - победитель получает round(K × шанс проигравшего) × множитель ----- */
+  /* ----- калькулятор: как на сайте - победитель получает round(K × ожидание проигравшего) × множитель ----- */
   const [ca, setCa] = React.useState(calc.a);
   const [cb, setCb] = React.useState(calc.b);
   const [x2, setX2] = React.useState(false);
@@ -583,10 +583,10 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                   </div>
                   <div className="sf-odds-head">
                     <span>
-                      шанс A <b>{chanceA}%</b>
+                      ожидание A <b>{chanceA}%</b>
                     </span>
                     <span>
-                      <b>{100 - chanceA}%</b> шанс B
+                      <b>{100 - chanceA}%</b> ожидание B
                     </span>
                   </div>
                 </div>
@@ -629,7 +629,8 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                   </div>
                 </div>
                 <p className="sf-calc-f">
-                  Победитель получает столько, сколько теряет проигравший: <b>{k} × шанс проигравшего</b>
+                  Ожидание - шанс по одному MMR, из него считается рейтинг. Победитель получает столько, сколько теряет
+                  проигравший: <b>{k} × ожидание проигравшего</b>
                   {x2 ? ", в матче ×2 — вдвое" : ""}. Ничья MMR не меняет.
                   {calc.nameA && calc.nameB && (
                     <>

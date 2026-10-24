@@ -34,6 +34,7 @@ import type {
   News,
   PatchCatalog,
   Belt,
+  ChanceTrail,
 } from "@/lib/types";
 
 async function safe<T>(label: string, p: Promise<T>, fallback: T): Promise<T> {
@@ -241,6 +242,11 @@ export async function getMatch(id: string): Promise<MatchState | null> {
 /** Рейтинг сторон матча, что стоит на кону, и личные встречи. null - страница обойдётся без них. */
 export function getMatchup(id: string): Promise<Matchup | null> {
   return safe(`matchup(${id})`, serverFetch<Matchup>(`/tournaments/${encodeURIComponent(id)}/matchup`), null);
+}
+
+/** Как менялся шанс по ходу матча. null - графика не будет. */
+export function getChanceTrail(id: string): Promise<ChanceTrail | null> {
+  return safe(`chance(${id})`, serverFetch<ChanceTrail>(`/tournaments/${encodeURIComponent(id)}/chance`), null);
 }
 
 /** Справочник карт с превью. */

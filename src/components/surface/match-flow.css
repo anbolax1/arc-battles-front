@@ -1,0 +1,208 @@
+/* Ход матча: табло, как в эфире, поверх кадра игры, кнопки повтора и график шанса. */
+.sf-flow-lead {
+  margin: -6px 0 18px;
+  max-width: 64ch;
+  color: var(--sf-ink-2);
+  font: 500 15px/1.5 var(--sf-ff-d);
+}
+.sf-flow-screen {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 18px 12px 26px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #15161b url("/preview-bg.jpg") center 30% / cover no-repeat;
+  box-shadow: 0 0 0 1px var(--sf-ink-line);
+}
+.sf-flow-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.42));
+}
+/* Табло - как в эфире: «Поверхность» перекрашивает токены оверлея и меняет шрифт, здесь они возвращаются. */
+.sf-flow-board {
+  --bg: #09090c;
+  --surface: #15161b;
+  --surface-2: #1c1e25;
+  --primary: #ff6a1a;
+  --primary-2: #ff8a3d;
+  --primary-soft: rgba(255, 106, 26, 0.16);
+  --primary-line: rgba(255, 106, 26, 0.35);
+  --primary-glow: rgba(255, 106, 26, 0.6);
+  --accent: #22d3ee;
+  --fg: #f5f5f7;
+  --muted: #9a9aa6;
+  --border: rgba(255, 255, 255, 0.08);
+  --gold: #ffc53d;
+  --silver: #c9d2dc;
+  --bronze: #e08a4b;
+  --ok: #34d399;
+  --danger: #ff6b6b;
+  --ff-display: var(--font-russo), -apple-system, system-ui, sans-serif;
+  --ff-body: var(--font-chakra), -apple-system, system-ui, sans-serif;
+  position: relative;
+  max-width: none;
+  color: var(--fg);
+  font-family: var(--ff-body);
+  line-height: 1.5;
+}
+.sf-flow-ctl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-top: 14px;
+}
+.sf-flow-btn {
+  min-width: 42px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--sf-ink-line);
+  border-radius: 4px;
+  background: var(--sf-paper-2);
+  color: var(--sf-ink);
+  font: 700 14px/1 var(--sf-ff-c);
+  cursor: pointer;
+}
+.sf-flow-btn:hover {
+  border-color: var(--sf-ink-2);
+}
+.sf-flow-btn.play {
+  min-width: 128px;
+  background: var(--sf-ink);
+  border-color: var(--sf-ink);
+  color: var(--sf-paper);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sf-flow-btn:focus-visible,
+.sf-flow-range:focus-visible {
+  outline: 2px solid var(--sf-deep);
+  outline-offset: 2px;
+}
+.sf-flow-range {
+  flex: 1 1 200px;
+  min-width: 140px;
+  accent-color: var(--sf-ink);
+}
+.sf-flow-ev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  min-height: 26px;
+  margin: 12px 0 6px;
+  font: 500 15px/1.4 var(--sf-ff-d);
+  color: var(--sf-ink-2);
+}
+.sf-flow-ev b {
+  color: var(--sf-ink);
+  font-weight: 700;
+}
+.sf-flow-ev .n {
+  font: 500 12px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.04em;
+}
+.sf-flow-ev i {
+  font-style: normal;
+  font-weight: 700;
+}
+.sf-flow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 10px 0 4px;
+  font: 600 12px/1.3 var(--sf-ff-m);
+  letter-spacing: 0.03em;
+  color: var(--sf-ink-2);
+}
+.sf-flow-legend .sw {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+/* На светлой бумаге цвета сторон темнее, чем в эфире: иначе бирюза и коралл тонут. */
+.sf-flow-legend .sw.a,
+.sf-flow-chart .dot.a {
+  background: #0f8f87;
+  fill: #0f8f87;
+}
+.sf-flow-legend .sw.b,
+.sf-flow-chart .dot.b {
+  background: #d63c2c;
+  fill: #d63c2c;
+}
+.sf-flow-chart {
+  position: relative;
+  width: 100%;
+}
+.sf-flow-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.sf-flow-chart .grid {
+  stroke: var(--sf-ink-line);
+  stroke-width: 1;
+}
+.sf-flow-chart .mid {
+  stroke: rgba(26, 14, 30, 0.32);
+  stroke-width: 1;
+}
+.sf-flow-chart .tick {
+  font: 500 10.5px var(--sf-ff-m);
+  fill: var(--sf-ink-2);
+}
+.sf-flow-chart .area-a {
+  fill: rgba(15, 143, 135, 0.18);
+}
+.sf-flow-chart .area-b {
+  fill: rgba(214, 60, 44, 0.16);
+}
+.sf-flow-chart .line {
+  fill: none;
+  stroke: var(--sf-ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.sf-flow-chart .cross {
+  stroke: rgba(26, 14, 30, 0.4);
+  stroke-width: 1;
+}
+.sf-flow-chart .dot {
+  stroke: var(--sf-paper);
+  stroke-width: 2;
+  transition:
+    cx 0.35s ease,
+    cy 0.35s ease;
+}
+.sf-flow-tip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  background: var(--sf-ink);
+  color: var(--sf-paper);
+  font: 500 12px/1.35 var(--sf-ff-d);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.sf-flow-tip b {
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-flow-chart .dot {
+    transition: none;
+  }
+}

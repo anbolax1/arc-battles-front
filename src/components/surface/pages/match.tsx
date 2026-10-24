@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TwitchIcon, YouTubeIcon } from "@/components/icons";
 import { STREAM_URL, YOUTUBE_URL } from "@/lib/links";
-import { getBelt, getHighlights, getMaps, getMatch, getMatchup } from "@/lib/queries";
+import { getBelt, getChanceTrail, getHighlights, getMaps, getMatch, getMatchup } from "@/lib/queries";
+import { chancePercents } from "@/lib/chance";
 import {
   breakdownParts,
   CROSS_POINTS,
@@ -34,6 +35,7 @@ import { MatchPatches } from "@/components/surface/match-patches";
 import { fullDate, hhmm } from "@/components/surface/fmt";
 import { beltMarkLabel, matchBelt } from "@/components/surface/belt-lib";
 import { BeltMatch } from "@/components/surface/belt-parts";
+import { MatchFlow } from "@/components/surface/match-flow";
 
 const SIDE_COLOR = ["var(--sf-a)", "var(--sf-b)"] as const;
 
@@ -278,12 +280,13 @@ function EloBlock({ a, b, ca, cb, k, mult }: { a: Participant; b: Participant; c
       </h2>
       <dl className="sf-elo">
         <div>
-          <dt>Шансы перед матчем</dt>
+          <dt>Ожидание по рейтингу</dt>
           <dd className="sf-tnum">
             {pa}% : {100 - pa}%
           </dd>
           <p>
-            {a.name} {ca.before} против {b.name} {cb.before}. {fav ? `Фаворитом был ${fav}.` : "Шансы были равны."}
+            {a.name} {ca.before} против {b.name} {cb.before}. {fav ? `По рейтингу выше был ${fav}.` : "Рейтинг был равный."} Из этого ожидания считается
+            MMR за матч.
           </p>
         </div>
         {cell(a, ca, winA)}
@@ -386,11 +389,12 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const st = await getMatch(id);
   if (!st) notFound();
   const t = st.tournament;
-  const [{ items: highlights }, matchup, maps, beltData] = await Promise.all([
+  const [{ items: highlights }, matchup, maps, beltData, trail] = await Promise.all([
     getHighlights({ tournamentId: id, limit: 4 }),
     getMatchup(id),
     getMaps(),
     getBelt(),
+    st.tournament.status === "upcoming" ? Promise.resolve(null) : getChanceTrail(id),
   ]);
 
   const sides = matchSides(st);
@@ -408,7 +412,13 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const ib = b ? info.get(b.id) : undefined;
   const ca = a ? changes.get(a.id) : undefined;
   const cb = b ? changes.get(b.id) : undefined;
-  const chance = ia?.winChance != null && ib?.winChance != null ? [ia.winChance, ib.winChance] : null;
+  // У идущего матча - шанс сейчас, у остальных - перед матчем.
+  const chance =
+    live && st.chance
+      ? chancePercents(st.chance.now)
+      : ia?.winChance != null && ib?.winChance != null
+        ? [ia.winChance, matchup?.drawChance ?? 0, ib.winChance]
+        : null;
   const sa = totalScore(st, a?.id);
   const sb = totalScore(st, b?.id);
   const mult = t.ratingMultiplier > 1 ? t.ratingMultiplier : 1;
@@ -427,7 +437,8 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const beltLine = belt?.kind === "defend" ? `носитель пояса${belt.defenses ? ` · ★${belt.defenses}` : ""}` : undefined;
   const beltOther = sides.find((p) => p && p.userId !== holderId)?.name ?? "соперник";
   const beltBlock = belt && beltData ? <BeltMatch mark={belt} belt={beltData} id={id} other={beltOther} /> : null;
-  const paper = st.veto.length > 0 || showRounds || showElo || showVoid || hasH2h || patches.length > 0 || !!beltBlock;
+  const showFlow = !!trail && trail.points.length > 2 && !!a && !!b;
+  const paper = st.veto.length > 0 || showFlow || showRounds || showElo || showVoid || hasH2h || patches.length > 0 || !!beltBlock;
   // В незасчитанном матче победы нет, а проигравшему MMR вернули.
   const isWinner = (p: Participant | null) => !voided && !!p && t.winnerParticipantId === p.id;
   const isRefunded = (p: Participant | null) => voided && !!p && !!t.winnerParticipantId && t.winnerParticipantId !== p.id;
@@ -540,7 +551,16 @@ export async function SurfaceMatch({ id }: { id: string }) {
 
           {(chance || t.prize) && (
             <div className="sf-mh-extra">
-              {chance && <Odds a={chance[0]} b={chance[1]} nameA={a?.name ?? "A"} nameB={b?.name ?? "B"} label={finished ? "шансы перед матчем" : "шансы по MMR"} />}
+              {chance && (
+                <Odds
+                  a={chance[0]}
+                  b={chance[2]}
+                  draw={chance[1]}
+                  nameA={a?.name ?? "A"}
+                  nameB={b?.name ?? "B"}
+                  label={finished ? "шансы перед матчем" : "шанс на победу"}
+                />
+              )}
               {t.prize && (
                 <span className="sf-prize">
                   <small>приз</small>
@@ -573,6 +593,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
           <div className="sf-wrap">
             {live && beltBlock}
             {st.veto.length > 0 && <MatchVeto maps={allMaps} veto={st.veto} nameA={a?.name ?? "A"} nameB={b?.name ?? "B"} />}
+            {showFlow && trail && a && b && <MatchFlow id={id} initial={trail} names={[a.name, b.name]} rounds={rounds.length || t.totalRounds} />}
             {showRounds && <Rounds st={st} rounds={rounds} sides={sides} finished={finished} />}
             {showElo && <EloBlock a={a} b={b} ca={ca} cb={cb} k={matchup?.season?.kFactor} mult={mult} />}
             {showVoid && a && b && <VoidBlock reason={t.voidReason} winnerId={t.winnerParticipantId} sides={[a, b]} changes={changes} />}
