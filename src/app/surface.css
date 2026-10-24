@@ -4795,6 +4795,10 @@ a.sf-tr:hover,
   fill: var(--sf-amber);
   stroke: var(--sf-ink);
 }
+.sf-chart-box .pt.st {
+  fill: var(--sf-ink-2);
+  stroke: var(--sf-ink-2);
+}
 .sf-chart-box .end {
   fill: var(--sf-amber);
   stroke: var(--sf-ink);

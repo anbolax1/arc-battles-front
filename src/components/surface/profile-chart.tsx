@@ -12,6 +12,13 @@ export interface ChartSegment {
   points: MmrPoint[];
 }
 
+/** Точка графика: матч, а без match - стартовый MMR сезона перед его первым матчем. */
+interface ChartPoint {
+  mmr: number;
+  si: number;
+  match?: MmrPoint;
+}
+
 const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 const monthFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Moscow", month: "numeric" });
 
@@ -19,6 +26,13 @@ function monthIndex(iso?: string | null): number | null {
   if (!iso) return null;
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? null : Number(monthFmt.format(d)) - 1;
+}
+
+/** Класс точки: старт сезона, сверка, победа; без класса - поражение. */
+function pointKind({ match }: ChartPoint): string {
+  if (!match) return "st";
+  if (match.correction) return "c";
+  return match.win ? "w" : "";
 }
 
 /** График MMR по матчам: каждый сезон - свой отрезок, между сезонами сброс на старт. */
@@ -35,8 +49,8 @@ export function ProfileChart({ segments }: { segments: ChartSegment[] }) {
     return () => ro.disconnect();
   }, []);
 
-  const pts = segments.flatMap((s, si) => s.points.map((p) => ({ ...p, si })));
-  if (!pts.length) return null;
+  if (!segments.some((s) => s.points.length)) return null;
+  const pts: ChartPoint[] = segments.flatMap((s, si) => [{ mmr: s.start, si }, ...s.points.map((p) => ({ mmr: p.mmr, si, match: p }))]);
 
   const narrow = W < 560;
   const H = Math.round(Math.min(340, Math.max(220, W * 0.32)));
@@ -60,7 +74,7 @@ export function ProfileChart({ segments }: { segments: ChartSegment[] }) {
   // Подписи месяцев: на первом матче месяца, если не налезают на предыдущую.
   const months: Array<{ x: number; label: string }> = [];
   for (let i = 0, lastMonth: number | null = null, lastX = -999; i < pts.length; i++) {
-    const m = monthIndex(pts[i].date);
+    const m = monthIndex(pts[i].match?.date);
     if (m === null || m === lastMonth) continue;
     lastMonth = m;
     if (X(i) - lastX < 56) continue;
@@ -68,10 +82,10 @@ export function ProfileChart({ segments }: { segments: ChartSegment[] }) {
     lastX = X(i);
   }
 
-  const starts = segments.map((_, si) => segments.slice(0, si).reduce((sum, s) => sum + s.points.length, 0));
+  const starts = segments.map((_, si) => segments.slice(0, si).reduce((sum, s) => sum + s.points.length + 1, 0));
   const segs = segments.map((s, si) => {
     const from = starts[si];
-    const idx = s.points.map((_, j) => from + j);
+    const idx = Array.from({ length: s.points.length + 1 }, (_, j) => from + j);
     const line = idx.map((i, j) => `${j ? "L" : "M"}${X(i).toFixed(1)} ${Y(pts[i].mmr).toFixed(1)}`).join("");
     const x0 = X(idx[0]);
     const x1 = X(idx[idx.length - 1]);
@@ -137,9 +151,7 @@ export function ProfileChart({ segments }: { segments: ChartSegment[] }) {
         ))}
         {hp && hover !== null && <line className="guide" x1={X(hover)} x2={X(hover)} y1={pad.t} y2={pad.t + ih} />}
         {pts.map((p, i) =>
-          i === end ? null : (
-            <circle key={i} className={`pt ${p.correction ? "c" : p.win ? "w" : ""}`} cx={X(i)} cy={Y(p.mmr)} r={n > 60 ? 2.6 : 3.4} />
-          ),
+          i === end ? null : <circle key={i} className={`pt ${pointKind(p)}`} cx={X(i)} cy={Y(p.mmr)} r={n > 60 ? 2.6 : 3.4} />,
         )}
         <circle className="end" cx={X(end)} cy={Y(pts[end].mmr)} r={6.5} />
         <text className="pf-end" x={X(end) - 10} y={Y(pts[end].mmr) - 12} textAnchor="end">
@@ -148,22 +160,27 @@ export function ProfileChart({ segments }: { segments: ChartSegment[] }) {
       </svg>
       {hp && hover !== null && (
         <div className="sf-tip" style={{ left: Math.max(90, Math.min(W - 90, X(hover))), top: Y(hp.mmr) }}>
-          {hp.correction ? (
+          {!hp.match ? (
             <>
-              <small>{fullDate(hp.date)}</small>
+              <small>{segments[hp.si].label} · старт сезона</small>
               <b>{hp.mmr}</b> MMR
-              <small>сверка рейтинга {signed(hp.delta)}</small>
+            </>
+          ) : hp.match.correction ? (
+            <>
+              <small>{fullDate(hp.match.date)}</small>
+              <b>{hp.mmr}</b> MMR
+              <small>сверка рейтинга {signed(hp.match.delta)}</small>
             </>
           ) : (
             <>
               <small>
-                {fullDate(hp.date)} · {hp.win ? "победа" : "поражение"}
-                {hp.mult > 1 ? ` ×${hp.mult}` : ""}
+                {fullDate(hp.match.date)} · {hp.match.win ? "победа" : "поражение"}
+                {hp.match.mult > 1 ? ` ×${hp.match.mult}` : ""}
               </small>
-              <b>{hp.mmr}</b> MMR <span className={hp.delta >= 0 ? "u" : "d"}>{signed(hp.delta)}</span>
+              <b>{hp.mmr}</b> MMR <span className={hp.match.delta >= 0 ? "u" : "d"}>{signed(hp.match.delta)}</span>
               <small>
-                vs {hp.opponent || "?"}
-                {hp.map ? ` · ${hp.map}` : ""}
+                vs {hp.match.opponent || "?"}
+                {hp.match.map ? ` · ${hp.match.map}` : ""}
               </small>
             </>
           )}
