@@ -19,7 +19,10 @@ import { putShowPreview } from "@/components/admin/match/show-preview";
 import { PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
 import type { CatalogLegendary, LiveState, MapInfo, MatchState, Participant } from "@/lib/types";
 
-type Confirm = "finish" | "early" | "cancel" | null;
+type Confirm = "finish" | "early" | "cancel" | "void" | "unvoid" | null;
+
+// Причина стоит на странице матча одной строкой - как и на сервере.
+const MAX_VOID_REASON = 120;
 
 const STEPS = ["Стороны", "Пики-баны", "Матч", "Итог"];
 const SHOW_STEPS = ["Анонс", "Пики-баны", "Матч", "Итог"];
@@ -90,6 +93,7 @@ export function MatchConsole({
   const [confirm, setConfirm] = React.useState<Confirm>(null);
   const [pending, setPending] = React.useState(0);
   const [fixRound, setFixRound] = React.useState<number | null>(null);
+  const [voidReason, setVoidReason] = React.useState("");
   const actions = React.useRef(0);
   const queue = React.useRef<Promise<unknown>>(Promise.resolve());
   const inFlight = React.useRef(new Set<string>());
@@ -239,6 +243,9 @@ export function MatchConsole({
   const scoreA = totalScore(st, a?.id);
   const scoreB = totalScore(st, b?.id);
   const leader = scoreA === scoreB ? null : scoreA > scoreB ? a : b;
+  const winnerSide = sides.find((p) => p && p.id === st.tournament.winnerParticipantId) ?? null;
+  const loserSide = sides.find((p) => p && p.id !== st.tournament.winnerParticipantId) ?? null;
+  const loss = Math.abs((st.tournament.mmrChanges ?? []).find((c) => c.participantId === loserSide?.id)?.delta ?? 0);
   const show = isShowMatch(st.tournament);
   const pill =
     st.stage === "finished"
@@ -376,7 +383,20 @@ export function MatchConsole({
       )}
 
       {st.stage === "finished" && !fix && (
-        <MatchResult st={st} sides={sides} onFix={played.length ? () => setFixRound(Math.max(...played)) : undefined} />
+        <MatchResult
+          st={st}
+          sides={sides}
+          onFix={played.length ? () => setFixRound(Math.max(...played)) : undefined}
+          onVoid={
+            st.tournament.winnerParticipantId && !st.tournament.voided
+              ? () => {
+                  setVoidReason("");
+                  setConfirm("void");
+                }
+              : undefined
+          }
+          onUnvoid={st.tournament.voided ? () => setConfirm("unvoid") : undefined}
+        />
       )}
 
       {st.stage === "round" || fix ? (
@@ -408,7 +428,7 @@ export function MatchConsole({
       )}
 
       <ConfirmDialog
-        open={confirm !== null}
+        open={confirm === "finish" || confirm === "early" || confirm === "cancel"}
         title={confirm === "cancel" ? "Отменить матч?" : confirm === "early" ? "Завершить досрочно?" : "Завершить матч?"}
         message={
           confirm === "cancel"
@@ -424,6 +444,41 @@ export function MatchConsole({
           setConfirm(null);
           if (what === "cancel") await cancelMatch();
           else await run(`/tournaments/${id}/finish`);
+        }}
+      />
+
+      {/* Окно держится, пока сервер пересчитывает MMR всех матчей: на это уходят секунды. */}
+      <ConfirmDialog
+        open={confirm === "void" || confirm === "unvoid"}
+        title={confirm === "unvoid" ? "Засчитать матч снова?" : "Вернуть MMR проигравшему?"}
+        message={
+          confirm === "unvoid" ? (
+            `Поражение снова спишет MMR у ${loserSide?.name ?? "проигравшего"}, а победа и поражение вернутся в статистику, серии и нашивки.`
+          ) : (
+            <>
+              {`${loserSide?.name ?? "Проигравшему"} вернётся ${loss ? `${loss} MMR` : "MMR за матч"}, у ${winnerSide?.name ?? "победителя"} всё останется. `}
+              Победа и поражение не пойдут в статистику и серии, нашивки за победу снимутся; ноки, задания и участие засчитаются.
+              <label className="mt-4 block space-y-1.5">
+                <span className="field-label">Причина</span>
+                <input
+                  className="input"
+                  maxLength={MAX_VOID_REASON}
+                  placeholder="Например: убили читеры"
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                />
+                <span className="block text-xs">Видна на странице матча. Можно оставить пустой.</span>
+              </label>
+            </>
+          )
+        }
+        confirmLabel={confirm === "unvoid" ? "Засчитать" : "Вернуть MMR"}
+        danger={false}
+        busy={busy}
+        onCancel={() => setConfirm(null)}
+        onConfirm={async () => {
+          await run(`/tournaments/${id}/void`, { voided: confirm === "void", reason: voidReason });
+          setConfirm(null);
         }}
       />
     </div>

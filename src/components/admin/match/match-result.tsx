@@ -9,11 +9,17 @@ export function MatchResult({
   st,
   sides,
   onFix,
+  onVoid,
+  onUnvoid,
 }: {
   st: MatchState;
   sides: [Participant | null, Participant | null];
   /** Открыть пульт для исправления счёта; нет - в матче не сыграно ни одного раунда. */
   onFix?: () => void;
+  /** Не засчитать исход и вернуть проигравшему MMR; нет - ничья или матч уже не засчитан. */
+  onVoid?: () => void;
+  /** Засчитать незасчитанный матч снова. */
+  onUnvoid?: () => void;
 }) {
   const t = st.tournament;
   const [a, b] = sides;
@@ -28,11 +34,16 @@ export function MatchResult({
           <TrophyIcon className="h-8 w-8" />
         </span>
         <div className="min-w-0 flex-1 space-y-1">
-          <span className="field-label text-accent">{winner ? "Победа" : "Ничья"}</span>
+          <span className={`field-label ${t.voided ? "text-gold" : "text-accent"}`}>{t.voided ? "Не засчитан" : winner ? "Победа" : "Ничья"}</span>
           <div className="truncate font-display text-3xl uppercase">{winner ? winner.name : "Ничья — MMR не меняется"}</div>
           <div className="text-sm text-muted">
             {t.mode} · {t.playerType.toUpperCase()} · {rounds.length} раунда{t.ratingMultiplier === 2 ? " · рейтинг ×2" : ""}
           </div>
+          {t.voided && (
+            <div className="text-sm text-gold">
+              Проигравшему MMR возвращён{t.voidReason ? ` · ${t.voidReason}` : ""}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3 font-display text-5xl leading-none tnum">
           <span className="text-primary-2">{totalScore(st, a?.id)}</span>
@@ -61,6 +72,7 @@ export function MatchResult({
           {sides.map((p) => {
             if (!p) return null;
             const c = mmr.get(p.id);
+            const refunded = t.voided && !!winner && p.id !== winner.id;
             return (
               <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-surface-2 px-3 py-2.5">
                 <span className="font-display uppercase">{p.name}</span>
@@ -69,9 +81,13 @@ export function MatchResult({
                     <span className="text-sm tnum text-muted">
                       {c.before} → {c.after}
                     </span>
-                    <span className={`font-display text-lg tnum ${c.delta >= 0 ? "text-ok" : "text-danger"}`}>
-                      {c.delta >= 0 ? `+${c.delta}` : `−${Math.abs(c.delta)}`}
-                    </span>
+                    {refunded ? (
+                      <span className="font-display text-lg text-gold">возвращён</span>
+                    ) : (
+                      <span className={`font-display text-lg tnum ${c.delta >= 0 ? "text-ok" : "text-danger"}`}>
+                        {c.delta >= 0 ? `+${c.delta}` : `−${Math.abs(c.delta)}`}
+                      </span>
+                    )}
                   </>
                 ) : (
                   <span className="text-sm text-muted">без изменений</span>
@@ -90,6 +106,16 @@ export function MatchResult({
         {onFix && (
           <button type="button" className="btn btn-ghost btn-sm" onClick={onFix}>
             <span>Исправить матч</span>
+          </button>
+        )}
+        {onVoid && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onVoid}>
+            <span>Вернуть MMR</span>
+          </button>
+        )}
+        {onUnvoid && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onUnvoid}>
+            <span>Засчитать матч</span>
           </button>
         )}
         <Link href="/admin/matches" className="btn btn-primary ml-auto">
