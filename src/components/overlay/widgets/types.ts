@@ -4,4 +4,6 @@ import type { LiveState, WidgetInstance } from "@/lib/types";
 export interface WidgetProps {
   state: LiveState;
   instance: WidgetInstance;
+  /** Превью в редакторе сцены: показать и то, что в эфире видно только во время матча. */
+  preview?: boolean;
 }

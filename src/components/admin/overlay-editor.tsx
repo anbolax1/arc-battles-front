@@ -565,7 +565,7 @@ export function OverlayEditor({
                 }}
               >
                 <div style={{ pointerEvents: "none", width: "100%", height: "100%", visibility: hidden ? "hidden" : undefined }}>
-                  <Cmp state={state} instance={w} />
+                  <Cmp state={state} instance={w} preview />
                 </div>
                 {hidden && selected && scale > 0 && (
                   <span

@@ -148,7 +148,7 @@ function Side({
 
 /** Виджет «Счёт»: табло двух сторон, раунд по центру; по настройкам - MMR, места в таблице сезона, пояс лиги
     и шанс на победу под счётом с шансом ничьей по центру. */
-export function ScoreboardWidget({ state, instance }: WidgetProps) {
+export function ScoreboardWidget({ state, instance, preview }: WidgetProps) {
   const standings = state.standings ?? [];
   const focusedId = state.currentParticipantId ?? undefined;
   const opts = {
@@ -163,8 +163,8 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const multiRound = (state.totalRounds ?? 1) > 1;
   const finished = state.stage === "finished";
   const belt = state.belt ?? null;
-  // После матча шанс не нужен: итог уже на табло.
-  const pct = instance.showChance && state.chance && !finished && a && b ? chancePercents(state.chance) : null;
+  // После матча шанс не нужен: итог уже на табло. В редакторе он виден всегда, чтобы было что настроить.
+  const pct = instance.showChance && state.chance && (!finished || preview) && a && b ? chancePercents(state.chance) : null;
   // Дуэль до первого нока: играют оба, «в рейде» никого.
   const duel = !!state.duel && !finished;
   const beltCaption =
