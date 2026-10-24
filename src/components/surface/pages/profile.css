@@ -117,6 +117,10 @@
 .pf-legend i.c {
   background: var(--sf-amber);
 }
+.pf-legend i.v {
+  border-style: dashed;
+  border-color: var(--sf-ink-2);
+}
 .pf-legend i.st {
   width: 18px;
   height: 0;

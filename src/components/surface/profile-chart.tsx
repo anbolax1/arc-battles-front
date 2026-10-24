@@ -28,10 +28,11 @@ function monthIndex(iso?: string | null): number | null {
   return Number.isNaN(d.getTime()) ? null : Number(monthFmt.format(d)) - 1;
 }
 
-/** Класс точки: старт сезона, сверка, победа; без класса - поражение. */
+/** Класс точки: старт сезона, сверка, незасчитанный матч, победа; без класса - поражение. */
 function pointKind({ match }: ChartPoint): string {
   if (!match) return "st";
   if (match.correction) return "c";
+  if (match.voided) return "v";
   return match.win ? "w" : "";
 }
 
@@ -174,7 +175,7 @@ export function ProfileChart({ segments }: { segments: ChartSegment[] }) {
           ) : (
             <>
               <small>
-                {fullDate(hp.match.date)} · {hp.match.win ? "победа" : "поражение"}
+                {fullDate(hp.match.date)} · {hp.match.voided ? "матч не засчитан" : hp.match.win ? "победа" : "поражение"}
                 {hp.match.mult > 1 ? ` ×${hp.match.mult}` : ""}
               </small>
               <b>{hp.mmr}</b> MMR <span className={hp.match.delta >= 0 ? "u" : "d"}>{signed(hp.match.delta)}</span>

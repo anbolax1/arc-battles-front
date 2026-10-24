@@ -241,8 +241,14 @@ export function ProfileSeasons({
         <div>
           <dt>Винрейт</dt>
           <dd>
-            {stats.winrate}
-            <small>%</small>
+            {stats.wins + stats.losses ? (
+              <>
+                {stats.winrate}
+                <small>%</small>
+              </>
+            ) : (
+              "—"
+            )}
           </dd>
           <dd className="pf-sub">
             {stats.wins}–{stats.losses}
@@ -260,7 +266,10 @@ export function ProfileSeasons({
         </div>
       </dl>
 
-      <ChartLegend corrections={segments.some((s) => s.points.some((p) => p.correction))} />
+      <ChartLegend
+        corrections={segments.some((s) => s.points.some((p) => p.correction))}
+        voided={segments.some((s) => s.points.some((p) => p.voided))}
+      />
       <ProfileChart key={sel} segments={segments} />
 
       {analytics?.knocks?.matches ? <Knocks k={analytics.knocks} all={sel === ALL} /> : null}
@@ -296,7 +305,7 @@ export function ProfileSeasons({
 }
 
 /** Легенда графика MMR. */
-export function ChartLegend({ corrections }: { corrections: boolean }) {
+export function ChartLegend({ corrections, voided = false }: { corrections: boolean; voided?: boolean }) {
   return (
     <div className="pf-legend" aria-hidden>
       <span>
@@ -308,6 +317,11 @@ export function ChartLegend({ corrections }: { corrections: boolean }) {
       {corrections && (
         <span>
           <i className="c" /> сверка рейтинга
+        </span>
+      )}
+      {voided && (
+        <span>
+          <i className="v" /> не засчитан
         </span>
       )}
       <span>

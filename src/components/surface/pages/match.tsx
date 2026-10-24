@@ -57,6 +57,7 @@ function BoardSide({
   solo,
   finished,
   winner,
+  refunded,
   beltLine,
 }: {
   p: Participant | null;
@@ -66,6 +67,8 @@ function BoardSide({
   solo: boolean;
   finished: boolean;
   winner: boolean;
+  /** Проиграл незасчитанный матч: MMR ему вернули. */
+  refunded: boolean;
   /** Носитель пояса в идущем матче. */
   beltLine?: string;
 }) {
@@ -99,7 +102,9 @@ function BoardSide({
         </div>
       ) : null}
       {finished ? (
-        change ? (
+        refunded ? (
+          <span className="sf-side-line sf-tnum">MMR возвращён{change ? ` · ${change.after}` : ""}</span>
+        ) : change ? (
           <span className="sf-side-mmr sf-tnum">
             <MmrMove {...change} />
           </span>
@@ -288,6 +293,46 @@ function EloBlock({ a, b, ca, cb, k, mult }: { a: Participant; b: Participant; c
   );
 }
 
+/** Незасчитанный матч: почему, и что стало с рейтингом сторон. */
+function VoidBlock({
+  reason,
+  winnerId,
+  sides,
+  changes,
+}: {
+  reason?: string;
+  winnerId?: string | null;
+  sides: Participant[];
+  changes: Map<string, ParticipantMmr>;
+}) {
+  return (
+    <div className="sf-m-block">
+      <p className="sf-eyebrow">Рейтинг сторон</p>
+      <h2 className="sf-h-mid">
+        матч не засчитан<span className="sf-dot">.</span>
+      </h2>
+      <dl className="sf-elo">
+        <div>
+          <dt>Почему</dt>
+          {reason && <dd className="why">{reason}</dd>}
+          <p>Матч сыгран, но исход не засчитан: победа и поражение не идут в статистику и серии, а ноки и задания засчитаны.</p>
+        </div>
+        {sides.map((p) => {
+          const c = changes.get(p.id);
+          const lost = !!winnerId && winnerId !== p.id;
+          return (
+            <div key={p.id}>
+              <dt>{p.name}</dt>
+              <dd className={c && c.delta > 0 ? "sf-up" : c && c.delta < 0 ? "sf-down" : ""}>{signed(c?.delta ?? 0)}</dd>
+              <p>{lost ? "MMR вернули: поражение не засчитано." : c ? `${c.before} → ${c.after}. MMR за матч остаётся.` : "Рейтинг не менялся."}</p>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
+
 /* ---------- личные встречи ---------- */
 
 function HeadToHead({ h, a, b }: { h: Matchup["headToHead"]; a: string; b: string }) {
@@ -373,14 +418,19 @@ export async function SurfaceMatch({ id }: { id: string }) {
   const h2h = matchup?.headToHead;
   const hasH2h = !!h2h && h2h.wins[0] + h2h.wins[1] + h2h.draws > 0;
   const showRounds = (finished || live) && rounds.length > 0;
-  const showElo = finished && a && b && ca && cb;
+  const voided = finished && !!t.voided;
+  const showElo = finished && !voided && a && b && ca && cb;
+  const showVoid = voided && !!a && !!b;
   const patches = st.patches ?? [];
   const belt = matchBelt(beltData, t, sides.flatMap((p) => (p?.userId ? [p.userId] : [])));
   const holderId = belt?.kind === "defend" ? belt.holder.userId : "";
   const beltLine = belt?.kind === "defend" ? `носитель пояса${belt.defenses ? ` · ★${belt.defenses}` : ""}` : undefined;
   const beltOther = sides.find((p) => p && p.userId !== holderId)?.name ?? "соперник";
   const beltBlock = belt && beltData ? <BeltMatch mark={belt} belt={beltData} id={id} other={beltOther} /> : null;
-  const paper = st.veto.length > 0 || showRounds || showElo || hasH2h || patches.length > 0 || !!beltBlock;
+  const paper = st.veto.length > 0 || showRounds || showElo || showVoid || hasH2h || patches.length > 0 || !!beltBlock;
+  // В незасчитанном матче победы нет, а проигравшему MMR вернули.
+  const isWinner = (p: Participant | null) => !voided && !!p && t.winnerParticipantId === p.id;
+  const isRefunded = (p: Participant | null) => voided && !!p && !!t.winnerParticipantId && t.winnerParticipantId !== p.id;
 
   const streams = (
     <>
@@ -410,6 +460,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
                 {live && <span className="sf-live-pill">В эфире</span>}
                 {upcoming && <span className="hot">Скоро</span>}
                 {finished && <span className="done">Сыгран</span>}
+                {voided && <span className="hot">Не засчитан</span>}
                 {show && <span className="hot">Шоу-матч</span>}
                 {belt && <span className="belt">{beltMarkLabel(belt)}</span>}
                 <span>{t.mode}</span>
@@ -457,7 +508,8 @@ export async function SurfaceMatch({ id }: { id: string }) {
               change={ca}
               solo={solo}
               finished={finished}
-              winner={!!a && t.winnerParticipantId === a.id}
+              winner={isWinner(a)}
+              refunded={isRefunded(a)}
               beltLine={a?.userId && a.userId === holderId ? beltLine : undefined}
             />
             {played ? (
@@ -480,7 +532,8 @@ export async function SurfaceMatch({ id }: { id: string }) {
               change={cb}
               solo={solo}
               finished={finished}
-              winner={!!b && t.winnerParticipantId === b.id}
+              winner={isWinner(b)}
+              refunded={isRefunded(b)}
               beltLine={b?.userId && b.userId === holderId ? beltLine : undefined}
             />
           </FitBoard>
@@ -522,6 +575,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
             {st.veto.length > 0 && <MatchVeto maps={allMaps} veto={st.veto} nameA={a?.name ?? "A"} nameB={b?.name ?? "B"} />}
             {showRounds && <Rounds st={st} rounds={rounds} sides={sides} finished={finished} />}
             {showElo && <EloBlock a={a} b={b} ca={ca} cb={cb} k={matchup?.season?.kFactor} mult={mult} />}
+            {showVoid && a && b && <VoidBlock reason={t.voidReason} winnerId={t.winnerParticipantId} sides={[a, b]} changes={changes} />}
             {!live && beltBlock}
             {patches.length > 0 && <MatchPatches patches={patches} sides={sides} live={live} />}
             {hasH2h && h2h && <HeadToHead h={h2h} a={a?.name ?? "A"} b={b?.name ?? "B"} />}

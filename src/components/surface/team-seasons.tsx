@@ -92,8 +92,14 @@ export function TeamSeasons({ team, seasons, maps }: { team: TeamProfile; season
         <div>
           <dt>Винрейт</dt>
           <dd>
-            {stats.winrate}
-            <small>%</small>
+            {stats.wins + stats.losses ? (
+              <>
+                {stats.winrate}
+                <small>%</small>
+              </>
+            ) : (
+              "—"
+            )}
           </dd>
           <dd className="pf-sub">
             {stats.wins}–{stats.losses}
@@ -111,7 +117,10 @@ export function TeamSeasons({ team, seasons, maps }: { team: TeamProfile; season
         </div>
       </dl>
 
-      <ChartLegend corrections={segments.some((s) => s.points.some((p) => p.correction))} />
+      <ChartLegend
+        corrections={segments.some((s) => s.points.some((p) => p.correction))}
+        voided={segments.some((s) => s.points.some((p) => p.voided))}
+      />
       <ProfileChart key={sel} segments={segments} />
       <MapsAndRivals mapStats={analytics?.maps ?? []} opponents={analytics?.opponents ?? []} maps={maps} />
     </div>

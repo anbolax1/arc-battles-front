@@ -96,6 +96,7 @@ export function playerPoints(recap: SeasonRecap, i: number): MmrPoint[] {
       mult: m.mult,
       games: m.games,
       season: recap.season.id,
+      voided: m.voided,
     });
   }
   for (const [t, mmr, corr] of P[i].curve) {

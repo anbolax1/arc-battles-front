@@ -1,6 +1,7 @@
 import type { MmrPoint, MmrStats } from "@/lib/types";
 
-/** Сводка по матчам одного сезона; сверка рейтинга - не матч, в победы и серии не идёт. */
+/** Сводка по матчам одного сезона; сверка рейтинга - не матч, незасчитанный матч - матч без исхода:
+    в победы, поражения и серии не идёт. */
 export function seasonStats(points: MmrPoint[], start: number): MmrStats {
   const st: MmrStats = {
     currentMmr: start,
@@ -23,6 +24,8 @@ export function seasonStats(points: MmrPoint[], start: number): MmrStats {
     if (p.correction) continue;
     st.firstMatch ??= p.date;
     const w = Math.max(p.games || 1, 1);
+    st.games += w;
+    if (p.voided) continue;
     if (p.win) st.wins += w;
     else st.losses += w;
     const k = p.win ? "win" : "loss";
@@ -31,8 +34,8 @@ export function seasonStats(points: MmrPoint[], start: number): MmrStats {
     if (k === "win") st.bestWinStreak = Math.max(st.bestWinStreak, len);
     else st.bestLossStreak = Math.max(st.bestLossStreak, len);
   }
-  st.games = st.wins + st.losses;
-  st.winrate = st.games ? Math.round((st.wins * 100) / st.games) : 0;
+  const decided = st.wins + st.losses;
+  st.winrate = decided ? Math.round((st.wins * 100) / decided) : 0;
   st.currentStreakKind = kind;
   st.currentStreakLen = len;
   return st;

@@ -17,6 +17,8 @@ export interface ArchiveMatch {
   score: SideScore[];
   maps: string[];
   mult: number;
+  /** Матч не засчитан: счёт остаётся, а победы нет. */
+  voided?: boolean;
   /** Что матч сделал с поясом лиги: сменил хозяина, защитил. */
   belt?: string;
 }
@@ -71,8 +73,8 @@ function Row({ m }: { m: ArchiveMatch }) {
           </span>
           <small>{meta.join(" · ")}</small>
         </span>
-        <span className={`arc-res ${winner ? "w" : ""}`}>
-          {winner ? `победа ${winner}` : "ничья"}
+        <span className={`arc-res ${winner && !m.voided ? "w" : ""}`}>
+          {m.voided ? "не засчитан" : winner ? `победа ${winner}` : "ничья"}
           {m.belt && <em className="arc-belt">{m.belt}</em>}
         </span>
       </Link>

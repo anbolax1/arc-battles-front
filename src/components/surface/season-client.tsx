@@ -230,7 +230,9 @@ export function SeasonYou() {
                     </button>
                     <small>{m.before[op]}</small>
                   </td>
-                  <td className={`res ${m.winner < 0 ? "" : won ? "sf-up" : "sf-down"}`}>{m.winner < 0 ? "ничья" : won ? "победа" : "поражение"}</td>
+                  <td className={`res ${m.winner < 0 ? "" : won ? "sf-up" : "sf-down"}`}>
+                    {m.voided ? "не засчитан" : m.winner < 0 ? "ничья" : won ? "победа" : "поражение"}
+                  </td>
                   <td className={`r d ${m.delta[me] > 0 ? "sf-up" : m.delta[me] < 0 ? "sf-down" : ""}`}>
                     {signed(m.delta[me])}
                     {m.mult > 1 && <span className="sn-x2">×{m.mult}</span>}

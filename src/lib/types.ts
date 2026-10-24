@@ -88,6 +88,10 @@ export interface Tournament {
   /** Картинка анонса шоу-матча (same-origin /media/...). */
   previewUrl?: string;
   winnerParticipantId?: string | null;
+  /** Матч не засчитан: сыгран, но без исхода; MMR сменился только у победителя. */
+  voided?: boolean;
+  /** Почему матч не засчитан. */
+  voidReason?: string;
   createdAt: string;
   updatedAt: string;
   participantCount?: number;
@@ -185,6 +189,8 @@ export interface MmrPoint {
   season?: string;
   /** Не матч, а сверка рейтинга с официальными цифрами. */
   correction?: boolean;
+  /** Матч не засчитан: сыгран, но в победы и серии не идёт. */
+  voided?: boolean;
 }
 
 /** Сводная статистика по исходам (игрок 1×1 или команда 2×2). */
@@ -659,6 +665,8 @@ export interface PlayerHistoryItem {
   win: boolean;
   /** Изменение MMR игрока (или его команды) за матч. */
   mmrDelta?: number;
+  /** Матч не засчитан: ни победа, ни поражение. */
+  voided?: boolean;
 }
 
 /** Расширенная статистика игрока: винрейт по режимам, источники очков, любимая карта, серия. */
@@ -801,8 +809,10 @@ export interface RecapMatch {
   at: string;
   /** Индексы игроков в players: стороны A и B. */
   p: [number, number];
-  /** 0 | 1, -1 - ничья. */
+  /** 0 | 1, -1 - ничья или незасчитанный матч. */
   winner: number;
+  /** Матч не засчитан: победителя для итогов нет. */
+  voided?: boolean;
   mult: number;
   games: number;
   show: boolean;

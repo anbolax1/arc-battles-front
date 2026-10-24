@@ -4799,6 +4799,11 @@ a.sf-tr:hover,
   fill: var(--sf-ink-2);
   stroke: var(--sf-ink-2);
 }
+.sf-chart-box .pt.v {
+  fill: var(--sf-paper);
+  stroke: var(--sf-ink-2);
+  stroke-dasharray: 2 1.5;
+}
 .sf-chart-box .end {
   fill: var(--sf-amber);
   stroke: var(--sf-ink);

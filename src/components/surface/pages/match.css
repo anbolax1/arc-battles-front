@@ -217,6 +217,11 @@
 .sf-elo dd.sf-down {
   color: var(--sf-loss-ink);
 }
+.sf-elo dd.why {
+  font-size: 22px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
 .sf-h2h-score .names {
   display: block;
   margin-top: 8px;

@@ -19,6 +19,7 @@ export async function SurfaceArchive() {
         score: t.score ?? [],
         maps: t.roundMaps?.length ? t.roundMaps : t.maps,
         mult: t.ratingMultiplier,
+        voided: !!t.voided,
         belt: mark ? beltMarkLabel(mark) : undefined,
       };
     })

@@ -18,10 +18,11 @@ export function ProfileHistory({ items }: { items: PlayerHistoryItem[] }) {
       <ul className="sf-hist">
         {shown.map((h) => {
           const done = h.status === "finished";
+          const res = !done ? "идёт" : h.voided ? "не засчитан" : h.win ? "победа" : "поражение";
           return (
             <li key={h.tournamentId}>
               <Link href={`/tournament/${h.tournamentId}`}>
-                <span className={`sf-res ${!done ? "c pf-live" : h.win ? "w" : "l"}`}>{!done ? "идёт" : h.win ? "победа" : "поражение"}</span>
+                <span className={`sf-res ${!done ? "c pf-live" : h.voided ? "c" : h.win ? "w" : "l"}`}>{res}</span>
                 <span>
                   <b>{(h.title || h.name).replace(/^\[история\]\s*/, "")}</b>
                   <small>

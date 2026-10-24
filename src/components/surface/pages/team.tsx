@@ -20,7 +20,7 @@ function TeamCard({ team, name, season, stats, final }: { team: TeamProfile; nam
     { k: "Место 2×2", v: stats.place > 0 ? `#${stats.place}` : "вне рейтинга" },
     { k: final ? "MMR в конце" : "MMR 2×2", v: String(stats.currentMmr) },
     { k: "Пик MMR", v: stats.peakMmr ? String(stats.peakMmr) : "—" },
-    { k: "Победы", v: stats.games ? `${stats.wins} из ${stats.games} · ${stats.winrate}%` : "нет матчей" },
+    { k: "Победы", v: stats.wins + stats.losses ? `${stats.wins} из ${stats.wins + stats.losses} · ${stats.winrate}%` : "нет матчей" },
     { k: "Лучшая серия", v: stats.bestWinStreak ? `${stats.bestWinStreak} подряд` : "—" },
     { k: "Первый матч", v: team.stats.firstMatch ? fullDate(team.stats.firstMatch) : "—" },
   ];
