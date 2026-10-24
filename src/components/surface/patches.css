@@ -504,12 +504,13 @@ a.pt-res:hover {
   max-width: 820px;
 }
 .pt-idwrap.sewn {
-  margin-bottom: 36px;
+  margin-bottom: 70px;
 }
+/* висят ниже края пропуска: выше они закрыли бы нижний ряд полей */
 .pt-sewn {
   position: absolute;
   right: -64px;
-  bottom: -44px;
+  bottom: -78px;
   z-index: 2;
   display: grid;
   justify-items: center;

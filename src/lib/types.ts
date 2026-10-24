@@ -696,6 +696,8 @@ export interface PlayerStats {
   legendaryPoints: number; // легендарные контракты (10 каждый)
   favoriteMap: string;
   favoriteMapRounds: number;
+  /** Первый сыгранный матч любого формата: у mmr1x1.firstMatch - только 1×1. */
+  firstMatch?: string | null;
 }
 
 /** Публичный профиль игрока: GET /api/players/{login} (B6). */
@@ -703,6 +705,7 @@ export interface PlayerProfile {
   user: User;
   mmrSolo: number; // MMR 1x1 (старт 1000)
   mmrDuo: number; // MMR 2x2 (старт 1000)
+  peakDuo?: number; // пик лучшей команды игрока за все сезоны (2x2)
   points: number;
   wins: number;
   tournaments: number;

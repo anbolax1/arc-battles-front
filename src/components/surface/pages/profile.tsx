@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import "./profile.css";
 import { getBelt, getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
@@ -37,35 +37,27 @@ function NotFound({ login }: { login: string }) {
   );
 }
 
-/** Машиночитаемая строка внизу пропуска - как на документах. */
-function codeLine(login: string, season: Season | undefined, mmr: number, place: number): [string, string] {
-  const no = season?.name.match(/\d+/)?.[0] ?? "0";
-  const name = login.toUpperCase().replace(/[^A-Z0-9]/g, "<");
-  return [`RSP<<${name}${"<".repeat(Math.max(4, 14 - name.length))}`, `S${no}<${String(mmr).padStart(4, "0")}<${String(place).padStart(2, "0")}`];
-}
-
-function IdCard({ profile, season }: { profile: PlayerProfile; season?: Season }) {
-  const { user, mmrSolo, mmrDuo, mmr1x1, stats } = profile;
+function IdCard({ profile }: { profile: PlayerProfile }) {
+  const { user, mmrSolo, mmrDuo, peakDuo, mmr1x1, stats } = profile;
   const name = user.displayName || user.login;
-  const [code1, code2] = codeLine(user.login, season, mmrSolo, mmr1x1.place);
+  // Колонки: общее, 1×1, 2×2. m - порядок на телефоне: там две колонки, и 1×1 с 2×2 встают парами.
   const fields = [
-    { k: "Место в сезоне", v: mmr1x1.place > 0 ? `#${mmr1x1.place}` : "вне рейтинга" },
-    { k: "MMR 1×1", v: String(mmrSolo) },
-    { k: "MMR 2×2", v: String(mmrDuo) },
-    { k: "Пик MMR", v: mmr1x1.peakMmr ? String(mmr1x1.peakMmr) : "—" },
-    { k: "В рейтинге с", v: mmr1x1.firstMatch ? fullDate(mmr1x1.firstMatch) : "—" },
-    { k: "Embark ID", v: user.embarkId || "не указан" },
-    { k: "Любимая карта", v: stats.favoriteMap || "—" },
-    { k: "Победы 1×1", v: stats.soloPlayed ? `${stats.soloWins} из ${stats.soloPlayed} · ${winrate(stats.soloWins, stats.soloPlayed - stats.soloWins)}%` : "нет матчей" },
-    { k: "Победы 2×2", v: stats.duoPlayed ? `${stats.duoWins} из ${stats.duoPlayed} · ${winrate(stats.duoWins, stats.duoPlayed - stats.duoWins)}%` : "нет матчей" },
+    { k: "Место в сезоне", v: mmr1x1.place > 0 ? `#${mmr1x1.place}` : "вне рейтинга", m: 1 },
+    { k: "MMR 1×1", v: String(mmrSolo), m: 3 },
+    { k: "MMR 2×2", v: String(mmrDuo), m: 4 },
+    { k: "Первый матч", v: stats.firstMatch ? fullDate(stats.firstMatch) : "—", m: 2 },
+    { k: "Лучший MMR 1×1", v: mmr1x1.peakMmr ? String(mmr1x1.peakMmr) : "—", m: 5 },
+    { k: "Лучший MMR 2×2", v: peakDuo ? String(peakDuo) : "—", m: 6 },
+    { k: "Любимая карта", v: stats.favoriteMap || "—", m: 9 },
+    { k: "Винрейт 1×1", v: stats.soloPlayed ? `${winrate(stats.soloWins, stats.soloPlayed - stats.soloWins)}%` : "нет матчей", m: 7 },
+    { k: "Винрейт 2×2", v: stats.duoPlayed ? `${winrate(stats.duoWins, stats.duoPlayed - stats.duoWins)}%` : "нет матчей", m: 8 },
   ];
   return (
     <article className="sf-idcard pf-card" aria-label={`Профиль игрока ${name}`}>
       <div className="sf-id-head">
         <span>
-          Пропуск рейдера<span className="sf-hide-sm"> · Speranza</span>
+          Профиль игрока<span className="sf-hide-sm"> · GOARC.PRO</span>
         </span>
-        <span className="sf-hide-sm">{season?.name ?? "Вне сезона"}</span>
         <Stripes shape="badge" />
       </div>
       <div className={`sf-id-photo ${user.avatarUrl ? "has-img" : ""}`} aria-hidden>
@@ -80,22 +72,23 @@ function IdCard({ profile, season }: { profile: PlayerProfile; season?: Season }
         <div className="pf-namerow">
           <div className="pf-name">
             <h1 className="sf-id-name">{name}</h1>
-            <p className="pf-login">@{user.login}</p>
+            {user.embarkId && (
+              <p className="pf-embarkid" title="Embark ID">
+                <span className="sr-only">Embark ID: </span>
+                {user.embarkId}
+              </p>
+            )}
           </div>
           <TagStamps tags={user.tags} className="pf-stamps" />
         </div>
-        <dl className="sf-id-fields">
+        <dl className="sf-id-fields pf-fields">
           {fields.map((f) => (
-            <div key={f.k}>
+            <div key={f.k} style={{ "--m": f.m } as CSSProperties}>
               <dt>{f.k}</dt>
               <dd>{f.v}</dd>
             </div>
           ))}
         </dl>
-      </div>
-      <div className="sf-id-code" aria-hidden>
-        <span>{code1}</span>
-        <span>{code2}</span>
       </div>
     </article>
   );
@@ -118,7 +111,7 @@ export async function ProfileView({
   extra,
 }: {
   profile: PlayerProfile;
-  eyebrow: string;
+  eyebrow?: string;
   back?: boolean;
   settings?: ReactNode;
   extra?: ReactNode;
@@ -142,12 +135,14 @@ export async function ProfileView({
               Таблица лидеров
             </Link>
           )}
-          <p className="sf-eyebrow">
-            {eyebrow}
-            {active ? ` · ${active.name}` : ""}
-          </p>
+          {eyebrow && (
+            <p className="sf-eyebrow">
+              {eyebrow}
+              {active ? ` · ${active.name}` : ""}
+            </p>
+          )}
           <div className={`pt-idwrap ${sewn.items.length ? "sewn" : ""}`}>
-            <IdCard profile={profile} season={active} />
+            <IdCard profile={profile} />
             {sewn.items.length > 0 && (
               <a className="pt-sewn" href="#patches" aria-label={`Нашивки ${name}, ${shown?.name}: ${sewn.count} из ${PATCH_ORDER.length}`}>
                 <span>
@@ -221,5 +216,5 @@ export async function ProfileView({
 export async function SurfaceProfile({ login }: { login: string }) {
   const profile = await getPlayer(login);
   if (!profile) return <NotFound login={login} />;
-  return <ProfileView profile={profile} eyebrow="Профиль игрока" back />;
+  return <ProfileView profile={profile} back />;
 }

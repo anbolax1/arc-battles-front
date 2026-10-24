@@ -21,7 +21,7 @@
   padding-right: 0;
   text-transform: none;
 }
-.pf-login {
+.pf-embarkid {
   margin: 8px 0 0;
   font: 600 12px/1.3 var(--sf-ff-m);
   letter-spacing: 0.06em;
@@ -43,6 +43,9 @@
     flex-direction: row;
     align-items: flex-start;
     max-width: none;
+  }
+  .pf-fields > div {
+    order: var(--m);
   }
 }
 
@@ -206,7 +209,7 @@
 }
 /* нашивки свисают с пропуска вместе с подписью - блок ниже, чтобы их не закрыть */
 .pt-idwrap.sewn + .pf-desk {
-  margin-top: 72px;
+  margin-top: 106px;
 }
 .pf-embark {
   display: flex;
