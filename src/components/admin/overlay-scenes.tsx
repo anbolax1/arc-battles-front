@@ -49,6 +49,15 @@ const SAMPLE_STATE: LiveState = {
     { text: "Сапёр: Найдите и уничтожьте 5 Взрывоботов.", points: 1, valueType: "fixed", times: 0, category: "task", opponent: true },
   ],
   complications: [{ text: "S.O.S: Первые 3 минуты рейда: Вызовите Эвакуацию.", penalty: 0, valueType: "fixed", reward: 1, tag: "timed" }],
+  chance: { a: 0.6, draw: 0.04, b: 0.4 },
+  chanceTrail: [
+    { a: 0.49, draw: 0.05, round: 1 },
+    { a: 0.62, draw: 0.05, round: 1 },
+    { a: 0.54, draw: 0.05, round: 1 },
+    { a: 0.46, draw: 0.05, round: 1 },
+    { a: 0.51, draw: 0.05, round: 1 },
+    { a: 0.6, draw: 0.04, round: 2 },
+  ],
   veto: [
     { mapCode: "spaceport", mapName: "Космопорт", action: "ban", side: "A", sideName: "Игрок A" },
     { mapCode: "blue_gate", mapName: "Синие ворота", action: "ban", side: "B", sideName: "Игрок B" },
@@ -69,6 +78,7 @@ const SAMPLE_PARTS: { types: WidgetType[]; missing: string; has: (s: LiveState) 
     part: { complications: SAMPLE_STATE.complications },
   },
   { types: ["veto"], missing: "пиков-банов", has: (s) => !!s.veto?.length, part: { veto: SAMPLE_STATE.veto } },
+  { types: ["chance"], missing: "шанса на победу", has: (s) => !!s.chance, part: { chance: SAMPLE_STATE.chance, chanceTrail: SAMPLE_STATE.chanceTrail } },
 ];
 
 /** Что показать в превью: настоящий матч, а чего в нём ещё нет - из примера, иначе виджет не расставить. */

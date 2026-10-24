@@ -1,4 +1,6 @@
 import type { LiveBelt, LiveStanding } from "@/lib/types";
+import { chancePercents, drawLabel, DRAW_SHOWN } from "@/lib/chance";
+import { useJump, useTween } from "@/lib/use-chance";
 import { WidgetFrame } from "./frame";
 import type { WidgetProps } from "./types";
 
@@ -49,6 +51,25 @@ function BeltMark({ belt }: { belt: LiveBelt }) {
   );
 }
 
+/** Шанс стороны под её счётом: число доезжает до нового значения, заметный рост отмечается стрелкой. */
+function ChanceUnder({ value, tone }: { value: number; tone: Tone }) {
+  const shown = useTween(value);
+  const jump = useJump(value);
+  const right = tone === "b";
+  return (
+    <span className={`relative mt-1 flex items-baseline gap-1.5 leading-none ${right ? "flex-row-reverse" : ""}`}>
+      <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-muted">шанс</span>
+      <span className={`font-display text-xl tnum ${TONE[tone].text}`}>{shown}%</span>
+      <span
+        className={`ov-chance-jump absolute -top-3.5 text-[0.65rem] font-bold tnum text-ok ${right ? "left-0" : "right-0"} ${jump > 0 ? "on" : ""}`}
+        aria-hidden
+      >
+        ▲{Math.max(jump, 0)}
+      </span>
+    </span>
+  );
+}
+
 function Side({
   s,
   tone,
@@ -58,6 +79,7 @@ function Side({
   showPlace,
   showBelt,
   belt,
+  chance,
 }: {
   s: LiveStanding;
   tone: Tone;
@@ -67,6 +89,8 @@ function Side({
   showPlace: boolean;
   showBelt: boolean;
   belt?: LiveBelt | null;
+  /** Шанс на победу, проценты; null - не показывать. */
+  chance: number | null;
 }) {
   const right = tone === "b";
   // 2×2: имя команды «Ник1 & Ник2» - в две строки; длинные ники обрезаются.
@@ -111,15 +135,19 @@ function Side({
           </div>
         )}
       </div>
-      <div className={`flex flex-none items-baseline gap-1.5 font-display leading-none ${right ? "flex-row-reverse" : ""}`}>
-        <span className={`text-4xl tnum sm:text-5xl ${t.text}`}>{s.points}</span>
-        {showRound && <span className="text-base tnum text-muted sm:text-lg">({rp >= 0 ? `+${rp}` : rp})</span>}
+      <div className={`flex flex-none flex-col ${right ? "items-start" : "items-end"}`}>
+        <div className={`flex items-baseline gap-1.5 font-display leading-none ${right ? "flex-row-reverse" : ""}`}>
+          <span className={`text-4xl tnum sm:text-5xl ${t.text}`}>{s.points}</span>
+          {showRound && <span className="text-base tnum text-muted sm:text-lg">({rp >= 0 ? `+${rp}` : rp})</span>}
+        </div>
+        {chance != null && <ChanceUnder value={chance} tone={tone} />}
       </div>
     </div>
   );
 }
 
-/** Виджет «Счёт»: табло двух сторон, раунд по центру; по настройкам - MMR, места в таблице сезона и пояс лиги. */
+/** Виджет «Счёт»: табло двух сторон, раунд по центру; по настройкам - MMR, места в таблице сезона, пояс лиги
+    и шанс на победу под счётом с шансом ничьей по центру. */
 export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const standings = state.standings ?? [];
   const focusedId = state.currentParticipantId ?? undefined;
@@ -135,6 +163,8 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const multiRound = (state.totalRounds ?? 1) > 1;
   const finished = state.stage === "finished";
   const belt = state.belt ?? null;
+  // После матча шанс не нужен: итог уже на табло.
+  const pct = instance.showChance && state.chance && !finished && a && b ? chancePercents(state.chance) : null;
   const beltCaption =
     !belt || !opts.showBelt
       ? ""
@@ -150,7 +180,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
     <WidgetFrame instance={instance}>
       <div className="flex h-full items-stretch">
         {a ? (
-          <Side s={a} tone="a" focused={!finished && a.participantId === focusedId} belt={belt} {...opts} />
+          <Side s={a} tone="a" focused={!finished && a.participantId === focusedId} belt={belt} chance={pct ? pct[0] : null} {...opts} />
         ) : (
           <div className="flex flex-1 items-center px-5 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
         )}
@@ -169,8 +199,11 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
             <span className="font-display text-xl leading-none text-muted">VS</span>
           )}
           {beltCaption && <span className="max-w-[5.5rem] text-center text-[0.6rem] uppercase leading-tight tracking-[0.14em] text-gold">{beltCaption}</span>}
+          {pct && pct[1] >= DRAW_SHOWN && (
+            <span className="whitespace-nowrap text-[0.6rem] font-semibold uppercase leading-tight tracking-[0.14em] text-muted">{drawLabel(pct[1])}</span>
+          )}
         </div>
-        {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} belt={belt} {...opts} /> : <div className="flex-1" />}
+        {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} belt={belt} chance={pct ? pct[2] : null} {...opts} /> : <div className="flex-1" />}
       </div>
     </WidgetFrame>
   );

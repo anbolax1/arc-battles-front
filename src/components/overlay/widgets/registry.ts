@@ -10,6 +10,7 @@ import { TasksV2Widget } from "./tasks-v2-widget";
 import { TextWidget } from "./text-widget";
 import { LogoWidget } from "./logo-widget";
 import { VetoWidget } from "./veto-widget";
+import { ChanceWidget } from "./chance-widget";
 import type { WidgetProps } from "./types";
 
 /** Реестр виджетов оверлея: тип → компонент. Единый источник для /overlay,
@@ -25,6 +26,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, ComponentType<WidgetProps>> = {
   text: TextWidget,
   logo: LogoWidget,
   veto: VetoWidget,
+  chance: ChanceWidget,
 };
 
 /** Русские названия типов (меню «+ добавить виджет», список «Слои»). */
@@ -39,11 +41,13 @@ export const WIDGET_LABELS: Record<WidgetType, string> = {
   text: "Текст",
   logo: "Логотип",
   veto: "Пики-баны",
+  chance: "График шанса",
 };
 
 /** Порядок типов в меню добавления. */
 export const WIDGET_ORDER: WidgetType[] = [
   "scoreboard",
+  "chance",
   "round",
   "complications",
   "standings",

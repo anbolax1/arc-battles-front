@@ -268,6 +268,8 @@ export interface PatchDetail {
   mmr?: number;
   reigns?: number;
   defenses?: number;
+  /** «Против шансов»: самый низкий шанс победителя в сезоне, проценты. */
+  chance?: number;
 }
 
 export interface PlayerPatch {
@@ -554,6 +556,10 @@ export interface LiveState {
   patchFlashes?: PatchFlash[];
   /** Матч идёт за пояс лиги: табло отмечает носителя, после матча - итог. */
   belt?: LiveBelt | null;
+  /** Шансы сторон (в порядке standings) и ничьей сейчас. */
+  chance?: Chance | null;
+  /** Как менялся шанс в этом матче: для графика шанса. */
+  chanceTrail?: ChanceDot[];
 }
 
 /** Пояс лиги в идущем матче. */
@@ -588,7 +594,8 @@ export type WidgetType =
   | "tasksV2"
   | "text"
   | "logo"
-  | "veto";
+  | "veto"
+  | "chance";
 
 /** Фон (вкл/выкл + прозрачность 0..1) — для виджета и для сцены целиком. */
 export interface OverlayBg {
@@ -622,6 +629,8 @@ export interface WidgetInstance {
   showPlace?: boolean;
   /** Табло: значок под ником носителя пояса лиги и «за пояс» по центру. */
   showBelt?: boolean;
+  /** Табло: шанс на победу под счётом сторон и шанс ничьей по центру. */
+  showChance?: boolean;
   /** Привязка к краю (tl|tc|tr|ml|c|mr|bl|bc|br); "" — свободно. При изменении глобального отступа привязанные виджеты сдвигаются. */
   anchor?: string;
   bg: OverlayBg;
@@ -821,6 +830,8 @@ export interface RecapMatch {
   /** У матчей из таблицы организатора счёта нет. */
   score?: [number, number];
   rounds: RecapRound[];
+  /** Шанс на победу перед матчем. */
+  chance?: Chance;
 }
 
 export interface RecapDay {
@@ -1013,6 +1024,47 @@ export interface MatchState {
   patches?: MatchPatch[];
   /** Сторона в рейде - её задания и счёт показывает оверлей; приходит только в идущем раунде. */
   focus?: string;
+  /** Шансы на победу перед матчем и сейчас; у 2×2 их нет. */
+  chance?: MatchChance;
+}
+
+/** Шансы стороны A, ничьей и стороны B, доли от 1; в сумме 1. */
+export interface Chance {
+  a: number;
+  draw: number;
+  b: number;
+}
+
+export interface MatchChance {
+  pre: Chance;
+  now: Chance;
+}
+
+/** Шанс после действия в пульте или закрытия рейда: точка графика матча. */
+export interface ChancePoint {
+  at: string;
+  kind: "start" | "knock" | "task" | "points" | "legendary" | "raid" | "end" | "now";
+  round: number;
+  /** 0 - A, 1 - B, -1 - без стороны. */
+  side: number;
+  text: string;
+  delta?: number;
+  score: [number, number];
+  chance: Chance;
+}
+
+/** GET /api/tournaments/{id}/chance - как менялся шанс по ходу матча. */
+export interface ChanceTrail {
+  points: ChancePoint[];
+  /** Матч идёт: график ещё растёт. */
+  live: boolean;
+}
+
+/** Точка графика шанса в оверлее. */
+export interface ChanceDot {
+  a: number;
+  draw: number;
+  round: number;
 }
 
 /** Сторона матча для его страницы. У сыгранного матча mmr - рейтинг перед ним, у остальных - текущий,
@@ -1027,7 +1079,7 @@ export interface MatchupSide {
   wins: number;
   losses: number;
   isNew: boolean;
-  /** Шанс победы по MMR, проценты. */
+  /** Шанс на победу перед матчем, проценты. */
   winChance?: number;
   winGain?: number;
   lossDrop?: number;
@@ -1047,6 +1099,8 @@ export interface Matchup {
   season?: { id: string; name: string; kFactor: number };
   sides: MatchupSide[];
   headToHead: { wins: [number, number]; draws: number; matches: HeadToHeadMatch[] };
+  /** Шанс ничьей перед матчем, проценты. */
+  drawChance?: number;
 }
 
 /** GET /api/matches/current: идущий матч или, если никто не играет, последний сыгранный. */

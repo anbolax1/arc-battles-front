@@ -493,6 +493,24 @@
       0 0 2px rgba(0, 0, 0, 0.95);
   }
 
+  /* Стрелка роста шанса: появляется у числа на пару секунд, место под неё не занимается. */
+  .ov-chance-jump {
+    opacity: 0;
+    transform: translateY(3px);
+    transition:
+      opacity 0.25s,
+      transform 0.25s;
+  }
+  .ov-chance-jump.on {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ov-chance-jump {
+      transition: none;
+    }
+  }
+
   /* лого-значок (молния) — скошенный параллелограмм с тёплым градиентом */
   .logo-mark {
     display: inline-flex;

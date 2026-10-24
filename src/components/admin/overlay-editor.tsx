@@ -72,7 +72,7 @@ function ResizeHandles({ scaleFactor, onStart }: { scaleFactor: number; onStart:
 }
 
 /** Типы виджетов, у которых есть заголовок/подпись (для тумблера «Заголовок»). */
-const HAS_TITLE = new Set<string>(["roundTasks", "bonusTasks", "tasksV2", "standings", "complications", "round"]);
+const HAS_TITLE = new Set<string>(["roundTasks", "bonusTasks", "tasksV2", "standings", "complications", "round", "chance"]);
 
 /** Слои снизу вверх, как их рисует сцена: по z, а при равном z выше тот, кто позже в раскладке. */
 function bottomUp(widgets: WidgetInstance[]): WidgetInstance[] {
@@ -136,6 +136,7 @@ function showOptions(w: WidgetInstance): ShowOption[] {
       { key: "mmr", label: "MMR", title: "текущий MMR сторон под ником", on: !!w.showMmr, patch: (on) => ({ showMmr: on }) },
       { key: "place", label: "Место в таблице", title: "место сторон в таблице сезона рядом с ником", on: !!w.showPlace, patch: (on) => ({ showPlace: on }) },
       { key: "belt", label: "Пояс", title: "значок пояса под ником носителя и «за пояс» по центру табло", on: !!w.showBelt, patch: (on) => ({ showBelt: on }) },
+      { key: "chance", label: "Шанс на победу", title: "шанс сторон под счётом и шанс ничьей по центру табло", on: !!w.showChance, patch: (on) => ({ showChance: on }) },
     );
   }
   if (w.type === "bonusTasks") {
@@ -267,7 +268,7 @@ export function OverlayEditor({
   }
   function add(type: WidgetType) {
     const id = uid(type, layout.widgets);
-    const wide = type === "scoreboard" || type === "complications" || type === "standings";
+    const wide = type === "scoreboard" || type === "complications" || type === "standings" || type === "chance";
     const w = makeWidget(id, type, { x: 0.4, y: 0.4, z: maxZ + 1, ...(wide ? { w: 0.3 } : {}) });
     onChange({ ...layout, widgets: [...layout.widgets, w] });
     setSelId(id);
