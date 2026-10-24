@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { PatchFlash } from "@/lib/types";
 import { PatchArt } from "@/components/surface/patch-art";
-import { PATCH_INFO, patchName } from "@/components/surface/patch-meta";
+import { DAVID_TIERS, PATCH_INFO, patchName } from "@/components/surface/patch-meta";
 import { knocksLabel, pluralTasks } from "@/lib/format";
 import "./patch-toasts.css";
 
@@ -18,6 +18,7 @@ function line(f: PatchFlash): string {
   if (f.code === "clear") return `${f.name} · ${knocksLabel(k)} за рейд`;
   if (f.code === "hunter") return `${f.name} · ${knocksLabel(k)} за сезон`;
   if (f.code === "executor") return `${f.name} · ${t} ${pluralTasks(t)} за сезон`;
+  if (f.code === "david") return `${f.name} · победа, когда шанс падал до ${DAVID_TIERS[Math.min(Math.max(f.tier, 1), 3) - 1]}%`;
   return `${f.name} · ${PATCH_INFO[f.code].rule}`;
 }
 

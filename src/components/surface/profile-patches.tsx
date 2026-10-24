@@ -111,7 +111,7 @@ export function ProfilePatches({
       row.title = `Получена ${dayMonth(p.earnedAt)}`;
     }
     const tiers = PATCH_TIERS[code];
-    if (tiers) {
+    if (tiers && !tiers.chance) {
       const have = code === "hunter" ? stats.knocks : stats.tasks;
       const next = tiers.need[on ? tier : 0];
       if (next !== undefined && (on || have > 0)) {

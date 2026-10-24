@@ -3,7 +3,7 @@ import { getPatchCatalog, getSeasons } from "@/lib/queries";
 import type { PatchCode, PatchStat } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { PatchArt } from "@/components/surface/patch-art";
-import { PATCH_GROUPS, PATCH_INFO, PATCH_RARITIES, PATCH_TIERS, ROMAN, patchRarity } from "@/components/surface/patch-meta";
+import { PATCH_GROUPS, PATCH_INFO, PATCH_RARITIES, PATCH_TIERS, ROMAN, patchRarity, tierLabel } from "@/components/surface/patch-meta";
 import "@/components/surface/patches.css";
 
 const GROUP_ABOUT: Record<string, string> = {
@@ -42,8 +42,9 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
           <div className="pt-cat-tiers">
             {tiers.need.map((need, i) => (
               <span key={need}>
-                <PatchArt code={stat.code} tier={i + 1} label={`${info.name} ${ROMAN[i + 1]}: ${need} ${tiers.unit(need)}`} />
+                <PatchArt code={stat.code} tier={i + 1} label={`${info.name} ${ROMAN[i + 1]}: ${tierLabel(tiers, need)}`} />
                 {ROMAN[i + 1]} · {need}
+                {tiers.chance ? "%" : ""}
                 <small>{stat.tiers?.[i] ? `${stat.tiers[i]} ${raiders(stat.tiers[i])}` : "пока никто"}</small>
               </span>
             ))}

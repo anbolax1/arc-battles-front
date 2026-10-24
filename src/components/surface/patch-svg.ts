@@ -40,7 +40,7 @@ const LOOK: Record<PatchCode, Colors & { shape: Shape }> = {
 
 /** Кант нашивок со ступенями: бронза, серебро, золото. */
 const TIER_RIM = ["#c47a3a", "#c47a3a", "#d7dbe2", "#f1aa1c"];
-const TIERED = new Set<PatchCode>(["executor", "hunter"]);
+const TIERED = new Set<PatchCode>(["executor", "hunter", "david"]);
 /** Несобранная нашивка - слепое тиснение по бумаге. */
 const GHOST: Colors = { base: "#e3d7c1", rim: "#d5c7ad", ink: "#c3b399", acc: "#c3b399" };
 

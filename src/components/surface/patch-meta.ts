@@ -17,12 +17,27 @@ export const PATCH_ORDER: PatchCode[] = PATCH_GROUPS.flatMap((g) => g.codes);
 export const HUNTER_TIERS = [10, 25, 50];
 /** Ступени «Исполнителя»: своих выполненных заданий за сезон. */
 export const EXECUTOR_TIERS = [10, 25, 50];
+/** Ступени «Против шансов»: до скольки процентов падал шанс победителя. */
+export const DAVID_TIERS = [30, 20, 10];
+
+export interface TierSpec {
+  need: number[];
+  unit: (n: number) => string;
+  /** Пороги - проценты шанса, а не счётчик за сезон: полоски «сколько осталось» нет. */
+  chance?: boolean;
+}
 
 /** Нашивки со ступенями: пороги и слово к числу - «25 ноков», «10 заданий». */
-export const PATCH_TIERS: Partial<Record<PatchCode, { need: number[]; unit: (n: number) => string }>> = {
+export const PATCH_TIERS: Partial<Record<PatchCode, TierSpec>> = {
   executor: { need: EXECUTOR_TIERS, unit: pluralTasks },
   hunter: { need: HUNTER_TIERS, unit: pluralKnocks },
+  david: { need: DAVID_TIERS, unit: () => "%", chance: true },
 };
+
+/** Порог ступени словами: «25 ноков», «шанс до 20%». */
+export function tierLabel(spec: TierSpec, need: number): string {
+  return spec.chance ? `шанс до ${need}%` : `${need} ${spec.unit(need)}`;
+}
 /** «Неудержимый» и «Марафонец»: сколько нужно, для полоски «сколько осталось». */
 export const STREAK_GOAL = 5;
 export const MARATHON_GOAL = 20;
@@ -45,7 +60,12 @@ export const PATCH_INFO: Record<PatchCode, PatchInfo> = {
   regicide: { name: "Цареубийца", rule: "победа над лидером таблицы", about: "Соперник был первым в таблице прямо перед матчем." },
   streak: { name: "Неудержимый", rule: "5 побед подряд", about: "Пять побед подряд за сезон. Ничья прерывает серию." },
   flawless: { name: "Без поражений", rule: "5 побед и ни одного поражения", about: "Пять побед и ни одного поражения за весь сезон.", seasonEnd: true },
-  david: { name: "Против шансов", rule: "победа при шансе 40% и ниже", about: "Перед матчем шанс по рейтингу был 40% или меньше, а победа - твоя." },
+  david: {
+    name: "Против шансов",
+    rule: "победа, когда шанс падал до 30%, 20% или 10%",
+    about:
+      "Перед матчем или сразу после любого рейда шанс на победу был 30% или меньше, а победа - твоя. Три ступени: 30%, 20% и 10%. Шанс считается по итоговым очкам рейдов. До 4 сезона нашивку давали, если перед матчем шанс по MMR был 40% или меньше.",
+  },
   comeback: { name: "Камбэк", rule: "проиграл 1-й рейд, выиграл матч", about: "Первый рейд за соперником, матч - за тобой." },
   double: { name: "Двойная ставка", rule: "победа в матче ×2", about: "Победа в матче, где MMR удваивается." },
   photo: { name: "Фотофиниш", rule: "победа в одно очко", about: "Матч выигран с разницей ровно в одно очко." },
@@ -102,6 +122,7 @@ export function patchResult(p: Pick<PlayerPatch, "code" | "tier" | "detail" | "e
     case "flawless":
       return `${d.wins ?? 0}–0`;
     case "david":
+      return `${d.n ?? 1} ${times(d.n ?? 1)}${d.chance != null ? ` · шанс был ${d.chance}%` : ""}`;
     case "comeback":
       return `${d.n ?? 1} ${times(d.n ?? 1)}`;
     case "double":
