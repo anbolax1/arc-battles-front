@@ -165,6 +165,8 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
   const belt = state.belt ?? null;
   // После матча шанс не нужен: итог уже на табло.
   const pct = instance.showChance && state.chance && !finished && a && b ? chancePercents(state.chance) : null;
+  // Дуэль до первого нока: играют оба, «в рейде» никого.
+  const duel = !!state.duel && !finished;
   const beltCaption =
     !belt || !opts.showBelt
       ? ""
@@ -180,7 +182,7 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
     <WidgetFrame instance={instance}>
       <div className="flex h-full items-stretch">
         {a ? (
-          <Side s={a} tone="a" focused={!finished && a.participantId === focusedId} belt={belt} chance={pct ? pct[0] : null} {...opts} />
+          <Side s={a} tone="a" focused={!finished && !duel && a.participantId === focusedId} belt={belt} chance={pct ? pct[0] : null} {...opts} />
         ) : (
           <div className="flex flex-1 items-center px-5 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
         )}
@@ -199,11 +201,16 @@ export function ScoreboardWidget({ state, instance }: WidgetProps) {
             <span className="font-display text-xl leading-none text-muted">VS</span>
           )}
           {beltCaption && <span className="max-w-[5.5rem] text-center text-[0.6rem] uppercase leading-tight tracking-[0.14em] text-gold">{beltCaption}</span>}
-          {pct && pct[1] >= DRAW_SHOWN && (
-            <span className="whitespace-nowrap text-[0.6rem] font-semibold uppercase leading-tight tracking-[0.14em] text-muted">{drawLabel(pct[1])}</span>
+          {duel ? (
+            <span className="whitespace-nowrap text-[0.6rem] font-semibold uppercase leading-tight tracking-[0.14em] text-gold">дуэль до нока</span>
+          ) : (
+            pct &&
+            pct[1] >= DRAW_SHOWN && (
+              <span className="whitespace-nowrap text-[0.6rem] font-semibold uppercase leading-tight tracking-[0.14em] text-muted">{drawLabel(pct[1])}</span>
+            )
           )}
         </div>
-        {b ? <Side s={b} tone="b" focused={!finished && b.participantId === focusedId} belt={belt} chance={pct ? pct[2] : null} {...opts} /> : <div className="flex-1" />}
+        {b ? <Side s={b} tone="b" focused={!finished && !duel && b.participantId === focusedId} belt={belt} chance={pct ? pct[2] : null} {...opts} /> : <div className="flex-1" />}
       </div>
     </WidgetFrame>
   );

@@ -41,7 +41,7 @@ function raiders(points: ChancePoint[], rounds: number): { side: number; round: 
         round = p.round + 1;
         side = round > rounds ? -1 : 0;
       }
-    } else if (p.kind === "end") {
+    } else if (p.kind === "end" || p.kind === "duel") {
       side = -1;
     } else if (p.side >= 0) {
       side = p.side;
@@ -51,7 +51,15 @@ function raiders(points: ChancePoint[], rounds: number): { side: number; round: 
   });
 }
 
-function boardState(p: ChancePoint, raider: { side: number; round: number }, names: [string, string], rounds: number, last: boolean, finished: boolean): LiveState {
+function boardState(
+  p: ChancePoint,
+  raider: { side: number; round: number },
+  names: [string, string],
+  rounds: number,
+  last: boolean,
+  finished: boolean,
+  duel: boolean,
+): LiveState {
   return {
     tournamentName: "ход матча",
     status: "live",
@@ -69,6 +77,7 @@ function boardState(p: ChancePoint, raider: { side: number; round: number }, nam
     ],
     showStandings: false,
     chance: p.chance,
+    duel,
   };
 }
 
@@ -258,6 +267,7 @@ export function MatchFlow({ id, initial, names, rounds }: { id: string; initial:
   const dA = prev ? pct[0] - chancePercents(prev.chance)[0] : 0;
   const finished = !live;
   const last = step === points.length - 1;
+  const duelFrom = points.findIndex((p) => p.kind === "duel");
 
   return (
     <div className="sf-m-block sf-flow" id="flow">
@@ -273,7 +283,7 @@ export function MatchFlow({ id, initial, names, rounds }: { id: string; initial:
       </p>
       <div className="sf-flow-screen" ref={screen}>
         <div className="sf-flow-board" style={{ width: BOARD_W, zoom }}>
-          <ScoreboardWidget state={boardState(cur, ride[step], names, rounds, last, finished)} instance={BOARD} />
+          <ScoreboardWidget state={boardState(cur, ride[step], names, rounds, last, finished, duelFrom >= 0 && step >= duelFrom)} instance={BOARD} />
         </div>
       </div>
       <div className="sf-flow-ctl">

@@ -243,6 +243,9 @@ export function MatchConsole({
   const scoreA = totalScore(st, a?.id);
   const scoreB = totalScore(st, b?.id);
   const leader = scoreA === scoreB ? null : scoreA > scoreB ? a : b;
+  // После всех рейдов счёт равный: исход решает дуэль до первого нока, победителю - «Ручные +1».
+  const duel = st.log.some((e) => e.kind === "duel");
+  const duelOffer = finishNext && st.stage === "round" && !leader && !duel;
   const winnerSide = sides.find((p) => p && p.id === st.tournament.winnerParticipantId) ?? null;
   const loserSide = sides.find((p) => p && p.id !== st.tournament.winnerParticipantId) ?? null;
   const loss = Math.abs((st.tournament.mmrChanges ?? []).find((c) => c.participantId === loserSide?.id)?.delta ?? 0);
@@ -367,6 +370,18 @@ export function MatchConsole({
                     <span>Завершить досрочно</span>
                   </button>
                 )}
+                {duelOffer && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy}
+                    title="Счёт равный: оба рейдера выходят с ведущим и играют до первого нока"
+                    onClick={() => void run(`/tournaments/${id}/duel`)}
+                  >
+                    <span>Дуэль до первого нока</span>
+                  </button>
+                )}
+                {duel && finishNext && <span className="text-sm text-muted">Дуэль: победителю «Ручные +1», затем завершить матч</span>}
                 <button type="button" className="btn btn-primary" disabled={busy} onClick={nextStep}>
                   <span>{nextLabel}</span>
                 </button>
@@ -433,7 +448,7 @@ export function MatchConsole({
         message={
           confirm === "cancel"
             ? "Матч удалится, рейтинг не изменится. Игроки из заявок вернутся в пул."
-            : `Счёт ${scoreA} : ${scoreB} — ${leader ? `побеждает ${leader.name}` : "ничья, MMR не меняется"}. MMR посчитается сразу.`
+            : `Счёт ${scoreA} : ${scoreB} — ${leader ? `побеждает ${leader.name}` : "ничья, MMR не меняется. Если дуэли ещё не было - сначала «Дуэль до первого нока»"}. MMR посчитается сразу.`
         }
         confirmLabel={confirm === "cancel" ? "Отменить матч" : "Завершить"}
         danger={confirm === "cancel"}

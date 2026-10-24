@@ -560,6 +560,8 @@ export interface LiveState {
   chance?: Chance | null;
   /** Как менялся шанс в этом матче: для графика шанса. */
   chanceTrail?: ChanceDot[];
+  /** Счёт после всех рейдов равный: стороны играют дуэль до первого нока. */
+  duel?: boolean;
 }
 
 /** Пояс лиги в идущем матче. */
@@ -975,7 +977,7 @@ export interface MatchLogEntry {
   id: string;
   roundNumber: number;
   participantId?: string | null;
-  kind: "task" | "points" | "knock" | "legendary";
+  kind: "task" | "points" | "knock" | "legendary" | "duel";
   text: string;
   delta: number;
   createdAt: string;
@@ -1043,7 +1045,7 @@ export interface MatchChance {
 /** Шанс после действия в пульте или закрытия рейда: точка графика матча. */
 export interface ChancePoint {
   at: string;
-  kind: "start" | "knock" | "task" | "points" | "legendary" | "raid" | "end" | "now";
+  kind: "start" | "knock" | "task" | "points" | "legendary" | "raid" | "duel" | "end" | "now";
   round: number;
   /** 0 - A, 1 - B, -1 - без стороны. */
   side: number;
