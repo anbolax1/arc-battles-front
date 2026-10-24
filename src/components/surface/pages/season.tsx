@@ -243,7 +243,9 @@ function FinalSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
   const m = recap.matches[recap.decisive];
   const [w, l] = sides(m);
   const A = recap.players[m.p[w]], B = recap.players[m.p[l]];
-  const chance = elo(m.before[w], m.before[l]);
+  // Шанс победителя перед матчем; у матчей без него - по Эло от MMR, как раньше.
+  const chance = m.chance ? [m.chance.a, m.chance.b][w] : elo(m.before[w], m.before[l]);
+  const lossChance = m.chance ? [m.chance.a, m.chance.b][l] : 1 - chance;
   const dayIdx = recap.days.findIndex((d) => d.date === new Date(m.at).toLocaleDateString("sv-SE", { timeZone: "Europe/Moscow" }));
   const prevOrder = dayIdx > 0 ? recap.days[dayIdx - 1].order : [];
   const place = (i: number) => (prevOrder.indexOf(i) >= 0 ? prevOrder.indexOf(i) + 1 : 0);
@@ -260,8 +262,8 @@ function FinalSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
       title={recap.live ? "матч, который вывел в лидеры" : "матч, который решил сезон"}
       lead={
         <>
-          До матча {place(m.p[l]) === 1 ? "первым" : `${place(m.p[l]) || "–"}-м`} был {B.login} с {m.before[l]} MMR, {A.login} шёл {place(m.p[w]) ? `${place(m.p[w])}-м` : "ниже"}. По Эло у {A.login} было{" "}
-          {Math.round(chance * 100)}% на победу.
+          До матча {place(m.p[l]) === 1 ? "первым" : `${place(m.p[l]) || "–"}-м`} был {B.login} с {m.before[l]} MMR, {A.login} шёл {place(m.p[w]) ? `${place(m.p[w])}-м` : "ниже"}. Перед матчем у {A.login}{" "}
+          было {Math.round(chance * 100)}% на победу.
           {m.mult > 1 ? ` Жетон ×${m.mult} удвоил ставку: ${signed(m.delta[w])} MMR победителю.` : ` Победа принесла ${signed(m.delta[w])} MMR.`}
         </>
       }
@@ -313,14 +315,14 @@ function FinalSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
                   {A.login} {Math.round(chance * 100)}%
                 </span>
                 <span>
-                  {Math.round((1 - chance) * 100)}% {B.login}
+                  {Math.round(lossChance * 100)}% {B.login}
                 </span>
               </div>
-              <div className="sn-odds-bar" role="img" aria-label={`Шансы перед матчем: ${A.login} ${Math.round(chance * 100)}%, ${B.login} ${Math.round((1 - chance) * 100)}%`}>
+              <div className="sn-odds-bar" role="img" aria-label={`Шансы перед матчем: ${A.login} ${Math.round(chance * 100)}%, ${B.login} ${Math.round(lossChance * 100)}%`}>
                 <i style={{ width: `${chance * 100}%`, background: "var(--sn-c1)" }} />
                 <i style={{ flex: 1, background: "var(--sn-fg2)" }} />
               </div>
-              <p className="sn-cap">Шансы перед матчем по Эло</p>
+              <p className="sn-cap">Шансы перед матчем{m.chance && m.chance.draw >= 0.01 ? ` · ничья ${Math.round(m.chance.draw * 100)}%` : ""}</p>
             </div>
           </div>
           {played.length > 0 && m.score && (
@@ -444,15 +446,21 @@ function UpsetsSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
   if (peakNC) records.push([`Пик не ${recap.live ? "лидера" : "чемпиона"}`, String(peakNC.peak), peakNC.login, `${dLong(peakNC.peakAt)}; итог ${peakNC.mmr}`]);
   if (ls > 0) records.push(["Серия поражений", `${ls} подряд`, lsAll.map((p) => p.login).join(", "), "Длиннее не было ни у кого"]);
   return (
-    <Sec id="upsets" tone={tone} eyebrow="Кого не ждали" title="сенсации и рекорды" lead="Шанс на победу считается по той же формуле Эло, что и рейтинг: по MMR обоих игроков перед матчем.">
+    <Sec
+      id="upsets"
+      tone={tone}
+      eyebrow="Кого не ждали"
+      title="сенсации и рекорды"
+      lead="Шанс на победу перед матчем считается по рейдам обоих игроков: темп ноков и заданий, карты и скрытый рейтинг по всем сезонам."
+    >
       <div className="sn-ups-grid">
         <div>
           <div className="sn-hero-num">
             <CountUp value={pc(favWon, favAll)} />%
           </div>
           <p className="sf-lead sn-lead">
-            Столько матчей выиграл фаворит по MMR: {favWon} из {favAll}.{" "}
-            {pc(favWon, favAll) < 60 ? "Почти монетка: рейтинг быстро реагирует, и за один вечер можно подняться на десяток мест." : ""}
+            Столько матчей выиграл фаворит перед матчем: {favWon} из {favAll}.{" "}
+            {pc(favWon, favAll) < 60 ? "Почти монетка: один рейд может перевернуть всё, а очков в своём наборе вдвое больше, чем в бесплатном." : ""}
           </p>
         </div>
         <div>
@@ -1056,7 +1064,7 @@ function HowSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
       ? `${pl(S.matches - S.detailed, W_MATCH)} перенесены из таблицы организатора: там есть итог и одна карта. Пики-баны, счёт по раундам, задания и ноки есть у ${pl(S.detailed, W_MATCH)}.`
       : "",
     `MMR - Эло с K=${sn.kFactor}, у всех старт ${S.startMmr}. Жетон ×2 удваивает изменение.${corr ? ` ${dLong(corr.at)} рейтинг сверили с официальной таблицей у ${pl(corr.players, W_PLAYER)}.` : ""}`,
-    "Шанс на победу - ожидаемый результат Эло по MMR обоих игроков прямо перед матчем.",
+    "Шанс на победу перед матчем - по рейдам обоих игроков: темп ноков и заданий, карты и скрытый рейтинг по всем сезонам. Где рейдов нет - по MMR.",
     "Раунд считается сыгранным, если он начался, даже при счёте 0:0. Ноки - только в матчах, где их записывали.",
     "Победы и поражения - как в таблице лидеров: ×2 из таблицы организатора идёт за два матча.",
   ].filter(Boolean);
