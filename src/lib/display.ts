@@ -2,7 +2,7 @@
    отображаемое имя турнира). Держим отдельно от format.ts (тот без зависимостей
    от типов). */
 
-import type { Registration, Role, Tournament } from "@/lib/types";
+import type { MatchTeam, Registration, Role, Tournament } from "@/lib/types";
 import { matchName } from "@/lib/format";
 
 /** Шаги записи на матч - одинаковые в обоих дизайнах. */
@@ -81,4 +81,14 @@ export function roleBadge(
     default:
       return { kind: "official", label: "Игрок" };
   }
+}
+
+/** Игроки команды 2×2 через точку: «Ник1 · Ник2». */
+export function teamMembersLine(t: MatchTeam): string {
+  return t.members.map((m) => m.displayName || m.login).join(" · ");
+}
+
+/** Рейтинг команды в текущем сезоне - как у игрока в форме матча. */
+export function teamSeasonLine(t: MatchTeam): string {
+  return `MMR ${t.mmr} · ${t.isNew ? "новая в сезоне" : `${t.wins}–${t.losses} в сезоне`}`;
 }

@@ -1131,6 +1131,24 @@ export interface MatchPlayer {
   prevGames: number;
 }
 
+/** Команда 2×2 из списка организатора (GET /api/match-teams): MMR и счёт - в текущем сезоне. */
+export interface MatchTeam {
+  teamKey: string;
+  name: string;
+  members: TeamMember[];
+  mmr: number;
+  wins: number;
+  losses: number;
+  /** В текущем сезоне ещё не играла. */
+  isNew: boolean;
+  /** Матчей в прошлых сезонах: при равном MMR сторона A - у кого меньше. */
+  prevGames: number;
+  /** Матчей всего, вместе с идущими и запланированными: у такой команды состав не меняется. */
+  matches: number;
+  lastMatchAt?: string | null;
+  createdAt: string;
+}
+
 /** Ответ GET /api/rules — ОБЁРНУТ в { tasks (контракты), complications (протоколы), legendary }. */
 export interface RulesResponse {
   tasks: CatalogTask[];

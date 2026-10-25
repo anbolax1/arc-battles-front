@@ -1,12 +1,32 @@
 "use client";
 
 import * as React from "react";
-import type { MatchPlayer } from "@/lib/types";
+import { api } from "@/lib/api";
+import type { MatchPlayer, User } from "@/lib/types";
 import { initials } from "@/lib/format";
+
+/** Игрок по нику без пароля: войти он сможет по ссылке из «Игроков». Уже существующий ник просто находится. */
+export async function createPlaceholderPlayer(nick: string, players: MatchPlayer[]): Promise<MatchPlayer> {
+  const u = await api.post<User>("/players/placeholder", { nickname: nick });
+  return (
+    players.find((p) => p.id === u.id) ?? {
+      id: u.id,
+      login: u.login,
+      displayName: u.displayName,
+      mmr: players.find((x) => x.isNew)?.mmr ?? 1000,
+      wins: 0,
+      losses: 0,
+      isNew: true,
+      isPlaceholder: true,
+      prevGames: 0,
+    }
+  );
+}
 
 /** Выбор игрока: поиск по нику с MMR сезона, заявки сверху; если игрока нет - создать по нику. */
 export function PlayerPicker({
   inputId,
+  label = "Ник игрока",
   players,
   applicants,
   exclude,
@@ -16,6 +36,7 @@ export function PlayerPicker({
   busy,
 }: {
   inputId: string;
+  label?: string;
   players: MatchPlayer[];
   applicants: Set<string>;
   exclude?: string | null;
@@ -56,7 +77,7 @@ export function PlayerPicker({
   return (
     <div ref={ref} className="relative space-y-1.5">
       <label className="field-label" htmlFor={inputId}>
-        Ник игрока
+        {label}
       </label>
       <input
         id={inputId}
@@ -117,7 +138,11 @@ export function PlayerPicker({
           )}
           {!items.length && !canCreate && (
             <p className="px-2 py-3 text-sm text-muted">
-              {onCreate ? "Никого не нашли — введите хотя бы 2 символа, чтобы создать игрока." : "Никого не нашли."}
+              {exact
+                ? "Этот игрок уже выбран."
+                : onCreate
+                  ? "Никого не нашли — введите хотя бы 2 символа, чтобы создать игрока."
+                  : "Никого не нашли."}
             </p>
           )}
         </div>
