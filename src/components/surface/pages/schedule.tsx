@@ -65,7 +65,7 @@ export async function SurfaceSchedule() {
             матчи<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead sch-lead">
-            Шоу-матчи объявляем заранее. Регулярные матчи 1×1 ведущий собирает прямо в эфире — все сыгранные лежат в результатах.
+            Шоу-матчи объявляем заранее. Регулярные матчи 1×1 и 2×2 ведущий собирает прямо в эфире — все сыгранные лежат в результатах.
           </p>
           <div className="sf-controls">
             <Link className="sf-btn sf-btn-amber" href="/join">
