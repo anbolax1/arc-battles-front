@@ -520,10 +520,10 @@ export function JoinCta() {
       <Stripes shape="cta" />
       <div className="sf-wrap">
         <div className="sf-cta-in">
-          <h2 id="cta-t">готов к рейду?</h2>
-          <p>Подай заявку, и организатор позовёт тебя на матч в прямом эфире.</p>
+          <h2 id="cta-t">готов к матчу?</h2>
+          <p>Запишись и участвуй в лиге в прямом эфире!</p>
           <Link className="sf-btn sf-btn-ink" href="/join">
-            Подать заявку
+            Записаться
           </Link>
         </div>
       </div>
