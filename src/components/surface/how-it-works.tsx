@@ -25,11 +25,6 @@ export interface HowExample {
 export interface HowCalc {
   a: number;
   b: number;
-  nameA?: string;
-  nameB?: string;
-  date?: string;
-  mult?: number;
-  delta?: number;
 }
 
 const N = 4;
@@ -548,7 +543,7 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
             {/* 4. калькулятор MMR */}
             <div className={`sf-how-art ${step === 3 ? "is-on" : ""}`} inert={step !== 3} role="group" aria-label="Калькулятор MMR">
               <div className="sf-calc">
-                <p className="sf-eyebrow">Посчитай сам · K = {k}</p>
+                <p className="sf-eyebrow">Калькулятор MMR за победу и поражение</p>
                 <div className="sf-calc-rows">
                   <div className="sf-calc-row" style={{ "--trk": "var(--sf-a)" } as React.CSSProperties}>
                     <label htmlFor="calc-a">
@@ -574,7 +569,7 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                 <label className="sf-calc-x2" htmlFor="calc-x2">
                   <input id="calc-x2" type="checkbox" checked={x2} onChange={(e) => (userCalc(), setX2(e.target.checked))} />
                   <span />
-                  Матч ×2
+                  Жетон двойного рейтинга
                 </label>
                 <div className="sf-odds">
                   <div className="sf-odds-bar" aria-hidden>
@@ -629,16 +624,8 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                   </div>
                 </div>
                 <p className="sf-calc-f">
-                  Ожидание - шанс по одному MMR, из него считается рейтинг. Победитель получает столько, сколько теряет
-                  проигравший: <b>{k} × ожидание проигравшего</b>
-                  {x2 ? ", в матче ×2 — вдвое" : ""}. Ничья MMR не меняет.
-                  {calc.nameA && calc.nameB && (
-                    <>
-                      <br />
-                      Сейчас стоят {calc.nameA} и {calc.nameB} перед матчем {calc.date}.
-                      {calc.mult && calc.mult > 1 && calc.delta ? ` Тот матч был ×${calc.mult} — включи и увидишь его ${signed(calc.delta)}.` : ""}
-                    </>
-                  )}
+                  Победитель получает столько, сколько теряет проигравший, кроме случаев, когда в матче любой из игроков использует{" "}
+                  <b>Жетон Двойного Рейтинга</b>.
                 </p>
               </div>
             </div>

@@ -31,8 +31,7 @@ function calcDefaults(st: MatchState | null, start: number): HowCalc {
   const ca = t?.mmrChanges?.find((c) => c.participantId === a?.id);
   const cb = t?.mmrChanges?.find((c) => c.participantId === b?.id);
   if (!t || !ca || !cb || t.mode === "2x2") return { a: start, b: start };
-  const winner = ca.delta > 0 ? ca.delta : cb.delta;
-  return { a: ca.before, b: cb.before, nameA: a?.name, nameB: b?.name, date: dayMonth(t.startsAt), mult: t.ratingMultiplier, delta: winner };
+  return { a: ca.before, b: cb.before };
 }
 
 /** Раздел «как устроен матч» по правилам текущего сезона; примеры - из последних сыгранных матчей. */
