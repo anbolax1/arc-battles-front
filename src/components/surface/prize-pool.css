@@ -6,6 +6,10 @@
 .pz {
   overflow-x: clip;
 }
+/* Сумма стоит на одной строке с заголовком: по низу блоков она проседает - у заголовка внизу запас под «р» и «д». */
+.pz .sf-sec-head {
+  align-items: last baseline;
+}
 .pz-total {
   margin: 0;
   display: grid;
