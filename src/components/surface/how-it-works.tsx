@@ -461,7 +461,7 @@ export function HowItWorks({ maps, example, k, start, calc }: { maps: MapInfo[];
                         ))}
                     </>
                   ) : pbN === 0 ? (
-                    "Пример: обычный матч, два раунда"
+                    "Пример: регулярный матч, два раунда"
                   ) : (
                     <>
                       Ход {pbN} из {pb.length}: <b>{pbLabel(pb[pbN - 1])}</b>

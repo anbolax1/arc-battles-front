@@ -72,7 +72,7 @@ export function BeltStatus({ belt }: { belt: Belt }) {
           {holderName(cur.holder)} {belt.rustLimit} {plural(belt.rustLimit, W_GAMEDAY)} подряд не выходил на матч, и пояс выпал.{" "}
           {leaders.length ? (
             <>
-              Его разыграет ближайший обычный матч лидера таблицы:{" "}
+              Его разыграет ближайший регулярный матч лидера таблицы:{" "}
               {leaders.map((l, i) => (
                 <span key={l.userId}>
                   {i > 0 && " или "}
@@ -144,7 +144,7 @@ export function BeltHome({ belt }: { belt: Belt | null }) {
       <div className="sf-wrap">
         <div className="sf-sec-head">
           <div>
-            <p className="sf-eyebrow">Пояс лиги · переходит в обычных матчах 1×1</p>
+            <p className="sf-eyebrow">Пояс лиги · переходит в регулярных матчах 1×1</p>
             <h2 className="sf-h-big" id="belt-t">
               пояс лиги<span className="sf-dot">.</span>
             </h2>
@@ -340,7 +340,7 @@ export function BeltMatch({ mark, belt, id, other }: { mark: MatchBeltMark; belt
       text = !belt.reigns.length
         ? "Пояс ещё не разыгран: победитель этого матча станет первым носителем."
         : mark.leaders.length
-          ? "Пояс ничей, и его разыгрывает ближайший обычный матч лидера таблицы сезона — этот. Победитель заберёт пояс, ничья его не разыграет."
+          ? "Пояс ничей, и его разыгрывает ближайший регулярный матч лидера таблицы сезона — этот. Победитель заберёт пояс, ничья его не разыграет."
           : "Пояс ничей, и в сезоне ещё не было матчей: этот матч его разыграет. Победитель заберёт пояс, ничья — нет.";
       break;
   }

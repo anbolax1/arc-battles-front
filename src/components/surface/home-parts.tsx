@@ -232,7 +232,7 @@ export function ScheduleRows({ live, upcoming }: { live: MatchState | null; upco
     cls: "",
     time: "каждый эфир",
     icon: ScheduleIcon.aim,
-    title: "Обычные матчи 1×1",
+    title: "Регулярные матчи 1×1",
     sub: "Ведущий собирает прямо в эфире · подай заявку",
     when: "по ходу стрима",
   });

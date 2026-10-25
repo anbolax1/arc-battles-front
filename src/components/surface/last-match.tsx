@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { hasScore, mapImage, matchSides, roundScore, taskTitle, totalScore } from "@/lib/match";
+import { hasScore, isShowMatch, mapImage, matchSides, roundScore, taskTitle, totalScore } from "@/lib/match";
 import type { MatchState, Participant, VetoAction } from "@/lib/types";
 import { SecHead } from "@/components/surface/ui";
 import { CountUp, FitBoard, Stomp } from "@/components/surface/motion";
@@ -78,7 +78,9 @@ export function LastMatch({ st }: { st: MatchState }) {
   const rounds = [...(t.rounds ?? [])].filter((r) => r.status !== "pending" || r.map).sort((x, y) => x.number - y.number);
   const ca = a ? changes.get(a.id) : undefined;
   const cb = b ? changes.get(b.id) : undefined;
-  const eyebrow = ["Последний матч", dayMonth(t.startsAt), t.ratingMultiplier > 1 ? `рейтинг ×${t.ratingMultiplier}` : ""].filter(Boolean).join(" · ");
+  const eyebrow = [isShowMatch(t) ? "Шоу-матч" : "Регулярный матч", dayMonth(t.startsAt), t.ratingMultiplier > 1 ? `рейтинг ×${t.ratingMultiplier}` : ""]
+    .filter(Boolean)
+    .join(" · ");
   const role = (p: Participant | null): SideRole => (!winner || !p ? "" : p.id === winner.id ? "is-win" : "is-lose");
 
   const board = (
@@ -124,7 +126,7 @@ export function LastMatch({ st }: { st: MatchState }) {
   return (
     <section className="sf-sec sf-paper sf-grain" aria-labelledby="last-t">
       <div className="sf-wrap">
-        <SecHead id="last-t" eyebrow={eyebrow} title="последний рейд" action={winner ? undefined : <span className="sf-stamp">Ничья</span>} />
+        <SecHead id="last-t" eyebrow={eyebrow} title="последний матч" action={winner ? undefined : <span className="sf-stamp">Ничья</span>} />
         {winner && a && b ? <Stomp>{board}</Stomp> : board}
         {rounds.length > 0 && (
           <div className="sf-rounds" style={{ "--n": Math.min(rounds.length, 3) } as CSSProperties}>

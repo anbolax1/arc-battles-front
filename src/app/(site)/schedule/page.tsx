@@ -31,7 +31,7 @@ export default async function SchedulePage() {
       <div className="space-y-3">
         <SectionHead eyebrow="Когда битвы" title="Расписание шоу-матчей" />
         <p className="max-w-2xl text-sm text-muted">
-          Обычные матчи ведущий собирает прямо в эфире, все сыгранные — в <Link href="/archive" className="text-accent hover:underline">архиве</Link>.
+          Регулярные матчи ведущий собирает прямо в эфире, все сыгранные — в <Link href="/archive" className="text-accent hover:underline">архиве</Link>.
         </p>
       </div>
 
