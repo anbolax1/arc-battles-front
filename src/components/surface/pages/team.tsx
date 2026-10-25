@@ -93,8 +93,9 @@ export async function SurfaceTeam({ teamKey }: { teamKey: string }) {
   const name = team.name || roster;
 
   // На пропуске - текущий сезон, а если команда в нём не играла - последний сезон с её матчами и его итог.
+  // Команда без матчей только заведена - начнёт она в текущем сезоне.
   const played = new Set(team.timeline.map((p) => p.season ?? ""));
-  const playsNow = !!active && played.has(active.id);
+  const playsNow = !!active && (played.has(active.id) || team.timeline.length === 0);
   const season = playsNow ? active : seasons.filter((s) => played.has(s.id)).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
   let stats: MmrStats = team.stats;
   if (season) {
