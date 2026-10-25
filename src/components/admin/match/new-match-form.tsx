@@ -4,11 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError, errorText } from "@/lib/api";
+import { teamMembersLine, teamSeasonLine } from "@/lib/display";
 import { initials } from "@/lib/format";
 import { roundsLabel } from "@/lib/match";
 import { Panel } from "@/components/ui/card";
 import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker";
-import { PlayerPicker } from "@/components/admin/match/player-picker";
+import { createPlaceholderPlayer, PlayerPicker } from "@/components/admin/match/player-picker";
+import { TeamPicker } from "@/components/admin/match/team-picker";
+import { TeamForm } from "@/components/admin/team-form";
 import {
   MAX_PRIZE,
   PreviewImage,
@@ -16,7 +19,7 @@ import {
   putShowPreview,
   useChosenPreview,
 } from "@/components/admin/match/show-preview";
-import type { Belt, MatchFormat, MatchPlayer, MatchState, PlayerType, Registration, User } from "@/lib/types";
+import type { Belt, MatchFormat, MatchPlayer, MatchState, MatchTeam, PlayerType, Registration, TournamentMode } from "@/lib/types";
 import { holderName } from "@/components/surface/belt-lib";
 
 const PLAYER_TYPES: Array<[PlayerType, string]> = [
@@ -25,20 +28,22 @@ const PLAYER_TYPES: Array<[PlayerType, string]> = [
   ["pvpve", "PvPvE"],
 ];
 
+type OrderWhy = "mmr" | "games" | "coin";
+
 /** Кто станет стороной A (первой ходит в пиках-банах), как решит сервер: меньше MMR, при равном - меньше матчей
     в прошлых сезонах; при полном равенстве сервер бросит жребий, здесь стороны остаются в порядке выбора. */
-function orderSides(a: MatchPlayer, b: MatchPlayer): { sides: [MatchPlayer, MatchPlayer]; why: "mmr" | "games" | "coin" } {
+function orderSides<T extends { mmr: number; prevGames: number }>(a: T, b: T): { sides: [T, T]; why: OrderWhy } {
   if (a.mmr !== b.mmr) return { sides: a.mmr < b.mmr ? [a, b] : [b, a], why: "mmr" };
   if (a.prevGames !== b.prevGames) return { sides: a.prevGames < b.prevGames ? [a, b] : [b, a], why: "games" };
   return { sides: [a, b], why: "coin" };
 }
 
 /** Подсказки у карточек сторон: почему A ходит первой. */
-const SIDE_HINTS = {
-  mmr: ["ходит первым: меньше MMR", "больше MMR"],
-  games: ["MMR равный, меньше матчей в прошлых сезонах", "больше матчей в прошлых сезонах"],
-  coin: ["MMR и опыт равны — стороны решит жребий", "MMR и опыт равны — стороны решит жребий"],
-} as const;
+function sideHints(why: OrderWhy, teams: boolean): [string, string] {
+  if (why === "games") return ["MMR равный, меньше матчей в прошлых сезонах", "больше матчей в прошлых сезонах"];
+  if (why === "coin") return ["MMR и опыт равны — стороны решит жребий", "MMR и опыт равны — стороны решит жребий"];
+  return [teams ? "ходит первой: меньше MMR" : "ходит первым: меньше MMR", "больше MMR"];
+}
 
 /** Что новый матч сделает с поясом лиги - подсказка организатору до создания матча. */
 function beltNote(belt: Belt | null, a: MatchPlayer, b: MatchPlayer, show: boolean): string {
@@ -55,23 +60,26 @@ function beltNote(belt: Belt | null, a: MatchPlayer, b: MatchPlayer, show: boole
   return "";
 }
 
+/** Выбранная сторона в карточке: имя, состав команды и счёт в сезоне. */
+interface Chosen {
+  name: string;
+  members?: string;
+  season: string;
+  badges: React.ReactNode;
+}
+
 function SideCard({
   title,
   hint,
-  player,
+  chosen,
   tone,
-  applicant,
-  beltBadge,
   onClear,
   children,
 }: {
   title: string;
   hint: string;
-  player: MatchPlayer | null;
+  chosen: Chosen | null;
   tone: "primary" | "cyan";
-  applicant: boolean;
-  /** Игрок держит пояс лиги. */
-  beltBadge?: string;
   onClear: () => void;
   children: React.ReactNode;
 }) {
@@ -85,23 +93,18 @@ function SideCard({
         <h3 className="font-display text-lg uppercase">{title}</h3>
         <span className="text-xs text-muted">{hint}</span>
       </div>
-      {player ? (
+      {chosen ? (
         <div className="flex flex-wrap items-center gap-4">
           <span
             className={`flex h-14 w-14 flex-none items-center justify-center font-display text-lg ${avatar} [clip-path:polygon(14%_0,100%_0,86%_100%,0_100%)]`}
           >
-            {initials(player.displayName || player.login)}
+            {initials(chosen.name)}
           </span>
           <div className="min-w-0 flex-1 space-y-1">
-            <div className="truncate font-display text-xl uppercase">{player.displayName || player.login}</div>
-            <div className="text-sm text-muted">
-              MMR {player.mmr} · {player.isNew ? "новичок сезона" : `${player.wins}–${player.losses} в сезоне`}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {applicant && <span className="badge badge-org"><span>Из заявки</span></span>}
-              {player.isPlaceholder && <span className="badge badge-official"><span>Без входа</span></span>}
-              {beltBadge && <span className="badge badge-champ"><span>{beltBadge}</span></span>}
-            </div>
+            <div className="truncate font-display text-xl uppercase">{chosen.name}</div>
+            {chosen.members && <div className="truncate text-sm">{chosen.members}</div>}
+            <div className="text-sm text-muted">{chosen.season}</div>
+            <div className="flex flex-wrap gap-1.5">{chosen.badges}</div>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
             <span>Сменить</span>
@@ -122,15 +125,21 @@ function defaultShowTime(): string {
   return `${tomorrow.slice(0, 10)}T20:00`;
 }
 
-/** Новый матч: стороны, тип игроков и ×2 - и сразу к пикам-банам; шоу-матч - в расписание на дату. */
+/** Новый матч: стороны (игроки 1×1 или команды 2×2), тип игроков и ×2 - и сразу к пикам-банам; шоу-матч - в расписание
+    на дату. */
 export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: string; belt?: Belt | null }) {
   const router = useRouter();
   const [format, setFormat] = React.useState<MatchFormat>(liveMatchId ? "show" : "match");
+  const [mode, setMode] = React.useState<TournamentMode>("1x1");
   const [startsAt, setStartsAt] = React.useState(defaultShowTime);
   const [players, setPlayers] = React.useState<MatchPlayer[]>([]);
+  const [teams, setTeams] = React.useState<MatchTeam[]>([]);
   const [pool, setPool] = React.useState<Registration[]>([]);
   const [first, setFirst] = React.useState<MatchPlayer | null>(null);
   const [second, setSecond] = React.useState<MatchPlayer | null>(null);
+  const [teamSlots, setTeamSlots] = React.useState<[MatchTeam | null, MatchTeam | null]>([null, null]);
+  // Новую команду заводят прямо в карточке стороны: name - то, что набрали в поиске.
+  const [newTeam, setNewTeam] = React.useState<{ slot: 0 | 1; name: string } | null>(null);
   const [playerType, setPlayerType] = React.useState<PlayerType>("pvp");
   const [mult, setMult] = React.useState(1);
   const [rounds, setRounds] = React.useState<2 | 3>(2);
@@ -144,37 +153,50 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
 
   React.useEffect(() => {
     api.get<MatchPlayer[]>("/match-players").then(setPlayers).catch(() => setErr("Не удалось загрузить игроков."));
+    api.get<MatchTeam[]>("/match-teams").then(setTeams).catch(() => setErr("Не удалось загрузить команды."));
     api.get<Registration[]>("/registrations/pool").then(setPool).catch(() => setPool([]));
   }, []);
 
+  const teamMode = mode === "2x2";
   const applicants = React.useMemo(() => new Set(pool.map((r) => r.userId)), [pool]);
   const order = first && second ? orderSides(first, second) : null;
   const [sideA, sideB] = order ? order.sides : [first, second];
-  const hints = SIDE_HINTS[order?.why ?? "mmr"];
+  const [firstTeam, secondTeam] = teamSlots;
+  const teamOrder = firstTeam && secondTeam ? orderSides(firstTeam, secondTeam) : null;
+  const [teamA, teamB] = teamOrder ? teamOrder.sides : teamSlots;
+  const hints = sideHints((teamMode ? teamOrder : order)?.why ?? "mmr", teamMode);
 
   const put = (p: MatchPlayer) => {
     if (!first) setFirst(p);
     else if (!second) setSecond(p);
   };
 
+  // Команда из поиска встаёт в слот своей карточки, команда из заявок - в свободный.
+  const putTeam = (t: MatchTeam, slot?: 0 | 1) => {
+    setTeamSlots(([a, b]) => ((slot ?? (a ? 1 : 0)) === 0 ? [t, b] : [a, t]));
+    setNewTeam(null);
+  };
+  const clearTeam = (t: MatchTeam | null) => setTeamSlots(([a, b]) => [a === t ? null : a, b === t ? null : b]);
+
+  // У пары уже есть команда - берём её; если её завели в другой вкладке, список перечитываем.
+  const takeExisting = async (teamKey: string, slot: 0 | 1) => {
+    let t = teams.find((x) => x.teamKey === teamKey);
+    if (!t) {
+      const fresh = await api.get<MatchTeam[]>("/match-teams").catch(() => teams);
+      setTeams(fresh);
+      t = fresh.find((x) => x.teamKey === teamKey);
+    }
+    if (t) putTeam(t, slot);
+  };
+
+  const addPlayer = (p: MatchPlayer) => setPlayers((xs) => (xs.some((x) => x.id === p.id) ? xs : [...xs, p]));
+
   const createPlayer = async (nick: string, slot: "first" | "second") => {
     setBusy(true);
     setErr("");
     try {
-      const u = await api.post<User>("/players/placeholder", { nickname: nick });
-      const existing = players.find((p) => p.id === u.id);
-      const p: MatchPlayer = existing ?? {
-        id: u.id,
-        login: u.login,
-        displayName: u.displayName,
-        mmr: players.find((x) => x.isNew)?.mmr ?? 1000,
-        wins: 0,
-        losses: 0,
-        isNew: true,
-        isPlaceholder: true,
-        prevGames: 0,
-      };
-      if (!existing) setPlayers((xs) => [...xs, p]);
+      const p = await createPlaceholderPlayer(nick, players);
+      addPlayer(p);
       if (slot === "first") setFirst(p);
       else setSecond(p);
     } catch (e) {
@@ -186,8 +208,15 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
 
   const show = format === "show";
   const roundCount = show ? 3 : rounds;
+  const sides = teamMode
+    ? teamA && teamB
+      ? [{ teamKey: teamA.teamKey }, { teamKey: teamB.teamKey }]
+      : null
+    : sideA && sideB
+      ? [{ userId: sideA.id }, { userId: sideB.id }]
+      : null;
   const create = async () => {
-    if (!sideA || !sideB) return;
+    if (!sides) return;
     if (show && !startsAt) {
       setErr("Укажите дату и время шоу-матча.");
       return;
@@ -197,14 +226,14 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
     setLiveId("");
     try {
       const st = await api.post<MatchState>("/matches", {
-        mode: "1x1",
+        mode,
         playerType,
         ratingMultiplier: mult,
         format,
         rounds: roundCount,
         startsAt: show ? `${startsAt}:00+03:00` : undefined,
         prize: show ? prize.trim() : undefined,
-        sides: [{ userId: sideA.id }, { userId: sideB.id }],
+        sides,
       });
       if (show && preview) {
         try {
@@ -234,8 +263,35 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
   const freePool = pool.filter((r) => r.userId !== first?.id && r.userId !== second?.id);
   const holder = belt?.holder ? players.find((p) => p.id === belt.holder?.userId) : undefined;
   const holderBadge = belt?.holder ? `Носитель пояса${belt.defenses ? ` · ★${belt.defenses}` : ""}` : "";
-  const badgeFor = (p: MatchPlayer | null) => (p && p.id === belt?.holder?.userId ? holderBadge : undefined);
-  const note = sideA && sideB ? beltNote(belt, sideA, sideB, show) : "";
+  // Пояс лиги разыгрывают только матчи 1×1.
+  const note = !teamMode && sideA && sideB ? beltNote(belt, sideA, sideB, show) : "";
+  const applied = <span className="badge badge-org"><span>Из заявки</span></span>;
+
+  const playerChosen = (p: MatchPlayer | null): Chosen | null =>
+    p && {
+      name: p.displayName || p.login,
+      season: `MMR ${p.mmr} · ${p.isNew ? "новичок сезона" : `${p.wins}–${p.losses} в сезоне`}`,
+      badges: (
+        <>
+          {applicants.has(p.id) && applied}
+          {p.isPlaceholder && <span className="badge badge-official"><span>Без входа</span></span>}
+          {p.id === belt?.holder?.userId && <span className="badge badge-champ"><span>{holderBadge}</span></span>}
+        </>
+      ),
+    };
+  const teamChosen = (t: MatchTeam | null): Chosen | null =>
+    t && {
+      name: t.name,
+      members: teamMembersLine(t),
+      season: teamSeasonLine(t),
+      badges: t.members.some((m) => applicants.has(m.userId)) && applied,
+    };
+
+  // Команда подаёт заявку, когда её подали оба игрока; если один - команду найдут поиском, она там сверху.
+  const inTeams = new Set([firstTeam, secondTeam].flatMap((t) => t?.members.map((m) => m.userId) ?? []));
+  const poolTeams = teams.filter((t) => t.members.every((m) => applicants.has(m.userId) && !inTeams.has(m.userId)));
+  const nameA = teamMode ? teamA?.name : sideA && (sideA.displayName || sideA.login);
+  const nameB = teamMode ? teamB?.name : sideB && (sideB.displayName || sideB.login);
 
   return (
     <div className="space-y-4">
@@ -267,12 +323,11 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
         <div className="space-y-1.5">
           <span className="field-label">Режим</span>
           <div className="seg">
-            <button type="button" className="seg-btn" aria-pressed={true}>
-              <span>1×1</span>
-            </button>
-            <button type="button" className="seg-btn opacity-50" aria-pressed={false} disabled title="2×2 — следующим шагом">
-              <span>2×2</span>
-            </button>
+            {(["1x1", "2x2"] as const).map((m) => (
+              <button key={m} type="button" className="seg-btn" aria-pressed={mode === m} onClick={() => setMode(m)}>
+                <span>{m === "1x1" ? "1×1" : "2×2"}</span>
+              </button>
+            ))}
           </div>
         </div>
         <div className="space-y-1.5">
@@ -354,48 +409,103 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
         </Panel>
       )}
 
-      <div className="flex flex-col gap-4 lg:flex-row">
-        <SideCard
-          title="Игрок A"
-          hint={hints[0]}
-          player={sideA}
-          tone="primary"
-          applicant={!!sideA && applicants.has(sideA.id)}
-          beltBadge={badgeFor(sideA)}
-          onClear={() => (sideA === first ? setFirst(null) : setSecond(null))}
-        >
-          <PlayerPicker
-            inputId="side-a"
-            players={players}
-            applicants={applicants}
-            exclude={second?.id ?? first?.id}
-            busy={busy}
-            onPick={put}
-            onCreate={(nick) => createPlayer(nick, first ? "second" : "first")}
-          />
-        </SideCard>
-        <SideCard
-          title="Игрок B"
-          hint={hints[1]}
-          player={sideB}
-          tone="cyan"
-          applicant={!!sideB && applicants.has(sideB.id)}
-          beltBadge={badgeFor(sideB)}
-          onClear={() => (sideB === second ? setSecond(null) : setFirst(null))}
-        >
-          <PlayerPicker
-            inputId="side-b"
-            players={players}
-            applicants={applicants}
-            exclude={first?.id ?? second?.id}
-            busy={busy}
-            onPick={put}
-            onCreate={(nick) => createPlayer(nick, first ? "second" : "first")}
-          />
-        </SideCard>
-      </div>
+      {teamMode ? (
+        <div className="flex flex-col gap-4 lg:flex-row">
+          {([teamA, teamB] as const).map((t, i) => {
+            const slot = i === 0 ? 0 : 1;
+            const rival = slot === 0 ? teamB : teamA;
+            return (
+              <SideCard
+                key={slot}
+                title={slot === 0 ? "Команда A" : "Команда B"}
+                hint={hints[slot]}
+                chosen={teamChosen(t)}
+                tone={slot === 0 ? "primary" : "cyan"}
+                onClear={() => clearTeam(t)}
+              >
+                {newTeam?.slot === slot ? (
+                  <TeamForm
+                    idPrefix={`side-${slot}-new-team`}
+                    initialName={newTeam.name}
+                    players={players}
+                    applicants={applicants}
+                    hide={new Set(rival?.members.map((m) => m.userId))}
+                    onPlayer={addPlayer}
+                    onSaved={(team) => {
+                      setTeams((xs) => [team, ...xs]);
+                      putTeam(team, slot);
+                    }}
+                    onExisting={(key) => void takeExisting(key, slot)}
+                    onCancel={() => setNewTeam(null)}
+                  />
+                ) : (
+                  <TeamPicker
+                    inputId={`side-${slot}-team`}
+                    teams={teams}
+                    applicants={applicants}
+                    rival={rival}
+                    busy={busy}
+                    onPick={(team) => putTeam(team, slot)}
+                    onCreate={(name) => setNewTeam({ slot, name })}
+                  />
+                )}
+              </SideCard>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 lg:flex-row">
+          <SideCard
+            title="Игрок A"
+            hint={hints[0]}
+            chosen={playerChosen(sideA)}
+            tone="primary"
+            onClear={() => (sideA === first ? setFirst(null) : setSecond(null))}
+          >
+            <PlayerPicker
+              inputId="side-a"
+              players={players}
+              applicants={applicants}
+              exclude={second?.id ?? first?.id}
+              busy={busy}
+              onPick={put}
+              onCreate={(nick) => createPlayer(nick, first ? "second" : "first")}
+            />
+          </SideCard>
+          <SideCard
+            title="Игрок B"
+            hint={hints[1]}
+            chosen={playerChosen(sideB)}
+            tone="cyan"
+            onClear={() => (sideB === second ? setSecond(null) : setFirst(null))}
+          >
+            <PlayerPicker
+              inputId="side-b"
+              players={players}
+              applicants={applicants}
+              exclude={first?.id ?? second?.id}
+              busy={busy}
+              onPick={put}
+              onCreate={(nick) => createPlayer(nick, first ? "second" : "first")}
+            />
+          </SideCard>
+        </div>
+      )}
 
-      {!show && belt && holder && (!first || !second) && first?.id !== holder.id && second?.id !== holder.id && (
+      {teamMode && poolTeams.length > 0 && (!firstTeam || !secondTeam) && (
+        <Panel className="flex flex-wrap items-center gap-2 p-4">
+          <span className="field-label mr-1">Заявки</span>
+          {poolTeams.map((t) => (
+            <button key={t.teamKey} type="button" className="chip transition hover:brightness-125" onClick={() => putTeam(t)}>
+              <span>{t.name}</span>
+              <span className="font-normal text-muted">{teamMembersLine(t)}</span>
+            </button>
+          ))}
+          <span className="text-xs text-muted">заявку подали оба игрока — нажмите, команда встанет в свободный слот</span>
+        </Panel>
+      )}
+
+      {!teamMode && !show && belt && holder && (!first || !second) && first?.id !== holder.id && second?.id !== holder.id && (
         <Panel className="flex flex-wrap items-center gap-2 p-4">
           <span className="field-label mr-1">Пояс</span>
           <button type="button" className="chip transition hover:brightness-125" onClick={() => put(holder)}>
@@ -408,7 +518,7 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
         </Panel>
       )}
 
-      {freePool.length > 0 && (!first || !second) && (
+      {!teamMode && freePool.length > 0 && (!first || !second) && (
         <Panel className="flex flex-wrap items-center gap-2 p-4">
           <span className="field-label mr-1">Заявки</span>
           {freePool.map((r) => {
@@ -428,17 +538,18 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
       <Panel glow className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div className="min-w-0 space-y-1">
           <div className="font-display text-xl uppercase">
-            {sideA && sideB ? `${sideA.displayName || sideA.login} vs ${sideB.displayName || sideB.login}` : "Выберите обоих игроков"}
+            {sides ? `${nameA} vs ${nameB}` : teamMode ? "Выберите обе команды" : "Выберите обоих игроков"}
           </div>
           <div className="text-sm text-muted">
-            {show ? "Шоу-матч · " : ""}1×1 · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · {roundsLabel(roundCount)} ·
-            рейтинг ×{mult}
+            {show ? "Шоу-матч · " : ""}
+            {teamMode ? "2×2" : "1×1"} · {PLAYER_TYPES.find(([v]) => v === playerType)?.[1]} · {roundsLabel(roundCount)} · рейтинг ×
+            {mult}
             {show && prize.trim() ? ` · приз: ${prize.trim()}` : ""}
           </div>
           <div className="text-xs text-muted">
             {show
               ? "Появится в расписании; начать его можно из пульта, когда придёт время"
-              : "Название соберётся из ников, матч сразу станет текущим"}
+              : `Название соберётся из ${teamMode ? "названий команд" : "ников"}, матч сразу станет текущим`}
           </div>
           {note && <div className="text-xs text-gold">{note}</div>}
           {roundCount === 3 && (
@@ -447,7 +558,7 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
             </div>
           )}
         </div>
-        <button type="button" className="btn btn-primary" disabled={!sideA || !sideB || busy || !!createdId} onClick={create}>
+        <button type="button" className="btn btn-primary" disabled={!sides || busy || !!createdId} onClick={create}>
           <span>{busy ? "Создаём…" : show ? "Запланировать шоу-матч →" : "Создать и перейти к пикам →"}</span>
         </button>
       </Panel>
