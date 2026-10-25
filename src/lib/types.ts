@@ -427,6 +427,8 @@ export interface RoundBonusTask {
   kind: TaskKind;
   times: number;
   completedBy?: string | null;
+  /** Игрок команды 2×2, которому засчитано задание. */
+  completedUserId?: string | null;
   name?: string;
   category: TaskCategory;
   mapCode?: string;
@@ -1002,6 +1004,15 @@ export interface RoundKnocks {
   knocks: number;
 }
 
+/** Ноки и ручные очки игрока команды 2×2 за раунд; points - вместе с очками за ноки. */
+export interface RoundMemberScore {
+  roundNumber: number;
+  participantId: string;
+  userId: string;
+  points: number;
+  knocks: number;
+}
+
 /** Стадия матча: запланирован, пики-баны, карты готовы, идёт раунд, завершён. */
 export type MatchStage = "scheduled" | "veto" | "ready" | "round" | "finished";
 
@@ -1026,6 +1037,8 @@ export interface MatchState {
   scores: RoundScore[];
   manual: RoundScore[]; // вместе с очками за ноки
   knocks: RoundKnocks[];
+  /** Ноки и ручные очки по игрокам команд 2×2. */
+  members?: RoundMemberScore[];
   log: MatchLogEntry[];
   /** Нашивки, полученные в этом матче. */
   patches?: MatchPatch[];

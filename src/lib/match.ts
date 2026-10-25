@@ -98,6 +98,28 @@ export function roundBreakdown(st: MatchState, round: number, participantId: str
   return out;
 }
 
+/** Игрок команды 2×2: ему ставят ноки и ручные очки и засчитывают задания. */
+export interface TeamPlayer {
+  userId: string;
+  name: string;
+}
+
+/** Игроки команды 2×2; у стороны из одного игрока - пусто. В матчах, перенесённых из таблицы, вместо ника в
+    составе - id игрока: там подпись «Игрок N». */
+export function teamPlayers(p: Participant): TeamPlayer[] {
+  if (p.kind !== "team") return [];
+  return (p.members ?? []).flatMap((m, i) =>
+    m.userId ? [{ userId: m.userId, name: m.name && m.name !== m.userId ? m.name : `Игрок ${i + 1}` }] : [],
+  );
+}
+
+/** Ноки и ручные очки игрока команды 2×2 в раунде. */
+export function memberScore(st: MatchState, round: number, participantId: string, userId: string): { knocks: number; manual: number } {
+  const m = (st.members ?? []).find((x) => x.roundNumber === round && x.participantId === participantId && x.userId === userId);
+  const knocks = m?.knocks ?? 0;
+  return { knocks, manual: (m?.points ?? 0) - knocks * KNOCK_POINTS };
+}
+
 /** Разбивка очков раунда словами для страницы матча: «задания +4 · 2 нока +6». */
 export function breakdownParts(b: RoundBreakdown): string[] {
   return [

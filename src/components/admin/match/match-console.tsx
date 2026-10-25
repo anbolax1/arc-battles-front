@@ -203,8 +203,8 @@ export function MatchConsole({
     }
   }
 
-  async function creditLegendary(legendaryId: string, participantId: string) {
-    const next = await act(`/tournaments/${id}/legendary`, { legendaryId, participantId, round: fix?.round }, `legendary:${legendaryId}`);
+  async function creditLegendary(legendaryId: string, participantId: string, userId?: string) {
+    const next = await act(`/tournaments/${id}/legendary`, { legendaryId, participantId, userId, round: fix?.round }, `legendary:${legendaryId}`);
     if (next) setLegendary((xs) => xs.map((l) => (l.id === legendaryId ? { ...l, status: "done" } : l)));
   }
 
@@ -389,10 +389,12 @@ export function MatchConsole({
             )
           }
           onFocus={(pid) => act(`/tournaments/${id}/focus`, { participantId: pid })}
-          onMark={(asg, by) => act(`/round-bonus-tasks/${asg}/mark`, { by }, `task:${asg}`)}
+          onMark={(asg, by, userId) => act(`/round-bonus-tasks/${asg}/mark`, { by, userId }, `task:${asg}`)}
           onReroll={(asg) => act(`/round-bonus-tasks/${asg}/reroll`, undefined, `task:${asg}`)}
-          onKnock={(pid, delta) => act(`/tournaments/${id}/knocks`, { participantId: pid, delta, round: fix?.round })}
-          onPoints={(pid, delta, label) => act(`/tournaments/${id}/points`, { participantId: pid, delta, label, round: fix?.round })}
+          onKnock={(pid, delta, userId) => act(`/tournaments/${id}/knocks`, { participantId: pid, userId, delta, round: fix?.round })}
+          onPoints={(pid, delta, label, userId) =>
+            act(`/tournaments/${id}/points`, { participantId: pid, userId, delta, label, round: fix?.round })
+          }
           onLegendary={creditLegendary}
         />
       )}

@@ -3,7 +3,19 @@
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
 import { CheckIcon } from "@/components/icons";
-import { KNOCK_POINTS, loadoutLabel, roundBreakdown, roundScore, taskDescription, taskKindLabel, taskTitle, totalScore } from "@/lib/match";
+import {
+  KNOCK_POINTS,
+  loadoutLabel,
+  memberScore,
+  roundBreakdown,
+  roundScore,
+  taskDescription,
+  taskKindLabel,
+  taskTitle,
+  teamPlayers,
+  totalScore,
+  type TeamPlayer,
+} from "@/lib/match";
 import type { CatalogLegendary, MatchLogEntry, MatchState, Participant, Round, RoundBonusTask } from "@/lib/types";
 
 /** Цвета сторон как на табло: A - оранжевая, B - бирюзовая. */
@@ -111,20 +123,27 @@ function RoundCard({
   );
 }
 
-/** Задание стороны: что сделать слева, зачёт справа. Задания соперника не засчитываются. */
+/** Задание стороны: что сделать слева, зачёт справа. Задания соперника не засчитываются. Задание команды 2×2
+    общее, но засчитывается один раз - тому игроку, кто его выполнил. */
 function TaskRow({
   t,
+  players,
   onMark,
   onReroll,
 }: {
   t: RoundBonusTask;
-  onMark: (id: string, by: "owner" | "none") => void;
+  /** Игроки команды 2×2; у стороны из одного игрока - пусто. */
+  players: TeamPlayer[];
+  onMark: (id: string, by: "owner" | "none", userId?: string) => void;
   /** Нет - задание не перебросить: раунд уже сыгран. */
   onReroll?: (id: string) => void;
 }) {
   const kind = taskKindLabel(t);
   const done = !!t.completedBy;
   const desc = taskDescription(t);
+  const doneBy = players.find((pl) => pl.userId === t.completedUserId)?.name;
+  const markClass =
+    "btn btn-sm flex-none text-ok [&::before]:bg-[rgba(52,211,153,0.12)] [&::before]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.5)]";
   return (
     <div
       className={`flex items-center gap-3 rounded-md px-3 py-2 ${
@@ -146,8 +165,9 @@ function TaskRow({
       </div>
       {done ? (
         <>
-          <span className="inline-flex flex-none items-center gap-1.5 text-sm font-semibold text-ok">
+          <span className="inline-flex min-w-0 flex-none items-center gap-1.5 text-sm font-semibold text-ok">
             <CheckIcon className="h-4 w-4" />+{t.points}
+            {doneBy && <span className="max-w-[7rem] truncate font-normal">· {doneBy}</span>}
           </span>
           <button
             type="button"
@@ -159,17 +179,35 @@ function TaskRow({
         </>
       ) : (
         <>
-          {/* Кнопка узкая, без слова: место в строке отдано названию задания. */}
-          <button
-            type="button"
-            className="btn btn-sm flex-none text-ok [&::before]:bg-[rgba(52,211,153,0.12)] [&::before]:shadow-[inset_0_0_0_1px_rgba(52,211,153,0.5)]"
-            onClick={() => onMark(t.id, "owner")}
-            title={`Засчитать: +${t.points}`}
-            aria-label={`Засчитать «${taskTitle(t)}», +${t.points}`}
-          >
-            <CheckIcon />
-            <span>+{t.points}</span>
-          </button>
+          {players.length ? (
+            <div className="flex flex-none flex-col gap-1.5">
+              {players.map((pl) => (
+                <button
+                  key={pl.userId}
+                  type="button"
+                  className={markClass}
+                  onClick={() => onMark(t.id, "owner", pl.userId)}
+                  title={`Выполнил ${pl.name}: +${t.points}`}
+                  aria-label={`Засчитать «${taskTitle(t)}» игроку ${pl.name}, +${t.points}`}
+                >
+                  <CheckIcon />
+                  <span className="max-w-[6.5rem] truncate">{pl.name}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            // Кнопка узкая, без слова: место в строке отдано названию задания.
+            <button
+              type="button"
+              className={markClass}
+              onClick={() => onMark(t.id, "owner")}
+              title={`Засчитать: +${t.points}`}
+              aria-label={`Засчитать «${taskTitle(t)}», +${t.points}`}
+            >
+              <CheckIcon />
+              <span>+{t.points}</span>
+            </button>
+          )}
           {onReroll && (
             <button
               type="button"
@@ -188,11 +226,11 @@ function TaskRow({
 }
 
 /** Ручные очки ведущего без ноков: правка на месте числа. */
-function ManualPoints({ value, onChange }: { value: number; onChange: (delta: number, label: string) => void }) {
+function ManualPoints({ value, who, onChange }: { value: number; who?: string; onChange: (delta: number, label: string) => void }) {
   const step =
     "flex h-9 w-9 items-center justify-center rounded-md bg-surface-2 text-lg leading-none text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30";
   return (
-    <span className="flex flex-none items-center gap-1.5" role="group" aria-label="Ручные очки">
+    <span className="flex flex-none items-center gap-1.5" role="group" aria-label={who ? `Ручные очки: ${who}` : "Ручные очки"}>
       <span className="field-label">Ручные</span>
       <button
         type="button"
@@ -212,13 +250,64 @@ function ManualPoints({ value, onChange }: { value: number; onChange: (delta: nu
   );
 }
 
+/** Нок и ручные очки: у стороны 1×1 - её, у команды 2×2 - отдельно у каждого игрока (who - его ник). */
+function ScoreRow({
+  knocks,
+  manual,
+  knockClass,
+  who,
+  onKnock,
+  onPoints,
+}: {
+  knocks: number;
+  manual: number;
+  knockClass: string;
+  who?: string;
+  onKnock: (delta: 1 | -1) => void;
+  onPoints: (delta: number, label: string) => void;
+}) {
+  // Промежутки шире обычных - под скос кнопок: иначе угол «Нока» заходит на соседей.
+  return (
+    <div className="flex items-center gap-3">
+      {who && (
+        <span className="w-24 flex-none truncate font-display text-sm uppercase" title={who}>
+          {who}
+        </span>
+      )}
+      <button
+        type="button"
+        className="flex h-[42px] w-10 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
+        disabled={knocks <= 0}
+        onClick={() => onKnock(-1)}
+        title={knocks > 0 ? "Снять ошибочный нок" : "Ноков нет - снимать нечего"}
+        aria-label={who ? `Снять нок: ${who}` : "Снять нок"}
+      >
+        −
+      </button>
+      <button
+        type="button"
+        className={`btn min-w-[96px] flex-1 ${knockClass}`}
+        onClick={() => onKnock(1)}
+        title={`Нок ${who ?? "рейдера"}: +${KNOCK_POINTS} очка`}
+      >
+        <span>Нок{knocks > 0 ? ` · ${knocks}` : ""}</span>
+      </button>
+      <ManualPoints value={manual} who={who} onChange={onPoints} />
+    </div>
+  );
+}
+
 function LegendaryPicker({
   available,
+  players,
   onPick,
 }: {
   available: CatalogLegendary[];
-  onPick: (legendaryId: string) => void;
+  /** Игроки команды 2×2: легендарка на счету того, кто её выполнил. */
+  players: TeamPlayer[];
+  onPick: (legendaryId: string, userId?: string) => void;
 }) {
+  const pick = "btn btn-sm text-gold [&::before]:shadow-[inset_0_0_0_1px_rgba(255,197,61,0.45)]";
   return (
     <div className="space-y-2 rounded-md bg-[rgba(255,197,61,0.06)] p-3 shadow-[inset_0_0_0_1px_rgba(255,197,61,0.25)]">
       <span className="field-label text-gold">Легендарные — +10, один раз навсегда</span>
@@ -227,13 +316,17 @@ function LegendaryPicker({
           {available.map((l) => (
             <li key={l.id} className="flex flex-wrap items-center gap-2">
               <span className="min-w-[200px] flex-1 text-sm">{l.text}</span>
-              <button
-                type="button"
-                className="btn btn-sm text-gold [&::before]:shadow-[inset_0_0_0_1px_rgba(255,197,61,0.45)]"
-                onClick={() => onPick(l.id)}
-              >
-                <span>Засчитать</span>
-              </button>
+              {players.length ? (
+                players.map((pl) => (
+                  <button key={pl.userId} type="button" className={pick} title={`Выполнил ${pl.name}`} onClick={() => onPick(l.id, pl.userId)}>
+                    <span className="max-w-[7rem] truncate">{pl.name}</span>
+                  </button>
+                ))
+              ) : (
+                <button type="button" className={pick} onClick={() => onPick(l.id)}>
+                  <span>Засчитать</span>
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -302,11 +395,12 @@ export function RoundConsole({
   /** Правка завершённого матча: раунд выбирают среди сыгранных, рейда и переброса заданий нет. */
   fix?: { round: number; onRound: (round: number) => void };
   onFocus: (participantId: string) => void;
-  onMark: (id: string, by: "owner" | "none") => void;
+  /** userId - игрок команды 2×2, которому засчитан зачёт; у стороны из одного игрока его нет. */
+  onMark: (id: string, by: "owner" | "none", userId?: string) => void;
   onReroll: (id: string) => void;
-  onKnock: (participantId: string, delta: 1 | -1) => void;
-  onPoints: (participantId: string, delta: number, label: string) => void;
-  onLegendary: (legendaryId: string, participantId: string) => void;
+  onKnock: (participantId: string, delta: 1 | -1, userId?: string) => void;
+  onPoints: (participantId: string, delta: number, label: string, userId?: string) => void;
+  onLegendary: (legendaryId: string, participantId: string, userId?: string) => void;
 }) {
   const [legFor, setLegFor] = React.useState<string | null>(null);
   const round = fix?.round ?? (st.currentRound || 1);
@@ -375,6 +469,7 @@ export function RoundConsole({
           const done = tasks.filter((t) => t.completedBy === p.id).length;
           const parts = roundBreakdown(st, round, p.id);
           const raiding = !fix && focusId === p.id;
+          const players = teamPlayers(p);
           const name = (
             <>
               <SideTag i={side} />
@@ -404,28 +499,30 @@ export function RoundConsole({
                     <span className={`font-display text-3xl leading-none tnum ${style.text}`}>{roundScore(st, round, p.id)}</span>
                   </div>
                 </div>
-                {/* Промежутки шире обычных - под скос кнопок: иначе угол «Нока» заходит на соседей. */}
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="flex h-[42px] w-10 flex-none items-center justify-center rounded-md bg-surface-2 text-lg text-muted shadow-[inset_0_0_0_1px_var(--border)] transition hover:text-fg disabled:cursor-not-allowed disabled:opacity-30"
-                    disabled={parts.knocks <= 0}
-                    onClick={() => onKnock(p.id, -1)}
-                    title={parts.knocks > 0 ? "Снять ошибочный нок" : "Ноков нет - снимать нечего"}
-                    aria-label="Снять нок"
-                  >
-                    −
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn min-w-[96px] flex-1 ${style.knock}`}
-                    onClick={() => onKnock(p.id, 1)}
-                    title={`Нок рейдера: +${KNOCK_POINTS} очка`}
-                  >
-                    <span>Нок{parts.knocks > 0 ? ` · ${parts.knocks}` : ""}</span>
-                  </button>
-                  <ManualPoints value={parts.manual} onChange={(delta, label) => onPoints(p.id, delta, label)} />
-                </div>
+                {players.length ? (
+                  players.map((pl) => {
+                    const own = memberScore(st, round, p.id, pl.userId);
+                    return (
+                      <ScoreRow
+                        key={pl.userId}
+                        who={pl.name}
+                        knocks={own.knocks}
+                        manual={own.manual}
+                        knockClass={style.knock}
+                        onKnock={(delta) => onKnock(p.id, delta, pl.userId)}
+                        onPoints={(delta, label) => onPoints(p.id, delta, label, pl.userId)}
+                      />
+                    );
+                  })
+                ) : (
+                  <ScoreRow
+                    knocks={parts.knocks}
+                    manual={parts.manual}
+                    knockClass={style.knock}
+                    onKnock={(delta) => onKnock(p.id, delta)}
+                    onPoints={(delta, label) => onPoints(p.id, delta, label)}
+                  />
+                )}
               </div>
 
               <div className="space-y-2 border-t border-[var(--border)] px-4 pb-4 pt-3">
@@ -438,7 +535,7 @@ export function RoundConsole({
                   )}
                 </div>
                 {tasks.length ? (
-                  tasks.map((t) => <TaskRow key={t.id} t={t} onMark={onMark} onReroll={fix ? undefined : onReroll} />)
+                  tasks.map((t) => <TaskRow key={t.id} t={t} players={players} onMark={onMark} onReroll={fix ? undefined : onReroll} />)
                 ) : (
                   <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
                 )}
@@ -454,8 +551,9 @@ export function RoundConsole({
                 {legFor === p.id && (
                   <LegendaryPicker
                     available={available}
-                    onPick={(id) => {
-                      onLegendary(id, p.id);
+                    players={players}
+                    onPick={(id, userId) => {
+                      onLegendary(id, p.id, userId);
                       setLegFor(null);
                     }}
                   />
