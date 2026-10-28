@@ -7,9 +7,21 @@ import type { WidgetProps } from "./types";
 
 type Tone = "a" | "b";
 
-const TONE: Record<Tone, { text: string; bar: string; glow: string; raid: string }> = {
-  a: { text: "text-primary-2", bar: "bg-[var(--primary)]", glow: "shadow-[0_0_16px_2px_var(--primary-glow)]", raid: "text-[#160d04]" },
-  b: { text: "text-accent", bar: "bg-[var(--accent)]", glow: "shadow-[0_0_16px_2px_rgba(34,211,238,0.55)]", raid: "text-[#03181c]" },
+// Свечение счёта заменяет общую тень .ov-legible, поэтому в нём есть и тёмная:
+// без неё при выключенном фоне счёт теряется на кадре игры.
+const TONE: Record<Tone, { text: string; bar: string; glow: string; shine: string }> = {
+  a: {
+    text: "text-primary-2",
+    bar: "bg-[var(--primary)]",
+    glow: "shadow-[0_0_16px_2px_var(--primary-glow)]",
+    shine: "[text-shadow:0_0_18px_var(--primary-glow),0_1px_3px_rgba(0,0,0,0.9)]",
+  },
+  b: {
+    text: "text-accent",
+    bar: "bg-[var(--accent)]",
+    glow: "shadow-[0_0_16px_2px_rgba(34,211,238,0.55)]",
+    shine: "[text-shadow:0_0_18px_rgba(34,211,238,0.55),0_1px_3px_rgba(0,0,0,0.9)]",
+  },
 };
 
 function PlaceBadge({ place }: { place: number }) {
@@ -119,7 +131,7 @@ function Side({
   s: LiveStanding;
   tone: Tone;
   focused: boolean;
-  /** В рейде соперник: счёт приглушён, чтобы с одного взгляда было видно, кто играет. */
+  /** В рейде соперник: счёт мельче и приглушён, чтобы с одного взгляда было видно, кто играет. */
   waiting: boolean;
   showRound: boolean;
   showMmr: boolean;
@@ -174,10 +186,13 @@ function Side({
       </div>
       <div className={`flex flex-none flex-col ${right ? "items-start" : "items-end"}`}>
         <div className={`flex items-baseline gap-1.5 font-display leading-none ${right ? "flex-row-reverse" : ""}`}>
-          {/* Счёт стороны в рейде - на плашке её цвета; отступы у плашки всегда, чтобы при смене рейда счёт не прыгал. */}
           <span
-            className={`rounded-md px-2 py-1 text-4xl tnum transition-[background-color,color,opacity] duration-300 sm:text-5xl ${
-              focused ? `${t.bar} ${t.raid} ${t.glow}` : waiting ? "text-fg opacity-45" : t.text
+            className={`leading-none tnum transition-[font-size,color,opacity,text-shadow] duration-300 ease-out ${
+              focused
+                ? `text-5xl sm:text-6xl ${t.text} ${t.shine}`
+                : waiting
+                  ? "text-3xl text-fg opacity-40 sm:text-4xl"
+                  : `text-4xl sm:text-5xl ${t.text}`
             }`}
           >
             {s.points}
