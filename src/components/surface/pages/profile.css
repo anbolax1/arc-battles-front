@@ -3,6 +3,17 @@
 .pf-top {
   padding-bottom: clamp(40px, 6vw, 72px);
 }
+/* Шапка профиля высокая: растянутые на всю её высоту полосы раздуваются и показывают срез.
+   Поэтому полосы не выше обычной шапки и гаснут книзу. */
+@media (min-width: 761px) {
+  .pf-tall > .sf-stripes {
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: 640 / 720;
+    -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent);
+    mask-image: linear-gradient(to bottom, #000 68%, transparent);
+  }
+}
 .pf-lead {
   margin-top: 18px;
 }

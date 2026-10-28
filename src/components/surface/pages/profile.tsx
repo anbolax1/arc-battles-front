@@ -215,7 +215,7 @@ export async function ProfileView({
 
   return (
     <>
-      <section className="sf-page-head sf-night sf-grain pf-top">
+      <section className="sf-page-head sf-night sf-grain pf-top pf-tall">
         <Stripes shape="head" draw />
         <div className="sf-wrap">
           {back && (
