@@ -702,6 +702,9 @@ export interface PlayerStats {
   legendaryPoints: number; // легендарные контракты (10 каждый)
   favoriteMap: string;
   favoriteMapRounds: number;
+  /** Где у игрока больше всего побед: матч засчитан на каждую сыгранную в нём карту. */
+  bestMap?: string;
+  bestMapWins?: number;
   /** Первый сыгранный матч любого формата: у mmr1x1.firstMatch - только 1×1. */
   firstMatch?: string | null;
 }

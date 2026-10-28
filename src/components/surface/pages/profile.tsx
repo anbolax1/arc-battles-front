@@ -13,6 +13,7 @@ import { initials } from "@/lib/format";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
+import { plural, W_WIN } from "@/components/surface/season-lib";
 import { BeltProfile } from "@/components/surface/belt-parts";
 import { ProfileModeration } from "@/components/surface/profile-moderation";
 import { roleAtLeast } from "@/lib/roles";
@@ -58,7 +59,12 @@ function IdCard({ profile }: { profile: PlayerProfile }) {
     { k: "Первый матч", v: stats.firstMatch ? fullDate(stats.firstMatch) : "—", m: 2 },
     { k: "Лучший MMR 1×1", v: mmr1x1.peakMmr ? String(mmr1x1.peakMmr) : "—", m: 5 },
     { k: "Лучший MMR 2×2", v: peakDuo ? String(peakDuo) : "—", m: 6 },
-    { k: "Любимая карта", v: stats.favoriteMap || "—", m: 9 },
+    {
+      k: "Лучшая карта",
+      v: stats.bestMap || "—",
+      title: stats.bestMapWins ? `${stats.bestMapWins} ${plural(stats.bestMapWins, W_WIN)} на этой карте` : undefined,
+      m: 9,
+    },
     { k: "Винрейт 1×1", v: stats.soloPlayed ? `${winrate(stats.soloWins, stats.soloPlayed - stats.soloWins)}%` : "нет матчей", m: 7 },
     { k: "Винрейт 2×2", v: stats.duoPlayed ? `${winrate(stats.duoWins, stats.duoPlayed - stats.duoWins)}%` : "нет матчей", m: 8 },
     { k: "Часов в игре", ...gameStat(profile.gameHours), m: 10 },
