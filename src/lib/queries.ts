@@ -36,6 +36,8 @@ import type {
   Belt,
   ChanceTrail,
 } from "@/lib/types";
+import { getSite } from "@/lib/design";
+import { DEFAULT_SUBSCRIBER_ROLE } from "@/lib/display";
 
 async function safe<T>(label: string, p: Promise<T>, fallback: T): Promise<T> {
   try {
@@ -283,4 +285,9 @@ export async function getNewsItem(id: string): Promise<News | null> {
 /** Пояс лиги: носитель, ржавчина и вся история; null - бэкенд недоступен. */
 export function getBelt(): Promise<Belt | null> {
   return safe("belt", serverFetch<Belt>("/belt"), null);
+}
+
+/** Как сейчас называется роль подписчика: её переименовывает организатор. */
+export async function getSubscriberRole(): Promise<string> {
+  return (await getSite())?.subscriberRole || DEFAULT_SUBSCRIBER_ROLE;
 }

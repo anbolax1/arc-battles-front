@@ -71,13 +71,21 @@ export function isFinished(t: Pick<Tournament, "status">): boolean {
   return t.status === "finished";
 }
 
-/** Роль пользователя → бейдж (вид + подпись). */
+/** Роль подписчика, пока организатор её не переименовал. */
+export const DEFAULT_SUBSCRIBER_ROLE = "Подписчик";
+
+/** Роль пользователя → бейдж (вид + подпись). Название роли подписчика меняет организатор. */
 export function roleBadge(
   role: Role | string,
+  subscriberName = DEFAULT_SUBSCRIBER_ROLE,
 ): { kind: "champ" | "glad" | "org" | "boosty" | "official"; label: string } {
   switch (role) {
     case "superadmin":
       return { kind: "org", label: "Организатор" };
+    case "moderator":
+      return { kind: "glad", label: "Модератор" };
+    case "subscriber":
+      return { kind: "boosty", label: subscriberName };
     default:
       return { kind: "official", label: "Игрок" };
   }

@@ -11,6 +11,7 @@ import { SectionHead } from "@/components/ui/section-head";
 import { EmptyState } from "@/components/ui/empty-state";
 import { roleBadge } from "@/lib/display";
 import { fmtDate } from "@/lib/format";
+import { ROLES } from "@/lib/roles";
 import type { PlayerProfile, Role, User, UserOverview } from "@/lib/types";
 
 /* Раздел «Пользователи» кабинета. Пагинация (по pageSize), поиск и сортировка —
@@ -30,6 +31,65 @@ function userName(u: UserOverview): string {
   return u.displayName || u.login || "Игрок";
 }
 
+/** Что даёт каждая роль - подсказка у выбора роли. */
+const ROLE_HINT: Record<Role, string> = {
+  user: "Играет матчи, вписывает часы и ноки в профиль, сам сбрасывает рейтинг жетоном.",
+  subscriber: "Как игрок, плюс заполняет в профиле блок «любимое».",
+  moderator: "Проверяет скриншоты в «Проверке», выдаёт и активирует жетоны на странице игрока.",
+  superadmin: "Весь кабинет: матчи, пульт, сезоны и роли.",
+};
+
+// Название роли подписчика стоит в профиле и в кабинете одной строкой - как и на сервере.
+const MAX_ROLE_NAME = 24;
+
+/** Роль подписчика организатор называет как хочет: например, по уровню подписки на Boosty. */
+function SubscriberRoleName({ name, onSaved }: { name: string; onSaved: (name: string) => void }) {
+  const [value, setValue] = React.useState(name);
+  const [busy, setBusy] = React.useState(false);
+  const [note, setNote] = React.useState("");
+  const dirty = value.trim() !== name && value.trim().length >= 2;
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!dirty) return;
+    setBusy(true);
+    setNote("");
+    try {
+      const s = await api.put<{ subscriberRole: string }>("/site/subscriber-role", { name: value });
+      onSaved(s.subscriberRole);
+      setValue(s.subscriberRole);
+      setNote("Сохранено");
+    } catch (err) {
+      setNote(errorText(err, "Не удалось переименовать."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="panel flex flex-wrap items-end gap-3 p-4">
+      <label className="min-w-[14rem] flex-1 space-y-1.5">
+        <span className="field-label">Название роли подписчика</span>
+        <input
+          className="input"
+          maxLength={MAX_ROLE_NAME}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setNote("");
+          }}
+        />
+      </label>
+      <button type="submit" className="btn btn-cyan btn-sm" disabled={!dirty || busy}>
+        <span>{busy ? "Сохраняем…" : "Переименовать"}</span>
+      </button>
+      <span className="w-full text-xs text-muted">
+        {note || "С этой ролью игрок заполняет в профиле блок «любимое». Название видно в кабинете и в профиле."}
+      </span>
+    </form>
+  );
+}
+
 // Список номеров страниц с многоточиями: первая, последняя, текущая ±1.
 function pageWindow(current: number, totalPages: number): (number | "…")[] {
   const out: (number | "…")[] = [];
@@ -47,11 +107,14 @@ export function UsersManager({
   initialItems,
   initialTotal,
   pageSize,
+  subscriberRole,
 }: {
   initialItems: UserOverview[];
   initialTotal: number;
   pageSize: number;
+  subscriberRole: string;
 }) {
+  const [subName, setSubName] = React.useState(subscriberRole);
   const [items, setItems] = React.useState<UserOverview[]>(initialItems);
   const [total, setTotal] = React.useState(initialTotal);
   const [page, setPage] = React.useState(0);
@@ -162,6 +225,7 @@ export function UsersManager({
   return (
     <div className="space-y-6">
       <SectionHead eyebrow="Организатор" title="Пользователи" />
+      <SubscriberRoleName name={subName} onSaved={setSubName} />
 
       <div className="flex flex-wrap items-center gap-3">
         <input
@@ -207,7 +271,7 @@ export function UsersManager({
               </thead>
               <tbody>
                 {items.map((u) => {
-                  const role = roleBadge(u.role);
+                  const role = roleBadge(u.role, subName);
                   const open = openId === u.id;
                   const prof = profiles[u.id];
                   return (
@@ -257,27 +321,27 @@ export function UsersManager({
                           <td colSpan={7} className="bg-surface-2 px-4 py-4">
                             <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-4">
                               <span className="text-xs uppercase tracking-wide text-muted">Роль</span>
-                              <Badge kind={role.kind}>{role.label}</Badge>
                               {currentUser?.id === u.id ? (
-                                <span className="text-xs text-muted">это вы — вашу роль меняет другой организатор</span>
-                              ) : u.role === "superadmin" ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-ghost btn-sm"
-                                  disabled={roleBusyId === u.id}
-                                  onClick={() => changeRole(u, "user")}
-                                >
-                                  <span>{roleBusyId === u.id ? "Меняем…" : "Снять права организатора"}</span>
-                                </button>
+                                <>
+                                  <Badge kind={role.kind}>{role.label}</Badge>
+                                  <span className="text-xs text-muted">это вы — вашу роль меняет другой организатор</span>
+                                </>
                               ) : (
-                                <button
-                                  type="button"
-                                  className="btn btn-cyan btn-sm"
-                                  disabled={roleBusyId === u.id}
-                                  onClick={() => changeRole(u, "superadmin")}
-                                >
-                                  <span>{roleBusyId === u.id ? "Меняем…" : "Назначить организатором"}</span>
-                                </button>
+                                <div className="seg" role="group" aria-label={`Роль ${userName(u)}`} aria-busy={roleBusyId === u.id}>
+                                  {ROLES.map((r) => (
+                                    <button
+                                      key={r}
+                                      type="button"
+                                      className="seg-btn"
+                                      aria-pressed={u.role === r}
+                                      disabled={roleBusyId === u.id}
+                                      title={ROLE_HINT[r]}
+                                      onClick={() => u.role !== r && changeRole(u, r)}
+                                    >
+                                      <span>{roleBadge(r, subName).label}</span>
+                                    </button>
+                                  ))}
+                                </div>
                               )}
                               {roleError[u.id] && <span className="text-sm text-danger">{roleError[u.id]}</span>}
                               <a

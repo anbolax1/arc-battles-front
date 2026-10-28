@@ -5,14 +5,19 @@ import { cookies } from "next/headers";
 import { serverFetch } from "@/lib/server-api";
 import { DESIGN_COOKIE, isDesign, type Design } from "@/lib/design-shared";
 
+/** Общие настройки сайта; бэкенд недоступен - null. */
+export const getSite = cache(async (): Promise<{ design?: string; subscriberRole?: string } | null> => {
+  try {
+    return await serverFetch<{ design?: string; subscriberRole?: string }>("/site");
+  } catch {
+    return null;
+  }
+});
+
 /** Дизайн, включённый для всех посетителей. Бэкенд недоступен - прежний. */
 export const getSiteDesign = cache(async (): Promise<Design> => {
-  try {
-    const s = await serverFetch<{ design?: string }>("/site");
-    return isDesign(s.design) ? s.design : "classic";
-  } catch {
-    return "classic";
-  }
+  const s = await getSite();
+  return isDesign(s?.design) ? s.design : "classic";
 });
 
 /** Дизайн для текущего посетителя: личный предпросмотр важнее общего выбора. */
