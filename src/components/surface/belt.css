@@ -121,6 +121,7 @@ a.bl-name:hover {
   gap: 6px;
   padding: 12px 10px 12px 0;
   min-width: 0;
+  container-type: inline-size;
 }
 .bl-stats > div + div {
   padding-left: 14px;
@@ -132,11 +133,12 @@ a.bl-name:hover {
   text-transform: uppercase;
   color: var(--sf-cream-2);
 }
+/* Цифры не переносятся: «держит» подбирает кегль под ширину ячейки. */
 .bl-stats dd {
   margin: 0;
   font: 900 clamp(22px, 2.4vw, 30px) / 1 var(--sf-ff-x);
   font-stretch: 112%;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .bl-stars {

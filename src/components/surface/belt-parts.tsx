@@ -22,6 +22,9 @@ import {
 } from "@/components/surface/belt-lib";
 import "@/components/surface/belt.css";
 
+// Ширина знака в цифрах пояса в долях кегля: шрифт как у ников, но уже и со строчными буквами.
+const STAT_CHAR = 0.8;
+
 /** Звёзды защит как на поясе: десять мест, занятые - золотые. */
 export function BeltStars({ n, slots = 10 }: { n: number; slots?: number }) {
   return (
@@ -90,6 +93,7 @@ export function BeltStatus({ belt }: { belt: Belt }) {
   }
 
   const days = reignDays(cur, now);
+  const held = days ? `${days} ${plural(days, W_DAY)}` : `с ${shortDate(belt.since)}`;
   return (
     <div className="bl-status">
       <p className="sf-eyebrow">Носитель · {holderTag(cur)}</p>
@@ -102,7 +106,7 @@ export function BeltStatus({ belt }: { belt: Belt }) {
       <dl className="bl-stats">
         <div>
           <dt>держит</dt>
-          <dd>{days ? `${days} ${plural(days, W_DAY)}` : "с сегодня"}</dd>
+          <dd style={nameSize(held, "clamp(22px, 2.4vw, 30px)", "100cqw", STAT_CHAR)}>{held}</dd>
         </div>
         <div>
           <dt>защит</dt>
