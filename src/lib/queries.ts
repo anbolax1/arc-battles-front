@@ -35,6 +35,8 @@ import type {
   PatchCatalog,
   Belt,
   ChanceTrail,
+  FavoriteOptions,
+  MyExtras,
 } from "@/lib/types";
 import { getSite } from "@/lib/design";
 import { DEFAULT_SUBSCRIBER_ROLE } from "@/lib/display";
@@ -290,4 +292,14 @@ export function getBelt(): Promise<Belt | null> {
 /** Как сейчас называется роль подписчика: её переименовывает организатор. */
 export async function getSubscriberRole(): Promise<string> {
   return (await getSite())?.subscriberRole || DEFAULT_SUBSCRIBER_ROLE;
+}
+
+/** Свой профиль: часы и ноки на проверке, любимое, жетоны. null - аноним или бэкенд недоступен. */
+export function getMyExtras(): Promise<MyExtras | null> {
+  return safe("me/extras", serverGetOptional<MyExtras>("/me/extras", { auth: true }), null);
+}
+
+/** Из чего выбирать любимое. null - бэкенд недоступен. */
+export function getFavoriteOptions(): Promise<FavoriteOptions | null> {
+  return safe("favorites/options", serverFetch<FavoriteOptions>("/favorites/options"), null);
 }

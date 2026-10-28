@@ -1,10 +1,11 @@
 import Link from "next/link";
 import "./profile.css";
-import { getMe, getMyRegistrations, getMyTags, getPlayer } from "@/lib/queries";
+import { getFavoriteOptions, getMe, getMyExtras, getMyRegistrations, getMyTags, getPlayer, getSubscriberRole } from "@/lib/queries";
 import type { Registration } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { Arrow } from "@/components/surface/ui";
 import { ProfileSettings } from "@/components/surface/profile-settings";
+import { ProfileExtrasDesk } from "@/components/surface/profile-extras";
 import { fullDate } from "@/components/surface/fmt";
 import { ProfileView } from "@/components/surface/pages/profile";
 
@@ -77,8 +78,20 @@ export async function SurfaceMyProfile() {
   const user = await getMe();
   if (!user) return <SignIn />;
 
-  const [profile, regs, tags] = await Promise.all([getPlayer(user.login), getMyRegistrations(), getMyTags()]);
-  const settings = <ProfileSettings embarkId={user.embarkId ?? ""} tags={tags} />;
+  const [profile, regs, tags, extras, options, roleName] = await Promise.all([
+    getPlayer(user.login),
+    getMyRegistrations(),
+    getMyTags(),
+    getMyExtras(),
+    getFavoriteOptions(),
+    getSubscriberRole(),
+  ]);
+  const settings = (
+    <>
+      <ProfileSettings embarkId={user.embarkId ?? ""} tags={tags} />
+      {extras && <ProfileExtrasDesk extras={extras} options={options} roleName={roleName} />}
+    </>
+  );
   const registrations = <MyRegistrations items={regs} />;
 
   if (!profile) {

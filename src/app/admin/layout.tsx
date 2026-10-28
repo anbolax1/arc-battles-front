@@ -3,17 +3,17 @@ import Link from "next/link";
 import { AuthProvider } from "@/lib/auth";
 import { getMe } from "@/lib/queries";
 import { roleAtLeast } from "@/lib/roles";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminGate, AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 
 export const metadata = { title: "Кабинет — GOARC.PRO" };
 
 /* Кабинет организатора — собственный shell (вне публичного (site)-хрома).
-   Гейт по роли на сервере: не организатор → экран-заглушка. */
+   Гейт по роли на сервере: модератору открыта только проверка скриншотов, остальным - экран-заглушка. */
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getMe();
 
-  if (!user || !roleAtLeast(user.role, "superadmin")) {
+  if (!user || !roleAtLeast(user.role, "moderator")) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
         <h1 className="text-2xl">Доступно только организатору</h1>
@@ -40,7 +40,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <AdminTopbar />
         <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
           <AdminSidebar />
-          <main className="min-w-0 flex-1">{children}</main>
+          <main className="min-w-0 flex-1">
+            <AdminGate>{children}</AdminGate>
+          </main>
         </div>
       </div>
     </AuthProvider>

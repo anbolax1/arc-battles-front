@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { roleAtLeast } from "@/lib/roles";
 import { LogoutIcon } from "@/components/icons";
 import { Mark, Wordmark } from "@/components/surface/stripes";
 import { SfAvatar } from "@/components/surface/ui";
@@ -37,7 +38,12 @@ export function SurfaceNav({ live }: { live: NavLive | null }) {
   const [openAt, setOpenAt] = React.useState<string | null>(null);
   const open = openAt === pathname;
   const progress = React.useRef<HTMLDivElement>(null);
-  const links = isSuperadmin ? [...LINKS, { href: "/admin", label: "Кабинет" }] : LINKS;
+  // Модератору в кабинете открыта только проверка скриншотов - ссылка ведёт прямо в неё.
+  const links = isSuperadmin
+    ? [...LINKS, { href: "/admin", label: "Кабинет" }]
+    : roleAtLeast(user?.role, "moderator")
+      ? [...LINKS, { href: "/admin/review", label: "Проверка" }]
+      : LINKS;
 
   React.useEffect(() => {
     let tick = false;

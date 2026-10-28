@@ -289,3 +289,230 @@
     margin-top: 28px;
   }
 }
+
+/* часы и ноки, которые модератор ещё не сверил со скриншотом */
+.pf-unconf {
+  display: block;
+  margin-top: 4px;
+  font: 600 9px/1.2 var(--sf-ff-m);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a5b00;
+}
+
+/* под пропуском: любимое и жетоны - бумажные листы в ширину пропуска */
+.pf-extra {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+  max-width: 820px;
+  margin-top: 28px;
+}
+.pf-extra.solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* нашивки свисают с пропуска вместе с подписью - листы ниже, чтобы их не закрыть */
+.pt-idwrap.sewn + .pf-extra {
+  margin-top: 106px;
+}
+.pf-sheet {
+  min-width: 0;
+  background: var(--sf-paper-2);
+  color: var(--sf-ink);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -36px #000;
+}
+.pf-sheet-head {
+  margin: 0;
+  padding: 10px 20px;
+  background: var(--sf-ink);
+  color: var(--sf-paper);
+  font: 600 11px/1.2 var(--sf-ff-m);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.pf-sheet-body {
+  padding: 16px 20px 18px;
+}
+.pf-fav .pf-sheet-body {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pf-mates {
+  grid-column: 1 / -1;
+}
+.pf-mates a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--sf-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.pf-mates a:hover {
+  text-decoration-color: var(--sf-ink);
+}
+.pf-mates i {
+  font-style: normal;
+  color: var(--sf-ink-2);
+}
+@media (max-width: 760px) {
+  .pf-extra {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .pt-idwrap.sewn + .pf-extra {
+    margin-top: 28px;
+  }
+}
+
+/* свой профиль: часы и ноки со скриншотом и любимое */
+.pf-wide {
+  grid-column: 1 / -1;
+}
+.pf-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pf-stat-row .sf-input {
+  flex: 1 1 120px;
+  width: auto;
+  min-height: 38px;
+  padding: 0 12px;
+  font-family: var(--sf-ff-m);
+}
+.pf-file {
+  position: relative;
+  overflow: hidden;
+}
+.pf-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pf-file.on {
+  border-color: var(--sf-win);
+  color: var(--sf-win);
+}
+.pf-stat-hint {
+  margin-top: -10px;
+}
+.pf-fav-form {
+  display: grid;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--sf-cream-line);
+}
+.pf-fav-form > .sf-field-label {
+  margin: 0;
+}
+.pf-fav-picks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.pf-fav-picks .sf-select {
+  width: 100%;
+  min-height: 40px;
+  font-size: 11px;
+}
+.pf-fav-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.pf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pf-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 3px 3px 10px;
+  border: 2px solid var(--sf-amber);
+  border-radius: 3px;
+  font: 800 12px/1 var(--sf-ff-c);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-cream);
+}
+.pf-chips button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: none;
+  color: var(--sf-cream-2);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pf-chips button:hover {
+  color: var(--sf-cream);
+}
+.pf-suggest {
+  position: relative;
+}
+.pf-suggest .sf-input {
+  min-height: 40px;
+}
+.pf-suggest-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  max-height: 260px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--sf-night);
+  border: 2px solid var(--sf-cream-line);
+  border-radius: 3px;
+}
+.pf-suggest-list button {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: var(--sf-cream);
+  font: 700 14px/1.2 var(--sf-ff-d);
+  text-align: left;
+  cursor: pointer;
+}
+.pf-suggest-list button:hover {
+  background: var(--sf-night-3);
+}
+.pf-suggest-list small {
+  font: 500 11px var(--sf-ff-m);
+  color: var(--sf-cream-2);
+}
+.pf-suggest-empty {
+  padding: 9px 10px;
+  font: 600 10px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sf-cream-2);
+}
+@media (max-width: 760px) {
+  .pf-fav-picks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .pf-fav-picks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

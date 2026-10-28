@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import "./profile.css";
 import { getBelt, getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
-import type { PlayerPatch, PlayerProfile, Season } from "@/lib/types";
+import type { PlayerPatch, PlayerProfile, Season, StatValue } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack, TagStamps } from "@/components/surface/ui";
 import { SurfaceHighlights } from "@/components/surface/highlights";
@@ -14,6 +14,7 @@ import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
 import { BeltProfile } from "@/components/surface/belt-parts";
+import { fmtCount } from "@/lib/tokens";
 
 function NotFound({ login }: { login: string }) {
   return (
@@ -37,11 +38,18 @@ function NotFound({ login }: { login: string }) {
   );
 }
 
+/** Число из профиля в игре: пока модератор не сверил его со скриншотом - с пометкой. */
+function gameStat(s?: StatValue): { v: string; note?: string } {
+  if (!s) return { v: "—" };
+  return { v: fmtCount(s.value), note: s.confirmed ? undefined : "не подтверждено" };
+}
+
 function IdCard({ profile }: { profile: PlayerProfile }) {
   const { user, mmrSolo, mmrDuo, peakDuo, mmr1x1, stats } = profile;
   const name = user.displayName || user.login;
-  // Колонки: общее, 1×1, 2×2. m - порядок на телефоне: там две колонки, и 1×1 с 2×2 встают парами.
-  const fields = [
+  // Колонки: общее, 1×1, 2×2, нижний ряд - из профиля в игре. m - порядок на телефоне: там две колонки,
+  // и 1×1 с 2×2 встают парами.
+  const fields: { k: string; v: string; m: number; note?: string; title?: string }[] = [
     { k: "Место в сезоне", v: mmr1x1.place > 0 ? `#${mmr1x1.place}` : "вне рейтинга", m: 1 },
     { k: "MMR 1×1", v: String(mmrSolo), m: 3 },
     { k: "MMR 2×2", v: String(mmrDuo), m: 4 },
@@ -51,6 +59,8 @@ function IdCard({ profile }: { profile: PlayerProfile }) {
     { k: "Любимая карта", v: stats.favoriteMap || "—", m: 9 },
     { k: "Винрейт 1×1", v: stats.soloPlayed ? `${winrate(stats.soloWins, stats.soloPlayed - stats.soloWins)}%` : "нет матчей", m: 7 },
     { k: "Винрейт 2×2", v: stats.duoPlayed ? `${winrate(stats.duoWins, stats.duoPlayed - stats.duoWins)}%` : "нет матчей", m: 8 },
+    { k: "Часов в игре", ...gameStat(profile.gameHours), m: 10 },
+    { k: "Сделано ноков", ...gameStat(profile.gameKnocks), m: 11 },
   ];
   return (
     <article className="sf-idcard pf-card" aria-label={`Профиль игрока ${name}`}>
@@ -85,12 +95,53 @@ function IdCard({ profile }: { profile: PlayerProfile }) {
           {fields.map((f) => (
             <div key={f.k} style={{ "--m": f.m } as CSSProperties}>
               <dt>{f.k}</dt>
-              <dd>{f.v}</dd>
+              <dd title={f.title || undefined}>
+                {f.v}
+                {f.note && <small className="pf-unconf">{f.note}</small>}
+              </dd>
             </div>
           ))}
         </dl>
       </div>
     </article>
+  );
+}
+
+/** Любимое игрока - блок подписчика под пропуском. */
+function FavoritesCard({ profile }: { profile: PlayerProfile }) {
+  const f = profile.favorites;
+  if (!f) return null;
+  const rows = [
+    { k: "Карта", v: f.map },
+    { k: "Оружие", v: f.weapon },
+    { k: "Усилитель", v: f.augment },
+    { k: "Щит", v: f.shield },
+  ];
+  return (
+    <section className="pf-sheet pf-fav" aria-label="Любимое">
+      <h2 className="pf-sheet-head">Любимое</h2>
+      <dl className="sf-id-fields pf-sheet-body">
+        <div className="pf-mates">
+          <dt>{f.teammates.length > 1 ? "Любимые тиммейты" : "Любимый тиммейт"}</dt>
+          <dd>
+            {f.teammates.length
+              ? f.teammates.map((m, i) => (
+                  <span key={m.userId}>
+                    {i > 0 && <i aria-hidden> · </i>}
+                    <Link href={`/profile/${encodeURIComponent(m.login)}`}>{m.displayName || m.login}</Link>
+                  </span>
+                ))
+              : "—"}
+          </dd>
+        </div>
+        {rows.map((r) => (
+          <div key={r.k}>
+            <dt>{r.k}</dt>
+            <dd>{r.v || "—"}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -156,6 +207,11 @@ export async function ProfileView({
               </a>
             )}
           </div>
+          {profile.favorites && (
+            <div className="pf-extra solo">
+              <FavoritesCard profile={profile} />
+            </div>
+          )}
           {settings}
         </div>
       </section>

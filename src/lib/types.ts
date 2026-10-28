@@ -720,6 +720,63 @@ export interface PlayerProfile {
   teams: TeamSummary[];
   /** Нашивки по сезонам: ключ - id сезона. */
   patches1x1?: Record<string, PatchSeason>;
+  /** Часов в ARC Raiders - со скриншота. */
+  gameHours?: StatValue;
+  /** Ноков в ARC Raiders за всё время - со скриншота. */
+  gameKnocks?: StatValue;
+  /** Только у подписчика и выше, если что-то выбрано. */
+  favorites?: PlayerFavorites;
+}
+
+/** Число из профиля в игре: видно сразу, confirmed - модератор сверил его со скриншотом. */
+export interface StatValue {
+  value: number;
+  confirmed: boolean;
+}
+
+export type StatKind = "hours" | "knocks";
+export type StatClaimStatus = "pending" | "approved" | "rejected";
+
+/** Число из профиля в игре вместе со скриншотом, который сверяет модератор. */
+export interface StatClaim {
+  id: string;
+  userId: string;
+  login?: string;
+  displayName?: string;
+  kind: StatKind;
+  value: number;
+  /** Подтверждённое раньше: видно, насколько выросло. */
+  previous?: number;
+  screenshotUrl: string;
+  status: StatClaimStatus;
+  reason?: string;
+  createdAt: string;
+  decidedAt?: string | null;
+}
+
+/** Любимое игрока: тиммейты (до пяти), карта, оружие, усилитель и щит. */
+export interface PlayerFavorites {
+  teammates: TeamMember[];
+  mapCode?: string;
+  map?: string;
+  weapon?: string;
+  augment?: string;
+  shield?: string;
+}
+
+/** GET /api/favorites/options: из чего выбирать любимое. */
+export interface FavoriteOptions {
+  maps: MapInfo[];
+  weapons: string[];
+  augments: string[];
+  shields: string[];
+}
+
+/** GET /api/me/extras: свои часы и ноки, любимое и можно ли его заполнять. */
+export interface MyExtras {
+  claims: StatClaim[];
+  favorites: PlayerFavorites;
+  canFavorites: boolean;
 }
 
 /** Пользователь + агрегаты участия: GET /api/users/overview (кабинет, раздел «Пользователи»). */
