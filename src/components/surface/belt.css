@@ -74,11 +74,13 @@
 .bl-status .sf-eyebrow {
   margin: 0;
 }
+/* Ник носителя всегда в одну строку: кегль подбирается по длине ника и ширине блока. */
 .bl-who {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 16px;
+  container-type: inline-size;
 }
 .bl-name {
   font: 900 clamp(40px, 5.4vw, 72px) / 0.9 var(--sf-ff-x);
@@ -86,7 +88,7 @@
   letter-spacing: -0.02em;
   color: inherit;
   text-decoration: none;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 a.bl-name:hover {
   color: var(--sf-amber);

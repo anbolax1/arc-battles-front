@@ -4,7 +4,7 @@ import type { Belt, BeltPlayer, BeltReign } from "@/lib/types";
 import { BeltArt } from "@/components/surface/belt-art";
 import { Arrow } from "@/components/surface/ui";
 import { dayMonth } from "@/components/surface/fmt";
-import { plural, W_DAY } from "@/components/surface/season-lib";
+import { nameSize, plural, W_DAY } from "@/components/surface/season-lib";
 import { shortDate } from "@/components/surface/fmt";
 import {
   W_DEF,
@@ -94,7 +94,7 @@ export function BeltStatus({ belt }: { belt: Belt }) {
     <div className="bl-status">
       <p className="sf-eyebrow">Носитель · {holderTag(cur)}</p>
       <div className="bl-who">
-        <Link className="bl-name" href={`/profile/${belt.holder.login}`}>
+        <Link className="bl-name" href={`/profile/${belt.holder.login}`} style={nameSize(holderName(belt.holder), "clamp(40px, 5.4vw, 72px)", "100cqw")}>
           {holderName(belt.holder)}
         </Link>
         <span className="bl-stamp">с {dayMonth(belt.since)}</span>

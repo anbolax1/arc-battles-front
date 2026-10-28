@@ -119,8 +119,9 @@ export function playerPoints(recap: SeasonRecap, i: number): MmrPoint[] {
 // Ширина буквы широкого шрифта ников в долях кегля - с запасом.
 const WIDE_CHAR = 1.2;
 
-/** Размер крупного ника по ширине блока (room - в единицах контейнера cqw): длинный ник не переносится по
-    буквам и не вылезает за край. */
-export function nameSize(name: string, max: number, room: string): CSSProperties {
-  return { fontSize: `min(${max}px, calc((${room}) / ${(name.length * WIDE_CHAR).toFixed(2)}))` };
+/** Размер крупного ника по ширине блока (room - в единицах контейнера cqw, max - потолок кегля в px или выражением
+    CSS): длинный ник не переносится по буквам и не вылезает за край. */
+export function nameSize(name: string, max: number | string, room: string): CSSProperties {
+  const cap = typeof max === "number" ? `${max}px` : max;
+  return { fontSize: `min(${cap}, calc((${room}) / ${(name.length * WIDE_CHAR).toFixed(2)}))` };
 }
