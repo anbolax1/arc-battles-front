@@ -7,9 +7,9 @@ import type { WidgetProps } from "./types";
 
 type Tone = "a" | "b";
 
-const TONE: Record<Tone, { text: string; bar: string; glow: string }> = {
-  a: { text: "text-primary-2", bar: "bg-[var(--primary)]", glow: "shadow-[0_0_16px_2px_var(--primary-glow)]" },
-  b: { text: "text-accent", bar: "bg-[var(--accent)]", glow: "shadow-[0_0_16px_2px_rgba(34,211,238,0.55)]" },
+const TONE: Record<Tone, { text: string; bar: string; glow: string; raid: string }> = {
+  a: { text: "text-primary-2", bar: "bg-[var(--primary)]", glow: "shadow-[0_0_16px_2px_var(--primary-glow)]", raid: "text-[#160d04]" },
+  b: { text: "text-accent", bar: "bg-[var(--accent)]", glow: "shadow-[0_0_16px_2px_rgba(34,211,238,0.55)]", raid: "text-[#03181c]" },
 };
 
 function PlaceBadge({ place }: { place: number }) {
@@ -108,6 +108,7 @@ function Side({
   s,
   tone,
   focused,
+  waiting,
   showRound,
   showMmr,
   showPlace,
@@ -118,6 +119,8 @@ function Side({
   s: LiveStanding;
   tone: Tone;
   focused: boolean;
+  /** В рейде соперник: счёт приглушён, чтобы с одного взгляда было видно, кто играет. */
+  waiting: boolean;
   showRound: boolean;
   showMmr: boolean;
   showPlace: boolean;
@@ -171,7 +174,14 @@ function Side({
       </div>
       <div className={`flex flex-none flex-col ${right ? "items-start" : "items-end"}`}>
         <div className={`flex items-baseline gap-1.5 font-display leading-none ${right ? "flex-row-reverse" : ""}`}>
-          <span className={`text-4xl tnum sm:text-5xl ${t.text}`}>{s.points}</span>
+          {/* Счёт стороны в рейде - на плашке её цвета; отступы у плашки всегда, чтобы при смене рейда счёт не прыгал. */}
+          <span
+            className={`rounded-md px-2 py-1 text-4xl tnum transition-[background-color,color,opacity] duration-300 sm:text-5xl ${
+              focused ? `${t.bar} ${t.raid} ${t.glow}` : waiting ? "text-fg opacity-45" : t.text
+            }`}
+          >
+            {s.points}
+          </span>
           {showRound && <span className="text-base tnum text-muted sm:text-lg">({rp >= 0 ? `+${rp}` : rp})</span>}
         </div>
         {chance != null && <ChanceUnder value={chance} tone={tone} />}
@@ -204,6 +214,8 @@ export function ScoreboardWidget({ state, instance, preview }: WidgetProps) {
   const bar = instance.showChanceBar ? pct : null;
   // Дуэль до первого нока: играют оба, «в рейде» никого.
   const duel = !!state.duel && !finished;
+  const raidA = !finished && !duel && !!a && a.participantId === focusedId;
+  const raidB = !finished && !duel && !!b && b.participantId === focusedId;
   const beltCaption =
     !belt || !opts.showBelt
       ? ""
@@ -220,7 +232,7 @@ export function ScoreboardWidget({ state, instance, preview }: WidgetProps) {
       <div className="flex h-full flex-col">
         <div className="flex flex-1 items-stretch">
           {a ? (
-            <Side s={a} tone="a" focused={!finished && !duel && a.participantId === focusedId} belt={belt} chance={nums ? nums[0] : null} {...opts} />
+            <Side s={a} tone="a" focused={raidA} waiting={raidB} belt={belt} chance={nums ? nums[0] : null} {...opts} />
           ) : (
             <div className="flex flex-1 items-center px-5 py-2.5 font-display uppercase text-muted">{state.currentName || "—"}</div>
           )}
@@ -250,7 +262,7 @@ export function ScoreboardWidget({ state, instance, preview }: WidgetProps) {
               )
             )}
           </div>
-          {b ? <Side s={b} tone="b" focused={!finished && !duel && b.participantId === focusedId} belt={belt} chance={nums ? nums[2] : null} {...opts} /> : <div className="flex-1" />}
+          {b ? <Side s={b} tone="b" focused={raidB} waiting={raidA} belt={belt} chance={nums ? nums[2] : null} {...opts} /> : <div className="flex-1" />}
         </div>
         {bar && <ChanceBar pct={bar} duel={duel} />}
       </div>
