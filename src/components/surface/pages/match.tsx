@@ -109,6 +109,7 @@ function BoardSide({
         ) : change ? (
           <span className="sf-side-mmr sf-tnum">
             <MmrMove {...change} />
+            {side?.double ? <span className="sf-side-line">жетон ×2</span> : null}
           </span>
         ) : p ? (
           <span className="sf-side-line">Рейтинг не менялся</span>
@@ -123,6 +124,7 @@ function BoardSide({
           {side.winGain ? (
             <span className="sf-side-line sf-tnum">
               на кону <b className="sf-up">+{side.winGain}</b> за победу, <b className="sf-down">−{side.lossDrop}</b> за поражение
+              {side.double ? " · жетон ×2" : ""}
             </span>
           ) : null}
         </>

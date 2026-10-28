@@ -268,6 +268,7 @@ export function ProfileSeasons({
 
       <ChartLegend
         corrections={segments.some((s) => s.points.some((p) => p.correction))}
+        resets={segments.some((s) => s.points.some((p) => p.reset))}
         voided={segments.some((s) => s.points.some((p) => p.voided))}
       />
       <ProfileChart key={sel} segments={segments} />
@@ -305,7 +306,7 @@ export function ProfileSeasons({
 }
 
 /** Легенда графика MMR. */
-export function ChartLegend({ corrections, voided = false }: { corrections: boolean; voided?: boolean }) {
+export function ChartLegend({ corrections, resets = false, voided = false }: { corrections: boolean; resets?: boolean; voided?: boolean }) {
   return (
     <div className="pf-legend" aria-hidden>
       <span>
@@ -317,6 +318,11 @@ export function ChartLegend({ corrections, voided = false }: { corrections: bool
       {corrections && (
         <span>
           <i className="c" /> сверка рейтинга
+        </span>
+      )}
+      {resets && (
+        <span>
+          <i className="r" /> сброс рейтинга
         </span>
       )}
       {voided && (

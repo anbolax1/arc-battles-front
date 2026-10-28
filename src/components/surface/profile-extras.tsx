@@ -4,12 +4,14 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { api, apiFetch, errorText } from "@/lib/api";
 import { fmtCount, STAT_KINDS, STAT_LABEL, STAT_LIMIT } from "@/lib/tokens";
-import type { FavoriteOptions, MyExtras, PlayerFavorites, StatClaim, StatKind, TeamMember } from "@/lib/types";
+import type { FavoriteOptions, MyExtras, PlayerFavorites, StatClaim, StatKind, TeamMember, TokenWallet } from "@/lib/types";
 
 /** Форматы и предел скриншота - те же, что проверяет сервер. */
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const MAX_SHOT_MB = 10;
 const MAX_TEAMMATES = 5;
+/** Сколько держать кнопку сброса: подтверждение, которое не нажать случайно. */
+const HOLD_MS = 5000;
 
 const CLAIM_NOTE: Record<StatClaim["status"], string> = {
   pending: "на проверке у модератора - в профиле пока «не подтверждено»",
@@ -266,11 +268,113 @@ function FavoritesForm({ initial, options, allowed, roleName }: { initial: Playe
   );
 }
 
-/** Под настройками своего профиля: часы и ноки со скриншотом и любимое. */
+/** Кнопка, которая срабатывает, только если держать её HOLD_MS: сброс рейтинга не отменить. */
+function HoldButton({ disabled, onDone, children }: { disabled: boolean; onDone: () => void; children: React.ReactNode }) {
+  const [p, setP] = React.useState(0);
+  const start = React.useRef(0);
+  const frame = React.useRef(0);
+
+  const stop = React.useCallback(() => {
+    cancelAnimationFrame(frame.current);
+    start.current = 0;
+    setP(0);
+  }, []);
+
+  const begin = () => {
+    if (disabled || start.current) return;
+    start.current = performance.now();
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start.current) / HOLD_MS);
+      setP(k);
+      if (k >= 1) {
+        start.current = 0;
+        onDone();
+        return;
+      }
+      frame.current = requestAnimationFrame(tick);
+    };
+    frame.current = requestAnimationFrame(tick);
+  };
+
+  React.useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  const left = Math.ceil((HOLD_MS * (1 - p)) / 1000);
+  const label = p >= 1 ? "Сбрасываем…" : p > 0 ? `Держите… ${left}` : children;
+  return (
+    <button
+      type="button"
+      className="sf-btn sf-btn-line pf-hold"
+      style={{ "--p": p } as React.CSSProperties}
+      disabled={disabled}
+      aria-describedby="pf-reset-note"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        begin();
+      }}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+      onLostPointerCapture={stop}
+      onKeyDown={(e) => {
+        if ((e.key === " " || e.key === "Enter") && !e.repeat) {
+          e.preventDefault();
+          begin();
+        }
+      }}
+      onKeyUp={stop}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <span>{label}</span>
+    </button>
+  );
+}
+
+/** Сброс рейтинга жетоном: игрок сам, раз в сезон, подтверждает удержанием кнопки. */
+function ResetForm({ tokens, blocked, mmr, start }: { tokens: TokenWallet; blocked?: string; mmr: number; start: number }) {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+
+  async function reset() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.post<TokenWallet>("/me/reset");
+      setMsg({ ok: true, text: `Рейтинг сброшен: MMR снова ${start}.` });
+      router.refresh();
+    } catch (err) {
+      setMsg({ ok: false, text: errorText(err, "Не удалось сбросить рейтинг.") });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const note =
+    msg?.text ??
+    (tokens.reset < 1
+      ? "Жетонов полного сброса нет - их выдают модераторы и организатор."
+      : blocked
+        ? `Сейчас нельзя: ${blocked}.`
+        : `MMR 1×1 в этом сезоне станет ${start} вместо ${mmr}. Матчи и нашивки останутся. Удерживайте кнопку 5 секунд.`);
+  return (
+    <div className="sf-field pf-wide pf-reset">
+      <p className="sf-field-label">Сброс рейтинга · жетонов: {tokens.reset}</p>
+      <div className="pf-reset-row">
+        <HoldButton disabled={busy || !!blocked || msg?.ok === true} onDone={reset}>
+          {msg?.ok ? "Рейтинг сброшен" : "Сбросить"}
+        </HoldButton>
+      </div>
+      <p id="pf-reset-note" className={`sf-field-note ${msg ? (msg.ok ? "good" : "bad") : ""}`} aria-live="polite">
+        {note}
+      </p>
+    </div>
+  );
+}
+
+/** Под настройками своего профиля: часы и ноки со скриншотом, любимое и сброс рейтинга жетоном. */
 export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExtras; options: FavoriteOptions | null; roleName: string }) {
   const claim = (k: StatKind) => extras.claims.find((c) => c.kind === k);
   return (
-    <section className="pf-desk pf-desk-extra" aria-label="Статистика и любимое">
+    <section className="pf-desk pf-desk-extra" aria-label="Статистика, любимое и жетоны">
       {STAT_KINDS.map((k) => (
         <GameStatForm key={k} kind={k} claim={claim(k)} />
       ))}
@@ -278,6 +382,7 @@ export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExt
         Число из профиля в ARC Raiders и скриншот, где его видно. Пока модератор не сверит, в профиле рядом с числом стоит «не подтверждено».
       </p>
       <FavoritesForm initial={extras.favorites} options={options} allowed={extras.canFavorites} roleName={roleName} />
+      <ResetForm tokens={extras.tokens} blocked={extras.resetBlocked} mmr={extras.mmr} start={extras.startMmr} />
     </section>
   );
 }

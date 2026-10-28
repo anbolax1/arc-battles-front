@@ -1,20 +1,22 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import "./profile.css";
-import { getBelt, getHighlights, getMaps, getPlayer, getSeasons } from "@/lib/queries";
+import { getBelt, getHighlights, getMaps, getMe, getPlayer, getPlayerModeration, getSeasons } from "@/lib/queries";
 import type { PlayerPatch, PlayerProfile, Season, StatValue } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { ArrowBack, TagStamps } from "@/components/surface/ui";
 import { SurfaceHighlights } from "@/components/surface/highlights";
 import { ProfileSeasons } from "@/components/surface/profile-seasons";
 import { ProfileHistory } from "@/components/surface/profile-history";
-import { fullDate, winrate } from "@/components/surface/fmt";
+import { fullDate, shortDate, winrate } from "@/components/surface/fmt";
 import { initials } from "@/lib/format";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
 import { BeltProfile } from "@/components/surface/belt-parts";
-import { fmtCount } from "@/lib/tokens";
+import { ProfileModeration } from "@/components/surface/profile-moderation";
+import { roleAtLeast } from "@/lib/roles";
+import { fmtCount, TOKEN_KINDS, TOKEN_LABEL } from "@/lib/tokens";
 
 function NotFound({ login }: { login: string }) {
   return (
@@ -45,7 +47,7 @@ function gameStat(s?: StatValue): { v: string; note?: string } {
 }
 
 function IdCard({ profile }: { profile: PlayerProfile }) {
-  const { user, mmrSolo, mmrDuo, peakDuo, mmr1x1, stats } = profile;
+  const { user, mmrSolo, mmrDuo, peakDuo, mmr1x1, stats, tokens } = profile;
   const name = user.displayName || user.login;
   // Колонки: общее, 1×1, 2×2, нижний ряд - из профиля в игре. m - порядок на телефоне: там две колонки,
   // и 1×1 с 2×2 встают парами.
@@ -61,6 +63,7 @@ function IdCard({ profile }: { profile: PlayerProfile }) {
     { k: "Винрейт 2×2", v: stats.duoPlayed ? `${winrate(stats.duoWins, stats.duoPlayed - stats.duoWins)}%` : "нет матчей", m: 8 },
     { k: "Часов в игре", ...gameStat(profile.gameHours), m: 10 },
     { k: "Сделано ноков", ...gameStat(profile.gameKnocks), m: 11 },
+    { k: "Сброс рейтинга", v: tokens?.lastReset ? shortDate(tokens.lastReset) : "—", title: fullDate(tokens?.lastReset), m: 12 },
   ];
   return (
     <article className="sf-idcard pf-card" aria-label={`Профиль игрока ${name}`}>
@@ -145,6 +148,33 @@ function FavoritesCard({ profile }: { profile: PlayerProfile }) {
   );
 }
 
+/** Баланс жетонов: сколько каждого и что из них действует сейчас. */
+function WalletCard({ profile, solo }: { profile: PlayerProfile; solo: boolean }) {
+  const t = profile.tokens;
+  const count = { double: t?.double ?? 0, priority: t?.priority ?? 0, reset: t?.reset ?? 0 };
+  const state = {
+    double: "",
+    priority: t?.priorityUntil ? "сегодня без очереди" : "",
+    reset: t?.resetUsed ? "в этом сезоне использован" : "",
+  };
+  return (
+    <section className={`pf-sheet pf-wallet ${solo ? "solo" : ""}`} aria-label="Баланс жетонов">
+      <h2 className="pf-sheet-head">Баланс жетонов</h2>
+      <dl className="sf-id-fields pf-sheet-body">
+        {TOKEN_KINDS.map((k) => (
+          <div key={k}>
+            <dt>{TOKEN_LABEL[k]}</dt>
+            <dd>
+              <b>{count[k]}</b>
+              {state[k] && <small className="pf-token-on">{state[k]}</small>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 /** Три самые редкие нашивки сезона, который профиль открывает первым: цифра в шапке совпадает с блоком нашивок. */
 function rarestPatches(profile: PlayerProfile, season?: Season): { items: PlayerPatch[]; count: number } {
   const own = (season ? (profile.patches1x1?.[season.id]?.items ?? []) : []).filter((p) => !p.provisional);
@@ -159,18 +189,20 @@ export async function ProfileView({
   eyebrow,
   back = false,
   settings,
+  moderation,
   extra,
 }: {
   profile: PlayerProfile;
   eyebrow?: string;
   back?: boolean;
   settings?: ReactNode;
+  moderation?: ReactNode;
   extra?: ReactNode;
 }) {
   const { user, timeline1x1, history, teams } = profile;
   const [{ items: highlights }, seasons, maps, belt] = await Promise.all([getHighlights({ userId: user.id, limit: 4 }), getSeasons(), getMaps(), getBelt()]);
   const active = seasons.find((s) => s.status === "active");
-  const played = timeline1x1.some((p) => !p.correction);
+  const played = timeline1x1.some((p) => !p.correction && !p.reset);
   const name = user.displayName || user.login;
   const shown = firstProfileSeason(timeline1x1, seasons);
   const sewn = rarestPatches(profile, shown);
@@ -207,11 +239,11 @@ export async function ProfileView({
               </a>
             )}
           </div>
-          {profile.favorites && (
-            <div className="pf-extra solo">
-              <FavoritesCard profile={profile} />
-            </div>
-          )}
+          <div className={`pf-extra ${profile.favorites ? "" : "solo"}`}>
+            <FavoritesCard profile={profile} />
+            <WalletCard profile={profile} solo={!profile.favorites} />
+          </div>
+          {moderation}
           {settings}
         </div>
       </section>
@@ -270,7 +302,11 @@ export async function ProfileView({
 }
 
 export async function SurfaceProfile({ login }: { login: string }) {
-  const profile = await getPlayer(login);
+  const [profile, me] = await Promise.all([getPlayer(login), getMe()]);
   if (!profile) return <NotFound login={login} />;
-  return <ProfileView profile={profile} back />;
+  // Модератор ведёт жетоны и скриншоты игрока прямо на его странице; свои - нет, их ведёт организатор.
+  const self = me?.id === profile.user.id && !roleAtLeast(me?.role, "superadmin");
+  const mod = roleAtLeast(me?.role, "moderator") && !self ? await getPlayerModeration(profile.user.id) : null;
+  const moderation = mod && <ProfileModeration userId={profile.user.id} name={profile.user.displayName || profile.user.login} wallet={profile.tokens} initial={mod} />;
+  return <ProfileView profile={profile} back moderation={moderation} />;
 }

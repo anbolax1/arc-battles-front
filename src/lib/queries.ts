@@ -37,6 +37,7 @@ import type {
   ChanceTrail,
   FavoriteOptions,
   MyExtras,
+  PlayerModeration,
 } from "@/lib/types";
 import { getSite } from "@/lib/design";
 import { DEFAULT_SUBSCRIBER_ROLE } from "@/lib/display";
@@ -302,4 +303,13 @@ export function getMyExtras(): Promise<MyExtras | null> {
 /** Из чего выбирать любимое. null - бэкенд недоступен. */
 export function getFavoriteOptions(): Promise<FavoriteOptions | null> {
   return safe("favorites/options", serverFetch<FavoriteOptions>("/favorites/options"), null);
+}
+
+/** Скриншоты, журнал жетонов и матчи игрока для модератора. null - нет прав или бэкенд недоступен. */
+export function getPlayerModeration(userId: string): Promise<PlayerModeration | null> {
+  return safe(
+    `moderation(${userId})`,
+    serverGetOptional<PlayerModeration>(`/users/${encodeURIComponent(userId)}/moderation`, { auth: true }),
+    null,
+  );
 }

@@ -99,13 +99,18 @@ export function playerPoints(recap: SeasonRecap, i: number): MmrPoint[] {
       voided: m.voided,
     });
   }
+  // Третье число точки кривой: 1 - сверка с таблицей, 2 - сброс рейтинга жетоном.
   for (const [t, mmr, corr] of P[i].curve) {
-    if (corr) pts.push({ tournamentId: "", title: "Сверка рейтинга", date: new Date(t).toISOString(), opponent: "", map: "", mmr, delta: 0, win: false, mult: 1, correction: true });
+    if (corr) {
+      const reset = corr === 2;
+      const title = reset ? "Сброс рейтинга" : "Сверка рейтинга";
+      pts.push({ tournamentId: "", title, date: new Date(t).toISOString(), opponent: "", map: "", mmr, delta: 0, win: false, mult: 1, correction: !reset, reset });
+    }
   }
   pts.sort((a, b) => Date.parse(a.date!) - Date.parse(b.date!));
   let prev = recap.summary.startMmr;
   for (const p of pts) {
-    if (p.correction) p.delta = p.mmr - prev;
+    if (p.correction || p.reset) p.delta = p.mmr - prev;
     prev = p.mmr;
   }
   return pts;

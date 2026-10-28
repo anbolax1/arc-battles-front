@@ -61,8 +61,8 @@ export function RegistrationsManager() {
         <div className="space-y-1">
           <h2 className="text-2xl">Заявки (пул)</h2>
           <p className="text-sm text-muted">
-            Общий список желающих сыграть. Кто подал раньше — выше. Игроки из заявок стоят первыми
-            в форме нового матча — выбери их там.
+            Общий список желающих сыграть. Кто подал раньше — выше, а с жетоном «Без очереди» — выше всех
+            до конца игрового дня. Игроки из заявок стоят первыми в форме нового матча — выбери их там.
           </p>
         </div>
         <span className="whitespace-nowrap text-sm text-muted">Всего: {regs.length}</span>
@@ -104,8 +104,9 @@ export function RegistrationsManager() {
                     <div className="flex items-center gap-3">
                       <Avatar name={r.userDisplayName || r.userLogin} src={r.userAvatarUrl} size="sm" />
                       <div className="min-w-0">
-                        <div className="truncate font-display text-sm uppercase">
-                          {r.userDisplayName || r.userLogin || "—"}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="truncate font-display text-sm uppercase">{r.userDisplayName || r.userLogin || "—"}</span>
+                          {r.priority && <span className="badge badge-champ"><span>Без очереди</span></span>}
                         </div>
                         {r.userLogin && <div className="truncate text-xs text-muted">@{r.userLogin}</div>}
                       </div>

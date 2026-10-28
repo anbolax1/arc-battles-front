@@ -1,6 +1,6 @@
 import type { MmrPoint, MmrStats } from "@/lib/types";
 
-/** Сводка по матчам одного сезона; сверка рейтинга - не матч, незасчитанный матч - матч без исхода:
+/** Сводка по матчам одного сезона; сверка и сброс рейтинга - не матчи, незасчитанный матч - матч без исхода:
     в победы, поражения и серии не идёт. */
 export function seasonStats(points: MmrPoint[], start: number): MmrStats {
   const st: MmrStats = {
@@ -21,7 +21,7 @@ export function seasonStats(points: MmrPoint[], start: number): MmrStats {
   for (const p of points) {
     st.peakMmr = Math.max(st.peakMmr, p.mmr);
     st.currentMmr = p.mmr;
-    if (p.correction) continue;
+    if (p.correction || p.reset) continue;
     st.firstMatch ??= p.date;
     const w = Math.max(p.games || 1, 1);
     st.games += w;

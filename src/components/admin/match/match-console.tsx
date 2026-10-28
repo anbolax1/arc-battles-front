@@ -16,6 +16,7 @@ import { MatchLog, OverlayStatus, RoundConsole } from "@/components/admin/match/
 import { MatchResult } from "@/components/admin/match/match-result";
 import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
 import { putShowPreview } from "@/components/admin/match/show-preview";
+import { DoubleTokens, doubleNames } from "@/components/admin/match/double-tokens";
 import { PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
 import type { CatalogLegendary, LiveState, MapInfo, MatchState, Participant } from "@/lib/types";
 
@@ -284,6 +285,11 @@ export function MatchConsole({
             <span className="chip"><span>{st.tournament.mode}</span></span>
             <span className="chip"><span>{st.tournament.playerType.toUpperCase()}</span></span>
             {st.tournament.ratingMultiplier === 2 && <span className="chip chip-cyan"><span>рейтинг ×2</span></span>}
+            {doubleNames(st).map((n) => (
+              <span key={n} className="chip chip-cyan">
+                <span>жетон ×2 · {n}</span>
+              </span>
+            ))}
             {beltLabel && <span className="badge badge-champ"><span>{beltLabel}</span></span>}
             <span>{stageLabel(st.stage, st.currentRound || 1, total)}</span>
           </div>
@@ -323,6 +329,10 @@ export function MatchConsole({
           onPreviewRemove={() => step(() => api.del<MatchState>(`/tournaments/${id}/preview`))}
           onFirst={(pid) => run(`/tournaments/${id}/first`, { participantId: pid })}
         />
+      )}
+
+      {(st.stage === "scheduled" || st.stage === "veto" || st.stage === "ready") && (
+        <DoubleTokens st={st} sides={sides} busy={busy} onToggle={(userId, on) => run(`/tournaments/${id}/double`, { userId, on })} />
       )}
 
       {(st.stage === "veto" || st.stage === "ready") && (

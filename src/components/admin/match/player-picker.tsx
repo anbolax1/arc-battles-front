@@ -62,7 +62,8 @@ export function PlayerPicker({
   const matches = (p: MatchPlayer) =>
     !query || p.login.toLowerCase().includes(query) || (p.displayName || "").toLowerCase().includes(query);
   const shown = (p: MatchPlayer) => p.id !== exclude && !hide?.has(p.id) && matches(p);
-  const pool = players.filter((p) => applicants.has(p.id) && shown(p));
+  // Сегодня без очереди - первыми среди заявок.
+  const pool = players.filter((p) => applicants.has(p.id) && shown(p)).sort((a, b) => Number(!!b.priority) - Number(!!a.priority));
   const rest = players.filter((p) => !applicants.has(p.id) && shown(p));
   const items = [...pool, ...rest].slice(0, 8);
   const exact = players.some((p) => p.login.toLowerCase() === query || (p.displayName || "").toLowerCase() === query);
@@ -118,6 +119,7 @@ export function PlayerPicker({
                   {p.isNew ? "новичок сезона" : `${p.wins}–${p.losses} в сезоне`}
                 </span>
               </span>
+              {p.priority && <span className="badge badge-champ"><span>Без очереди</span></span>}
               {applicants.has(p.id) && <span className="badge badge-org"><span>Заявка</span></span>}
               <span className="font-display text-sm tnum text-primary-2">{p.mmr}</span>
             </button>

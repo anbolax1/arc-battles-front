@@ -133,6 +133,8 @@ export interface Registration {
   userDisplayName?: string;
   userAvatarUrl?: string;
   tournamentTitle?: string;
+  /** Сегодня без очереди: в пуле выше остальных. */
+  priority?: boolean;
 }
 
 export interface LeaderboardRow {
@@ -189,6 +191,8 @@ export interface MmrPoint {
   season?: string;
   /** Не матч, а сверка рейтинга с официальными цифрами. */
   correction?: boolean;
+  /** Не матч, а сброс рейтинга жетоном: MMR снова стартовый. */
+  reset?: boolean;
   /** Матч не засчитан: сыгран, но в победы и серии не идёт. */
   voided?: boolean;
 }
@@ -726,6 +730,7 @@ export interface PlayerProfile {
   gameKnocks?: StatValue;
   /** Только у подписчика и выше, если что-то выбрано. */
   favorites?: PlayerFavorites;
+  tokens: TokenWallet;
 }
 
 /** Число из профиля в игре: видно сразу, confirmed - модератор сверил его со скриншотом. */
@@ -772,11 +777,68 @@ export interface FavoriteOptions {
   shields: string[];
 }
 
-/** GET /api/me/extras: свои часы и ноки, любимое и можно ли его заполнять. */
+export type TokenKind = "double" | "priority" | "reset";
+
+/** Жетоны игрока и когда их можно тратить. */
+export interface TokenWallet {
+  double: number;
+  priority: number;
+  reset: number;
+  /** «Без очереди» действует до конца игрового дня. */
+  priorityUntil?: string;
+  /** Раньше этого новый «Без очереди» не активировать. */
+  priorityNext?: string;
+  /** Когда игрок в последний раз сбросил рейтинг. */
+  lastReset?: string;
+  /** В текущем сезоне рейтинг уже сброшен. */
+  resetUsed?: boolean;
+}
+
+/** Строка журнала жетонов: выдача (+N) или трата (-1). */
+export interface TokenEntry {
+  id: string;
+  kind: TokenKind;
+  delta: number;
+  note?: string;
+  tournamentId?: string | null;
+  match?: string;
+  by?: string;
+  createdAt: string;
+}
+
+/** Матч игрока, который ещё не начался: на него можно поставить жетон ×2. */
+export interface PendingMatch {
+  tournamentId: string;
+  title: string;
+  mode: TournamentMode;
+  startsAt?: string | null;
+  active: boolean;
+  blocked?: string;
+}
+
+/** GET /api/users/{id}/moderation: скриншоты, журнал жетонов и матчи для жетона ×2. */
+export interface PlayerModeration {
+  claims: StatClaim[];
+  ledger: TokenEntry[];
+  matches: PendingMatch[];
+}
+
+/** GET /api/me/extras: свои часы и ноки, любимое, жетоны и можно ли сбросить рейтинг. */
 export interface MyExtras {
   claims: StatClaim[];
   favorites: PlayerFavorites;
   canFavorites: boolean;
+  tokens: TokenWallet;
+  /** Почему сейчас не сбросить рейтинг. */
+  resetBlocked?: string;
+  mmr: number;
+  startMmr: number;
+}
+
+/** Жетон ×2, поставленный игроком на матч. */
+export interface DoubleToken {
+  participantId: string;
+  userId: string;
 }
 
 /** Пользователь + агрегаты участия: GET /api/users/overview (кабинет, раздел «Пользователи»). */
@@ -1103,6 +1165,10 @@ export interface MatchState {
   focus?: string;
   /** Шансы на победу перед матчем и сейчас; у 2×2 их нет. */
   chance?: MatchChance;
+  /** Жетоны ×2 игроков на этот матч. */
+  doubles?: DoubleToken[];
+  /** Сколько жетонов ×2 у каждого игрока сторон. */
+  doubleWallet?: Record<string, number>;
 }
 
 /** Шансы стороны A, ничьей и стороны B, доли от 1; в сумме 1. */
@@ -1160,6 +1226,8 @@ export interface MatchupSide {
   winChance?: number;
   winGain?: number;
   lossDrop?: number;
+  /** Жетон ×2: и победа, и поражение вдвое. */
+  double?: boolean;
 }
 
 /** Другая сыгранная встреча тех же сторон. winner: 0 - A, 1 - B, -1 - ничья. */
@@ -1199,6 +1267,8 @@ export interface MatchPlayer {
   isPlaceholder: boolean;
   /** Матчей в прошлых сезонах: при равном MMR сторона A - у кого меньше. */
   prevGames: number;
+  /** Сегодня играет без очереди. */
+  priority?: boolean;
 }
 
 /** Команда 2×2 из списка организатора (GET /api/match-teams): MMR и счёт - в текущем сезоне. */

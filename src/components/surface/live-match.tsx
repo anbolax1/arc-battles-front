@@ -21,6 +21,7 @@ function Standing({ s }: { s?: MatchupSide }) {
       {s.winGain ? (
         <span>
           на кону <b className="sf-up">+{s.winGain}</b> / <b className="sf-down">−{s.lossDrop ?? 0}</b>
+          {s.double ? " · жетон ×2" : ""}
         </span>
       ) : null}
     </span>
