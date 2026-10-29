@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, errorText } from "@/lib/api";
-import { fmtCount, STAT_LABEL, TOKEN_KINDS, TOKEN_LABEL, tokensWord } from "@/lib/tokens";
+import { fmtCount, regionLabel, STAT_LABEL, TOKEN_KINDS, TOKEN_LABEL, tokensWord } from "@/lib/tokens";
 import { fullDate, hhmm, shortDate } from "@/components/surface/fmt";
 import type { MatchState, PlayerModeration, StatClaim, TokenKind, TokenWallet } from "@/lib/types";
 
@@ -164,7 +164,7 @@ export function ProfileModeration({
       </div>
 
       <div className="pf-mod-claims">
-        <p className="sf-field-label">Скриншоты · часы и ноки</p>
+        <p className="sf-field-label">Скриншоты · часы, ноки и сервер</p>
         {pending.length ? (
           pending.map((c) => (
             <div key={c.id} className="pf-mod-claim">
@@ -174,10 +174,10 @@ export function ProfileModeration({
               </a>
               <div className="pf-mod-claim-body">
                 <span>
-                  {STAT_LABEL[c.kind]} <b>{fmtCount(c.value)}</b>
+                  {STAT_LABEL[c.kind]} <b>{c.kind === "server" ? regionLabel(c.region) : fmtCount(c.value)}</b>
                 </span>
                 <small>
-                  {c.previous != null ? `было подтверждено ${fmtCount(c.previous)} · ` : ""}
+                  {c.kind !== "server" && c.previous != null ? `было подтверждено ${fmtCount(c.previous)} · ` : ""}
                   {fullDate(c.createdAt)}
                 </small>
                 {rejecting === c.id ? (
@@ -222,7 +222,7 @@ export function ProfileModeration({
           <ul className="pf-mod-done">
             {decided.map((c) => (
               <li key={c.id}>
-                {STAT_LABEL[c.kind]} {fmtCount(c.value)} · {CLAIM_STATUS[c.status]}
+                {STAT_LABEL[c.kind]} {c.kind === "server" ? regionLabel(c.region) : fmtCount(c.value)} · {CLAIM_STATUS[c.status]}
                 {c.reason ? ` · ${c.reason}` : ""}
                 {c.status === "approved" ? (
                   <button type="button" disabled={!!busy} onClick={() => decide(c, false)}>

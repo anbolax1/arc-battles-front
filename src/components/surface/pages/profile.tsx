@@ -13,11 +13,10 @@ import { initials } from "@/lib/format";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
-import { plural, W_WIN } from "@/components/surface/season-lib";
 import { BeltProfile } from "@/components/surface/belt-parts";
 import { ProfileModeration } from "@/components/surface/profile-moderation";
 import { roleAtLeast } from "@/lib/roles";
-import { fmtCount, TOKEN_KINDS, TOKEN_LABEL } from "@/lib/tokens";
+import { fmtCount, regionLabel, STAT_LABEL, TOKEN_KINDS, TOKEN_LABEL } from "@/lib/tokens";
 
 function NotFound({ login }: { login: string }) {
   return (
@@ -59,16 +58,11 @@ function IdCard({ profile }: { profile: PlayerProfile }) {
     { k: "Первый матч", v: stats.firstMatch ? fullDate(stats.firstMatch) : "—", m: 2 },
     { k: "Лучший MMR 1×1", v: mmr1x1.peakMmr ? String(mmr1x1.peakMmr) : "—", m: 5 },
     { k: "Лучший MMR 2×2", v: peakDuo ? String(peakDuo) : "—", m: 6 },
-    {
-      k: "Лучшая карта",
-      v: stats.bestMap || "—",
-      title: stats.bestMapWins ? `${stats.bestMapWins} ${plural(stats.bestMapWins, W_WIN)} на этой карте` : undefined,
-      m: 9,
-    },
+    { k: STAT_LABEL.server, v: regionLabel(profile.server), m: 9 },
     { k: "Винрейт 1×1", v: stats.soloPlayed ? `${winrate(stats.soloWins, stats.soloPlayed - stats.soloWins)}%` : "нет матчей", m: 7 },
     { k: "Винрейт 2×2", v: stats.duoPlayed ? `${winrate(stats.duoWins, stats.duoPlayed - stats.duoWins)}%` : "нет матчей", m: 8 },
-    { k: "Часов в игре", ...gameStat(profile.gameHours), m: 10 },
-    { k: "Сделано ноков", ...gameStat(profile.gameKnocks), m: 11 },
+    { k: STAT_LABEL.hours, ...gameStat(profile.gameHours), m: 10 },
+    { k: STAT_LABEL.knocks, ...gameStat(profile.gameKnocks), m: 11 },
     { k: "Сброс рейтинга", v: tokens?.lastReset ? shortDate(tokens.lastReset) : "—", title: fullDate(tokens?.lastReset), m: 12 },
   ];
   return (

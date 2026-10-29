@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { api, apiFetch, errorText } from "@/lib/api";
-import { fmtCount, STAT_KINDS, STAT_LABEL, STAT_LIMIT } from "@/lib/tokens";
-import type { FavoriteOptions, MyExtras, PlayerFavorites, StatClaim, StatKind, TeamMember, TokenWallet } from "@/lib/types";
+import { fmtCount, REGIONS, regionLabel, STAT_KINDS, STAT_LABEL, STAT_LIMIT } from "@/lib/tokens";
+import type { FavoriteOptions, MyExtras, NumericStatKind, PlayerFavorites, StatClaim, TeamMember, TokenWallet } from "@/lib/types";
 
 /** Форматы и предел скриншота - те же, что проверяет сервер. */
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
@@ -19,8 +19,8 @@ const CLAIM_NOTE: Record<StatClaim["status"], string> = {
   rejected: "отклонено",
 };
 
-/** Часы в игре или ноки за всё время: число и скриншот из игры, которые сверит модератор. */
-function GameStatForm({ kind, claim }: { kind: StatKind; claim?: StatClaim }) {
+/** Часы на поверхности или ноки за всё время: число и скриншот из игры, которые сверит модератор. */
+function GameStatForm({ kind, claim }: { kind: NumericStatKind; claim?: StatClaim }) {
   const router = useRouter();
   const [value, setValue] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
@@ -87,6 +87,72 @@ function GameStatForm({ kind, claim }: { kind: StatKind; claim?: StatClaim }) {
       >
         {error ||
           (bad ? `Целое число от 0 до ${fmtCount(STAT_LIMIT[kind])}.` : big ? `Скриншот больше ${MAX_SHOT_MB} МБ.` : status)}
+      </p>
+    </form>
+  );
+}
+
+/** Сервер: у всех по умолчанию Европа, другой регион появится в профиле только после проверки скриншота. */
+function ServerForm({ current, claim }: { current: string; claim?: StatClaim }) {
+  const router = useRouter();
+  const [region, setRegion] = React.useState(current);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const big = !!file && file.size > MAX_SHOT_MB * 1024 * 1024;
+  const pending = claim?.status === "pending";
+  // Менять не на что, пока выбран тот же регион, что уже стоит в профиле и не ждёт проверки.
+  const same = region === current && !pending;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (same || !file || big) return;
+    setBusy(true);
+    setError("");
+    try {
+      await apiFetch<StatClaim>(`/me/stat-claims/server?value=${region}`, {
+        method: "POST",
+        body: file,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+      });
+      setFile(null);
+      if (fileRef.current) fileRef.current.value = "";
+      router.refresh();
+    } catch (err) {
+      setError(errorText(err, "Не удалось отправить."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  let status = `В профиле: ${regionLabel(current)}.`;
+  if (pending) status = `${regionLabel(claim.region)} - на проверке у модератора, в профиле пока ${regionLabel(current)}`;
+  else if (claim?.status === "rejected") status = `${regionLabel(claim.region)} - отклонено${claim.reason ? `: ${claim.reason}` : ""}. В профиле: ${regionLabel(current)}`;
+
+  return (
+    <form className="sf-field pf-stat" onSubmit={submit}>
+      <label className="sf-field-label" htmlFor="pf-stat-server">
+        {STAT_LABEL.server}
+      </label>
+      <div className="pf-stat-row">
+        <select id="pf-stat-server" className="sf-select" value={region} onChange={(e) => setRegion(e.target.value)}>
+          {REGIONS.map((r) => (
+            <option key={r.code} value={r.code}>
+              {r.label}
+            </option>
+          ))}
+        </select>
+        <label className={`sf-btn sf-btn-line sf-btn-sm pf-file ${file ? "on" : ""}`}>
+          {file ? "Скриншот ✓" : "Скриншот"}
+          <input ref={fileRef} type="file" accept={ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </label>
+        <button type="submit" className="sf-btn sf-btn-amber sf-btn-sm" disabled={busy || same || !file || big}>
+          {busy ? "Отправляем…" : "Отправить"}
+        </button>
+      </div>
+      <p className={`sf-field-note ${error || big || claim?.status === "rejected" ? "bad" : ""}`} aria-live="polite">
+        {error || (big ? `Скриншот больше ${MAX_SHOT_MB} МБ.` : status)}
       </p>
     </form>
   );
@@ -370,16 +436,17 @@ function ResetForm({ tokens, blocked, mmr, start }: { tokens: TokenWallet; block
   );
 }
 
-/** Под настройками своего профиля: часы и ноки со скриншотом, любимое и сброс рейтинга жетоном. */
+/** Под настройками своего профиля: часы, ноки и сервер со скриншотом, любимое и сброс рейтинга жетоном. */
 export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExtras; options: FavoriteOptions | null; roleName: string }) {
-  const claim = (k: StatKind) => extras.claims.find((c) => c.kind === k);
+  const claim = (k: StatClaim["kind"]) => extras.claims.find((c) => c.kind === k);
   return (
     <section className="pf-desk pf-desk-extra" aria-label="Статистика, любимое и жетоны">
       {STAT_KINDS.map((k) => (
         <GameStatForm key={k} kind={k} claim={claim(k)} />
       ))}
+      <ServerForm current={extras.server} claim={claim("server")} />
       <p className="sf-field-note pf-wide pf-stat-hint">
-        Число из профиля в ARC Raiders и скриншот, где его видно. Пока модератор не сверит, в профиле рядом с числом стоит «не подтверждено».
+        Скриншот во весь экран. Модератор проведет проверку и подтвердит данные. До проверки и в случае отклонения возле цифр будет надпись «не подтверждено»
       </p>
       <FavoritesForm initial={extras.favorites} options={options} allowed={extras.canFavorites} roleName={roleName} />
       <ResetForm tokens={extras.tokens} blocked={extras.resetBlocked} mmr={extras.mmr} start={extras.startMmr} />

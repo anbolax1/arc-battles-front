@@ -7,7 +7,7 @@ import { SectionHead } from "@/components/ui/section-head";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { fmtDate } from "@/lib/format";
-import { fmtCount, STAT_LABEL } from "@/lib/tokens";
+import { fmtCount, regionLabel, STAT_LABEL } from "@/lib/tokens";
 import type { StatClaim, StatClaimStatus } from "@/lib/types";
 
 /* Проверка скриншотов: игрок вписал в профиль часы в игре или ноки, модератор сверяет число со скриншотом. */
@@ -95,8 +95,8 @@ export function StatClaimsManager() {
     <div className="space-y-6">
       <SectionHead eyebrow="Модерация" title="Проверка скриншотов" />
       <p className="max-w-2xl text-sm text-muted">
-        Игроки сами вписывают в профиль часы в игре и ноки за всё время и прикладывают скриншот. Пока число не проверено, в профиле рядом с
-        ним стоит «не подтверждено». Сверьте число со скриншотом и подтвердите или отклоните - причину отказа игрок увидит в своём профиле.
+        Игроки сами вписывают в профиль часы на поверхности и ноки за всё время и прикладывают скриншот. Пока число не проверено, в профиле рядом с
+        ним стоит «не подтверждено». Смена сервера появится в профиле только после подтверждения. Сверьте данные со скриншотом и подтвердите или отклоните - причину отказа игрок увидит в своём профиле.
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -154,8 +154,8 @@ export function StatClaimsManager() {
                 </div>
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="text-xs uppercase tracking-wide text-muted">{STAT_LABEL[c.kind]}</span>
-                  <b className="font-display text-xl tnum text-primary-2">{fmtCount(c.value)}</b>
-                  {c.previous != null && <span className="text-xs text-muted tnum">было подтверждено {fmtCount(c.previous)}</span>}
+                  <b className="font-display text-xl tnum text-primary-2">{c.kind === "server" ? regionLabel(c.region) : fmtCount(c.value)}</b>
+                  {c.kind !== "server" && c.previous != null && <span className="text-xs text-muted tnum">было подтверждено {fmtCount(c.previous)}</span>}
                 </div>
                 <div className="text-xs text-muted">{fmtDate(c.createdAt)}</div>
                 {c.reason && <p className="text-xs text-danger">Причина: {c.reason}</p>}

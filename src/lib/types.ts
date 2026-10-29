@@ -731,6 +731,8 @@ export interface PlayerProfile {
   gameHours?: StatValue;
   /** Ноков в ARC Raiders за всё время - со скриншота. */
   gameKnocks?: StatValue;
+  /** Код подтверждённого сервера; по умолчанию Европа. */
+  server: string;
   /** Только у подписчика и выше, если что-то выбрано. */
   favorites?: PlayerFavorites;
   tokens: TokenWallet;
@@ -742,7 +744,9 @@ export interface StatValue {
   confirmed: boolean;
 }
 
-export type StatKind = "hours" | "knocks";
+export type StatKind = "hours" | "knocks" | "server";
+/** Показатели-числа: у сервера вместо числа код региона. */
+export type NumericStatKind = Exclude<StatKind, "server">;
 export type StatClaimStatus = "pending" | "approved" | "rejected";
 
 /** Число из профиля в игре вместе со скриншотом, который сверяет модератор. */
@@ -753,6 +757,8 @@ export interface StatClaim {
   displayName?: string;
   kind: StatKind;
   value: number;
+  /** Код региона, только у сервера. */
+  region?: string;
   /** Подтверждённое раньше: видно, насколько выросло. */
   previous?: number;
   screenshotUrl: string;
@@ -831,6 +837,8 @@ export interface MyExtras {
   claims: StatClaim[];
   favorites: PlayerFavorites;
   canFavorites: boolean;
+  /** Подтверждённый сервер: заявка на другой ждёт модератора. */
+  server: string;
   tokens: TokenWallet;
   /** Почему сейчас не сбросить рейтинг. */
   resetBlocked?: string;
