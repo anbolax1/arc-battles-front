@@ -252,17 +252,45 @@ function Rounds({ st, rounds, sides, finished }: { st: MatchState; rounds: Round
 
 /* ---------- что дал матч ---------- */
 
-function EloBlock({ a, b, ca, cb, k, mult }: { a: Participant; b: Participant; ca: ParticipantMmr; cb: ParticipantMmr; k?: number; mult: number }) {
+function EloBlock({
+  a,
+  b,
+  ca,
+  cb,
+  k,
+  mult,
+  da,
+  db,
+}: {
+  a: Participant;
+  b: Participant;
+  ca: ParticipantMmr;
+  cb: ParticipantMmr;
+  k?: number;
+  mult: number;
+  da: boolean;
+  db: boolean;
+}) {
   const eA = 1 / (1 + Math.pow(10, (cb.before - ca.before) / 400));
   const pa = Math.round(eA * 100);
   const draw = ca.delta === 0 && cb.delta === 0;
   const winA = ca.delta > 0;
   const eW = winA ? eA : 1 - eA;
   const gain = Math.abs(winA ? ca.delta : cb.delta);
+  // Жетон ×2 удваивает и выигрыш, и проигрыш только своей стороне.
+  const [wDouble, lDouble] = winA ? [da, db] : [db, da];
+  const wMult = mult * (wDouble ? 2 : 1);
   // Формулу показываем, только если она сходится с начислением: перенесённые матчи могли считаться иначе.
-  const formulaOk = !draw && !!k && Math.round(k * (1 - eW)) * mult === gain;
+  const formulaOk = !draw && !!k && Math.round(k * (1 - eW)) * wMult === gain;
   const e2 = (v: number) => v.toFixed(2).replace(".", ",");
-  const formula = formulaOk ? `${mult > 1 ? `${mult} × ` : ""}${k} × (1 − ${e2(eW)}) = ${gain}.` : "";
+  const factors = [mult > 1 ? `${mult}` : "", wDouble ? "2 (жетон)" : ""].filter(Boolean).join(" × ");
+  const formula = formulaOk ? `${factors ? `${factors} × ` : ""}${k} × (1 − ${e2(eW)}) = ${gain}.` : "";
+  const lossNote =
+    wDouble === lDouble
+      ? "Сколько получил победитель, столько потерял проигравший."
+      : lDouble
+        ? "С жетоном ×2 проигрыш тоже вдвое."
+        : "Жетон ×2 был у соперника, проигрыш без удвоения.";
   const fav = pa > 50 ? a.name : pa < 50 ? b.name : "";
   const cell = (p: Participant, c: ParticipantMmr, isWinner: boolean) => (
     <div>
@@ -270,7 +298,7 @@ function EloBlock({ a, b, ca, cb, k, mult }: { a: Participant; b: Participant; c
       <dd className={c.delta > 0 ? "sf-up" : c.delta < 0 ? "sf-down" : ""}>{signed(c.delta)}</dd>
       <p>
         {c.before} → {c.after}.{" "}
-        {draw ? "Ничья: рейтинг не менялся." : isWinner ? formula : "Сколько получил победитель, столько потерял проигравший."}
+        {draw ? "Ничья: рейтинг не менялся." : isWinner ? formula : lossNote}
       </p>
     </div>
   );
@@ -597,7 +625,9 @@ export async function SurfaceMatch({ id }: { id: string }) {
             {st.veto.length > 0 && <MatchVeto maps={allMaps} veto={st.veto} nameA={a?.name ?? "A"} nameB={b?.name ?? "B"} />}
             {showFlow && trail && a && b && <MatchFlow id={id} initial={trail} names={[a.name, b.name]} rounds={rounds.length || t.totalRounds} />}
             {showRounds && <Rounds st={st} rounds={rounds} sides={sides} finished={finished} />}
-            {showElo && <EloBlock a={a} b={b} ca={ca} cb={cb} k={matchup?.season?.kFactor} mult={mult} />}
+            {showElo && (
+              <EloBlock a={a} b={b} ca={ca} cb={cb} k={matchup?.season?.kFactor} mult={mult} da={!!ia?.double} db={!!ib?.double} />
+            )}
             {showVoid && a && b && <VoidBlock reason={t.voidReason} winnerId={t.winnerParticipantId} sides={[a, b]} changes={changes} />}
             {!live && beltBlock}
             {patches.length > 0 && <MatchPatches patches={patches} sides={sides} live={live} />}
