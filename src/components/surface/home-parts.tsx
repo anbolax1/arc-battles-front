@@ -269,7 +269,7 @@ export function Schedule({ live, shows }: { live: MatchState | null; shows: Tour
           </h2>
           <span className="sf-mono">время московское</span>
           <Link className="sf-more" href="/schedule">
-            Все матчи <Arrow />
+            Все шоу-матчи <Arrow />
           </Link>
         </div>
         <ScheduleRows live={live} upcoming={shows.slice(0, 3)} />
@@ -280,7 +280,7 @@ export function Schedule({ live, shows }: { live: MatchState | null; shows: Tour
 
 /* ---------- шоу-матч ---------- */
 
-function GeneratedPoster({ t }: { t: Tournament }) {
+export function GeneratedPoster({ t }: { t: Tournament }) {
   const [a, b] = splitTitle(t.title);
   return (
     <div className="sf-poster-in">

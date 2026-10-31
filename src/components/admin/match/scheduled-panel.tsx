@@ -100,7 +100,7 @@ export function ScheduledPanel({
           {t.previewUrl ? (
             <PreviewImage src={t.previewUrl} />
           ) : (
-            <div className="flex aspect-video items-center justify-center rounded-md border border-dashed border-[var(--border-strong)] px-4 text-center text-sm text-muted">
+            <div className="flex aspect-square max-w-sm items-center justify-center rounded-md border border-dashed border-[var(--border-strong)] px-4 text-center text-sm text-muted">
               Картинки нет — анонс на главной обойдётся без неё
             </div>
           )}

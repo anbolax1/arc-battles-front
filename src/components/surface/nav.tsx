@@ -12,7 +12,7 @@ import { SfAvatar } from "@/components/surface/ui";
 import { ShortCountdown } from "@/components/surface/motion";
 
 const LINKS = [
-  { href: "/schedule", label: "Матчи" },
+  { href: "/schedule", label: "Шоу-матчи" },
   { href: "/queue", label: "Очередь" },
   { href: "/archive", label: "Результаты" },
   { href: "/rating", label: "Рейтинг" },

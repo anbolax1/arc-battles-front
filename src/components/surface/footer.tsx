@@ -11,7 +11,7 @@ export interface FooterSeason {
 
 function links(season?: FooterSeason | null) {
   return [
-    { href: "/schedule", label: "Матчи" },
+    { href: "/schedule", label: "Шоу-матчи" },
     { href: "/archive", label: "Результаты" },
     { href: "/rating", label: "Рейтинг" },
     ...(season ? [{ href: `/season/${season.number}`, label: season.active ? "Сезон в цифрах" : "Итоги сезона" }] : []),

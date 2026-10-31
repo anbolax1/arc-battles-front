@@ -391,7 +391,7 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
           {preview ? (
             <PreviewImage src={preview.shown} />
           ) : (
-            <div className="flex aspect-video items-center justify-center rounded-md border border-dashed border-[var(--border-strong)] px-4 text-center text-sm text-muted">
+            <div className="flex aspect-square max-w-sm items-center justify-center rounded-md border border-dashed border-[var(--border-strong)] px-4 text-center text-sm text-muted">
               Здесь будет картинка анонса
             </div>
           )}

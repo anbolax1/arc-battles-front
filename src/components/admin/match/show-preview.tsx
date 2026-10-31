@@ -54,7 +54,7 @@ export function useChosenPreview() {
 export function PreviewImage({ src, className = "" }: { src: string; className?: string }) {
   const [brokenSrc, setBrokenSrc] = React.useState("");
   return (
-    <div className={`relative aspect-video overflow-hidden rounded-md bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)] ${className}`}>
+    <div className={`relative aspect-square max-w-sm overflow-hidden rounded-md bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)] ${className}`}>
       {brokenSrc === src ? (
         <div className="flex h-full items-center justify-center px-4 text-center text-sm text-danger">
           Картинка не открывается — проверьте ссылку
@@ -137,7 +137,7 @@ export function PreviewPicker({ busy, onPick }: { busy?: boolean; onPick: (src: 
         </label>
       )}
       <p className="text-xs text-muted">
-        JPG, PNG, WebP или GIF до {MAX_MB} МБ. По ссылке сайт сам скачает картинку и будет хранить у себя — анонс не
+        Лучше квадратная картинка: на сайте превью квадратное и видно целиком. JPG, PNG, WebP или GIF до {MAX_MB} МБ. По ссылке сайт сам скачает картинку и будет хранить у себя — анонс не
         пропадёт, даже когда ссылка Discord перестанет открываться.
       </p>
       {err && <p className="text-xs text-danger">{err}</p>}

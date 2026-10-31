@@ -493,7 +493,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
         <div className="sf-wrap">
           <Link className="sf-back" href={finished ? "/archive" : "/schedule"}>
             <ArrowBack />
-            {finished ? "Все результаты" : "Все матчи"}
+            {finished ? "Все результаты" : "Все шоу-матчи"}
           </Link>
           <div className={t.previewUrl ? "sf-head-art" : ""}>
             <div>
