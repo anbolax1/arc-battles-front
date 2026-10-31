@@ -5,11 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
-/* Разделы, открытые модератору: проверка скриншотов в профилях. Остальное - только организатору. */
-const MODERATOR_LINKS = [{ href: "/admin/review", label: "Проверка" }];
+/* Разделы, открытые модератору: проверка скриншотов в профилях и очередь выступлений. Остальное - только организатору. */
+const MODERATOR_LINKS = [
+  { href: "/admin/queue", label: "Очередь" },
+  { href: "/admin/review", label: "Проверка" },
+];
 
 const LINKS = [
   { href: "/admin/matches", label: "Матчи" },
+  { href: "/admin/queue", label: "Очередь" },
   { href: "/admin/review", label: "Проверка" },
   { href: "/admin/news", label: "Новости" },
   { href: "/admin/overlay", label: "Оверлей" },
@@ -46,7 +50,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col items-start gap-3 py-10">
       <h1 className="text-2xl">Доступно только организатору</h1>
-      <p className="max-w-md text-muted">Модератору в кабинете открыта проверка скриншотов.</p>
+      <p className="max-w-md text-muted">Модератору в кабинете открыты очередь выступлений и проверка скриншотов.</p>
       <Link href="/admin/review" className="btn btn-primary btn-sm">
         <span>К проверке</span>
       </Link>

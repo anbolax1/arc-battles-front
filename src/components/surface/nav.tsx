@@ -13,6 +13,7 @@ import { ShortCountdown } from "@/components/surface/motion";
 
 const LINKS = [
   { href: "/schedule", label: "Матчи" },
+  { href: "/queue", label: "Очередь" },
   { href: "/archive", label: "Результаты" },
   { href: "/rating", label: "Рейтинг" },
   { href: "/rules", label: "Правила" },

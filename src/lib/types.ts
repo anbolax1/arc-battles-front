@@ -1372,3 +1372,122 @@ export interface Belt {
   honorAt: number;
   reigns: BeltReign[];
 }
+
+/* ---------- Очередь выступлений ---------- */
+
+export type QueueFormat = "1x1" | "2x2";
+/** open - идёт запись; closed - запись закрыта, вызовы идут; paused - всё остановлено; finished - сессия закончена. */
+export type QueueState = "open" | "closed" | "paused" | "finished";
+export type QueueEntryStatus = "waiting" | "invited" | "ready" | "performing" | "skipped";
+
+export interface QueueSession {
+  id: string;
+  title: string;
+  format: QueueFormat;
+  state: QueueState;
+  registrationOpen: boolean;
+  paused: boolean;
+  confirmTimeoutSec: number;
+  matchSize: number;
+  rev: number;
+  createdAt: string;
+  finishedAt?: string | null;
+  createdBy?: string;
+  waiting: number;
+  played: number;
+}
+
+export interface QueueMember {
+  userId: string;
+  login: string;
+  displayName: string;
+  avatarUrl: string;
+  ready: boolean;
+  readyAt?: string | null;
+}
+
+export interface QueueEntry {
+  id: string;
+  position: number;
+  status: QueueEntryStatus;
+  isNext: boolean;
+  name: string;
+  teamKey?: string;
+  members: QueueMember[];
+  mmr: number;
+  joinedAt: string;
+  performedCount: number;
+  skippedCount: number;
+  invitedAt?: string | null;
+  inviteExpiresAt?: string | null;
+  addedByOrganizer?: boolean;
+  /** Сегодня действует жетон «Без очереди». */
+  priority?: boolean;
+}
+
+export interface QueueMatchSide {
+  side: number;
+  entryId: string;
+  name: string;
+  mmr: number;
+  members: QueueMember[];
+  status?: string;
+}
+
+export interface QueueMatch {
+  id: string;
+  number: number;
+  status: "preparing" | "live" | "finished" | "cancelled";
+  createdAt: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  sides: QueueMatchSide[];
+}
+
+export interface QueueSessionRef {
+  id: string;
+  format: QueueFormat;
+  state: QueueState;
+  title: string;
+}
+
+export interface QueueTeamOption {
+  teamKey: string;
+  name: string;
+  members: QueueMember[];
+  blocked?: string;
+}
+
+export interface QueueMe {
+  entryId?: string;
+  position?: number;
+  ahead: number;
+  before?: QueueEntry;
+  status?: QueueEntryStatus;
+  needsConfirm?: boolean;
+  confirmed?: boolean;
+  canLeave: boolean;
+  canJoin: boolean;
+  joinBlocked?: string;
+  teams?: QueueTeamOption[];
+}
+
+export interface QueueSnapshot {
+  serverTime: string;
+  session: QueueSession | null;
+  entries: QueueEntry[];
+  match?: QueueMatch | null;
+  last?: QueueMatch | null;
+  active: QueueSessionRef[];
+  me?: QueueMe;
+  history: QueueMatch[];
+}
+
+export interface QueueEvent {
+  id: number;
+  at: string;
+  kind: string;
+  actor?: string;
+  label?: string;
+  data?: Record<string, unknown>;
+}

@@ -10,7 +10,7 @@ import * as React from "react";
 import { api } from "@/lib/api";
 import type { LiveState } from "@/lib/types";
 
-function overlayWsUrl(): string {
+export function overlayWsUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE ?? "/api";
   if (base.startsWith("http")) {
     // API на отдельном домене: https://api.x/api → wss://api.x/api/ws/overlay
