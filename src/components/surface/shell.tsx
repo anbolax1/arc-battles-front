@@ -4,6 +4,7 @@ import { isShowMatch } from "@/lib/match";
 import { SurfaceNav, type NavLive } from "@/components/surface/nav";
 import { SurfaceFooter, type FooterSeason } from "@/components/surface/footer";
 import { PageWipe } from "@/components/surface/wipe";
+import { QueueCallBanner } from "@/components/surface/queue-call";
 
 /** Ближайший по дате анонс. */
 export function byStartAsc<T extends { startsAt?: string | null }>(a: T, b: T): number {
@@ -37,6 +38,7 @@ export async function SurfaceShell({ children }: { children: ReactNode }) {
       </main>
       <SurfaceFooter season={season} />
       <PageWipe />
+      <QueueCallBanner />
     </div>
   );
 }

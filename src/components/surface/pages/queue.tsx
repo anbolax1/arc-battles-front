@@ -122,7 +122,7 @@ function NowPanel({ snap, serverNow }: { snap: QueueSnapshot; serverNow: () => n
       </div>
       {shown ? (
         <div className="qu-vs">
-          {[1, 2].slice(0, Math.max(1, s.matchSize)).map((n, i) => (
+          {[1, 2].map((n, i) => (
             <React.Fragment key={n}>
               {i > 0 && <span className="qu-vs-mid">vs</span>}
               <MatchSide
@@ -138,6 +138,11 @@ function NowPanel({ snap, serverNow }: { snap: QueueSnapshot; serverNow: () => n
         <p className="qu-now-empty">Матч пока не начался.{next ? " Следующим вызовут " : ""}{next && <strong>{next.name}</strong>}</p>
       )}
       {!match && snap.last && <p className="qu-now-note">Последний сыгранный матч №{snap.last.number}</p>}
+      {match?.status === "live" && match.tournamentId && (
+        <p className="qu-now-note">
+          <Link href={`/tournament/${match.tournamentId}`}>Смотреть матч →</Link>
+        </p>
+      )}
       {upcoming.length > 0 && (
         <div className="qu-upnext">
           <span>Дальше</span>

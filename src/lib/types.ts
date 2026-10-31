@@ -1388,7 +1388,6 @@ export interface QueueSession {
   registrationOpen: boolean;
   paused: boolean;
   confirmTimeoutSec: number;
-  matchSize: number;
   rev: number;
   createdAt: string;
   finishedAt?: string | null;
@@ -1438,6 +1437,8 @@ export interface QueueMatch {
   id: string;
   number: number;
   status: "preparing" | "live" | "finished" | "cancelled";
+  /** Матч сайта, созданный для этой пары. */
+  tournamentId?: string;
   createdAt: string;
   startedAt?: string | null;
   finishedAt?: string | null;
@@ -1490,4 +1491,18 @@ export interface QueueEvent {
   actor?: string;
   label?: string;
   data?: Record<string, unknown>;
+}
+
+/** Вызов игрока на матч: плашка на любой странице сайта. */
+export interface QueueCall {
+  sessionId: string;
+  format: QueueFormat;
+  title: string;
+  entryId: string;
+  name: string;
+  status: "invited" | "ready" | "performing";
+  position: number;
+  inviteExpiresAt?: string | null;
+  needsConfirm: boolean;
+  confirmed: boolean;
 }

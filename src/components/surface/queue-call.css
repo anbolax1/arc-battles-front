@@ -1,0 +1,97 @@
+/* Плашка вызова из очереди: видна на любой странице сайта, пока игрока ждут на матч. */
+
+.qc-stack {
+  position: fixed;
+  z-index: 150;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
+  display: grid;
+  gap: 8px;
+  pointer-events: none;
+}
+.qc {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 14px 16px 14px 18px;
+  background: var(--sf-night);
+  color: var(--sf-cream);
+  border-left: 8px solid var(--sf-cream-2);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--sf-cream-line);
+  animation: qc-in 0.3s ease-out;
+}
+.qc.need {
+  border-left-color: var(--sf-amber);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 2px var(--sf-amber);
+  animation: qc-in 0.3s ease-out, qc-glow 2s ease-in-out 0.3s infinite;
+}
+.qc.ready {
+  border-left-color: var(--sf-s2);
+}
+.qc.live {
+  border-left-color: var(--sf-b);
+}
+.qc-text {
+  min-width: 0;
+}
+.qc-title {
+  margin: 0;
+  font: 800 18px/1.2 var(--sf-ff-c);
+}
+.qc-sub {
+  margin: 2px 0 0;
+  font: 600 11px/1.4 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-cream-2);
+}
+.qc-timer {
+  color: var(--sf-amber);
+  font-variant-numeric: tabular-nums;
+}
+.qc-timer.late {
+  color: var(--sf-b);
+}
+.qc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.qc-err {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--sf-b);
+  font-size: 14px;
+  font-weight: 600;
+}
+@keyframes qc-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes qc-glow {
+  50% {
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 2px var(--sf-amber), 0 0 24px 2px rgba(241, 170, 28, 0.45);
+  }
+}
+@media (max-width: 520px) {
+  .qc {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qc-actions .sf-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qc,
+  .qc.need {
+    animation: none;
+  }
+}

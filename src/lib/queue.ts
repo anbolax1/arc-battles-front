@@ -56,37 +56,12 @@ export interface UseQueue {
   serverNow: () => number;
 }
 
-/** sessionId задан - конкретная сессия (в том числе завершённая), иначе живая очередь формата. */
-export function useQueue(opts: { format?: QueueFormat; sessionId?: string; initial?: QueueSnapshot | null }): UseQueue {
-  const { format, sessionId } = opts;
-  const [snap, setSnap] = React.useState<QueueSnapshot | null>(opts.initial ?? null);
-  const [error, setError] = React.useState("");
+/** Подписка на изменения очереди: по сообщению {type:"queue"} вызывает reload. Сообщение можно потерять,
+    поэтому есть опрос и перечитывание при возврате на вкладку и при переподключении. Возвращает, держится ли WebSocket. */
+export function useQueueChannel(reload: () => Promise<void>, enabled = true): boolean {
   const [live, setLive] = React.useState(false);
-  const offset = React.useRef(0);
-  const seq = React.useRef(0);
-  const path = sessionId ? `/queue/sessions/${encodeURIComponent(sessionId)}` : `/queue${format ? `?format=${format}` : ""}`;
-
-  const apply = React.useCallback((s: QueueSnapshot) => {
-    offset.current = Date.parse(s.serverTime) - Date.now();
-    setSnap((cur) => {
-      // Более старую ревизию той же сессии не принимаем: ответ мог обогнать другой.
-      if (cur?.session && s.session && cur.session.id === s.session.id && s.session.rev < cur.session.rev) return cur;
-      return s;
-    });
-    setError("");
-  }, []);
-
-  const reload = React.useCallback(async () => {
-    const mine = ++seq.current;
-    try {
-      const s = await api.get<QueueSnapshot>(path);
-      if (mine === seq.current) apply(s);
-    } catch (e) {
-      if (mine === seq.current) setError(errorText(e, "Не удалось обновить очередь"));
-    }
-  }, [path, apply]);
-
   React.useEffect(() => {
+    if (!enabled) return;
     let active = true;
     let ws: WebSocket | null = null;
     let reconnect: ReturnType<typeof setTimeout> | null = null;
@@ -94,7 +69,6 @@ export function useQueue(opts: { format?: QueueFormat; sessionId?: string; initi
     let poll: ReturnType<typeof setInterval> | null = null;
     let attempts = 0;
     let open = false;
-    if (opts.initial) offset.current = Date.parse(opts.initial.serverTime) - Date.now();
 
     const schedule = () => {
       if (debounce) return;
@@ -164,8 +138,44 @@ export function useQueue(opts: { format?: QueueFormat; sessionId?: string; initi
         ws.close();
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- initial нужен только как начальные часы сервера
-  }, [reload]);
+  }, [reload, enabled]);
+  return enabled && live;
+}
+
+/** sessionId задан - конкретная сессия (в том числе завершённая), иначе живая очередь формата. */
+export function useQueue(opts: { format?: QueueFormat; sessionId?: string; initial?: QueueSnapshot | null }): UseQueue {
+  const { format, sessionId } = opts;
+  const [snap, setSnap] = React.useState<QueueSnapshot | null>(opts.initial ?? null);
+  const [error, setError] = React.useState("");
+  const offset = React.useRef(0);
+  const seq = React.useRef(0);
+  const path = sessionId ? `/queue/sessions/${encodeURIComponent(sessionId)}` : `/queue${format ? `?format=${format}` : ""}`;
+
+  const apply = React.useCallback((s: QueueSnapshot) => {
+    offset.current = Date.parse(s.serverTime) - Date.now();
+    setSnap((cur) => {
+      // Более старую ревизию той же сессии не принимаем: ответ мог обогнать другой.
+      if (cur?.session && s.session && cur.session.id === s.session.id && s.session.rev < cur.session.rev) return cur;
+      return s;
+    });
+    setError("");
+  }, []);
+
+  const reload = React.useCallback(async () => {
+    const mine = ++seq.current;
+    try {
+      const s = await api.get<QueueSnapshot>(path);
+      if (mine === seq.current) apply(s);
+    } catch (e) {
+      if (mine === seq.current) setError(errorText(e, "Не удалось обновить очередь"));
+    }
+  }, [path, apply]);
+
+  const live = useQueueChannel(reload);
+  const initialTime = opts.initial?.serverTime;
+  React.useEffect(() => {
+    if (initialTime) offset.current = Date.parse(initialTime) - Date.now();
+  }, [initialTime]);
 
   const serverNow = React.useCallback(() => Date.now() + offset.current, []);
   return { snap, error, live, reload, apply, serverNow };

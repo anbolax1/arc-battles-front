@@ -101,7 +101,6 @@ function SessionForm({
 }) {
   const [title, setTitle] = React.useState(session?.title ?? "");
   const [timeout, setTimeoutSec] = React.useState(String(session?.confirmTimeoutSec ?? 60));
-  const [size, setSize] = React.useState(String(session?.matchSize ?? 2));
   const [fmt, setFmt] = React.useState<QueueFormat>(session?.format ?? format);
   const seconds = Number(timeout);
   const bad = !Number.isInteger(seconds) || seconds < 10 || seconds > 600;
@@ -112,7 +111,7 @@ function SessionForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (bad) return;
-        const body: Record<string, unknown> = { confirmTimeoutSec: seconds, matchSize: Number(size) };
+        const body: Record<string, unknown> = { confirmTimeoutSec: seconds };
         if (title.trim()) body.title = title.trim();
         if (session) {
           body.title = title.trim() || session.title;
@@ -137,13 +136,6 @@ function SessionForm({
         <span className="text-xs uppercase tracking-wide text-muted">Время на подтверждение, секунд</span>
         <input className="input" inputMode="numeric" value={timeout} onChange={(e) => setTimeoutSec(e.target.value)} aria-invalid={bad} />
         <span className={`block text-xs ${bad ? "text-danger" : "text-muted"}`}>От 10 до 600. Время только подсказка: никого не исключает.</span>
-      </label>
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-wide text-muted">Записей на матч</span>
-        <select className="input" value={size} onChange={(e) => setSize(e.target.value)}>
-          <option value="2">Две: сторона против стороны</option>
-          <option value="1">Одна: выступает один</option>
-        </select>
       </label>
       {session && canChangeFormat && (
         <label className="space-y-1">
@@ -184,7 +176,9 @@ function MatchPanel({
   const s = snap.session!;
   const m = snap.match;
   const byId = new Map(snap.entries.map((e) => [e.id, e]));
-  const full = !!m && m.sides.length >= s.matchSize;
+  const [rounds, setRounds] = React.useState(2);
+  const [playerType, setPlayerType] = React.useState("pvp");
+  const full = !!m && m.sides.length >= 2;
   const allReady = !!m && full && m.sides.every((x) => byId.get(x.entryId)?.status === "ready");
   const base = `/queue/sessions/${s.id}`;
 
@@ -211,28 +205,56 @@ function MatchPanel({
             <button
               type="button"
               className={`btn btn-sm ${allReady ? "btn-primary" : "btn-ghost"}`}
-              disabled={busy || s.paused}
-              onClick={() => run(`${base}/match/start`, { force: !allReady })}
-              title={allReady ? undefined : "Не все подтвердили готовность - начнётся принудительно"}
+              disabled={busy || s.paused || !full}
+              onClick={() => run(`${base}/match/start`, { force: !allReady, rounds, playerType })}
+              title={!full ? "Вызовите второго участника" : allReady ? undefined : "Не все подтвердили готовность - матч создастся, не дожидаясь их"}
             >
-              <span>{allReady ? "Начать матч" : "Начать принудительно"}</span>
+              <span>{allReady ? "Создать матч" : "Создать, не дожидаясь"}</span>
             </button>
           )}
-          {m?.status === "live" && (
+          {m?.status === "live" && m.tournamentId && (
+            <Link href="/admin/matches" className="btn btn-primary btn-sm">
+              <span>Консоль матча →</span>
+            </Link>
+          )}
+          {m?.status === "live" && !m.tournamentId && (
             <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={() => run(`${base}/match/finish`)}>
               <span>Завершить матч</span>
             </button>
           )}
-          {m && (
+          {m && !(m.status === "live" && m.tournamentId) && (
             <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => run(`${base}/match/cancel`)}>
-              <span>Отменить матч</span>
+              <span>{m.status === "preparing" ? "Отменить вызов" : "Отменить матч"}</span>
             </button>
           )}
         </div>
       </div>
+      {m?.status === "preparing" && full && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="text-muted">Раундов</span>
+            <select className="input h-8 py-0" value={rounds} onChange={(e) => setRounds(Number(e.target.value))}>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="text-muted">Игроки</span>
+            <select className="input h-8 py-0" value={playerType} onChange={(e) => setPlayerType(e.target.value)}>
+              <option value="pvp">PvP</option>
+              <option value="pve">PvE</option>
+              <option value="pvpve">PvPvE</option>
+            </select>
+          </label>
+          <span className="text-xs text-muted">«Создать матч» делает обычный матч сайта на этих двоих - он сразу становится текущим.</span>
+        </div>
+      )}
+      {m?.status === "live" && m.tournamentId && (
+        <p className="text-sm text-muted">Матч сайта идёт: пики-баны, раунды и завершение - в консоли матча. Завершите или отмените его там, очередь продвинется сама.</p>
+      )}
       {m ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          {Array.from({ length: s.matchSize }, (_, i) => i + 1).map((n) => {
+          {[1, 2].map((n) => {
             const side = m.sides.find((x) => x.side === n);
             const e = side ? byId.get(side.entryId) : undefined;
             return (
@@ -265,7 +287,7 @@ function MatchPanel({
         </div>
       ) : (
         <p className="text-sm text-muted">
-          Матча нет. «Вызвать следующего» пригласит первого в очереди; когда все вызванные подтвердят готовность, можно начинать матч.
+          Матча нет. «Вызвать следующего» приглашает первого в очереди; вызовите двоих, и когда оба подтвердят готовность, нажмите «Создать матч».
         </p>
       )}
     </Panel>
@@ -295,7 +317,7 @@ function EntryRow({
   const base = `/queue/sessions/${s.id}/entries/${e.id}`;
   const [pos, setPos] = React.useState("");
   const inMatch = e.status === "invited" || e.status === "ready" || e.status === "performing";
-  const matchFull = !!snap.match && snap.match.sides.length >= s.matchSize;
+  const matchFull = !!snap.match && snap.match.sides.length >= 2;
   const canCall = (e.status === "waiting" || e.status === "skipped") && !s.paused && snap.match?.status !== "live" && !matchFull;
   const num = Number(pos);
   const posOk = Number.isInteger(num) && num >= 1 && num <= last && num !== e.position;
@@ -677,9 +699,9 @@ export function QueueManager() {
 
       {sessions.length > 0 && (
         <Panel className="space-y-3 p-5">
-          <h3 className="font-display text-lg uppercase">Все сессии</h3>
+          <h3 className="font-display text-lg uppercase">Последние сессии</h3>
           <ul className="divide-y divide-[var(--border)]">
-            {sessions.map((x) => (
+            {sessions.slice(0, 8).map((x) => (
               <li key={x.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2 text-sm">
                 <Link href={x.state === "finished" ? `/queue?session=${x.id}` : `/queue?format=${x.format}`} target="_blank" className="min-w-0 flex-1 font-semibold hover:text-primary">
                   {x.title}
