@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, errorText } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { NICK_MAX, NICK_RULES, validateSignup } from "@/lib/signup";
 import { Panel } from "@/components/ui/card";
 import type { User } from "@/lib/types";
 
@@ -49,6 +51,153 @@ export function useAuthForm(redirectTo?: string) {
   }
 
   return { login, setLogin, password, setPassword, sending, error, onSubmit };
+}
+
+/** Регистрация: логин, пароль, ник и Embark ID. После успеха сервер сразу заводит сессию. */
+export function useSignupForm() {
+  const router = useRouter();
+  const { refresh } = useAuth();
+
+  const [login, setLogin] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [nick, setNick] = React.useState("");
+  const [embarkId, setEmbarkId] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    const problem = validateSignup({ login, password, nick, embarkId });
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
+    setSending(true);
+    try {
+      await api.post<User>("/auth/register", {
+        login: login.trim(),
+        password,
+        nick: nick.trim(),
+        embarkId: embarkId.trim(),
+      });
+      await refresh();
+      router.push("/profile");
+      router.refresh();
+    } catch (err) {
+      setError(errorText(err, "Не удалось зарегистрироваться. Попробуйте ещё раз."));
+      setSending(false);
+    }
+  }
+
+  return { login, setLogin, password, setPassword, nick, setNick, embarkId, setEmbarkId, sending, error, onSubmit };
+}
+
+export function SignupForm() {
+  const f = useSignupForm();
+
+  return (
+    <Panel glow className="p-6">
+      <form className="space-y-4" onSubmit={f.onSubmit}>
+        <div className="space-y-1.5">
+          <label htmlFor="reg-login" className="text-xs uppercase tracking-wide text-muted">
+            Логин
+          </label>
+          <input
+            id="reg-login"
+            name="username"
+            className={fieldCls}
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={32}
+            placeholder="например, raider_07"
+            value={f.login}
+            onChange={(e) => f.setLogin(e.target.value)}
+            required
+          />
+          <p className="text-xs text-muted">Для входа: 3–32 символа, латиница, цифры и подчёркивание.</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="reg-password" className="text-xs uppercase tracking-wide text-muted">
+            Пароль
+          </label>
+          <input
+            id="reg-password"
+            name="password"
+            type="password"
+            className={fieldCls}
+            autoComplete="new-password"
+            maxLength={128}
+            placeholder="минимум 8 символов"
+            value={f.password}
+            onChange={(e) => f.setPassword(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="reg-nick" className="text-xs uppercase tracking-wide text-muted">
+            Ник
+          </label>
+          <input
+            id="reg-nick"
+            name="nickname"
+            className={fieldCls}
+            autoComplete="nickname"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={NICK_MAX}
+            value={f.nick}
+            onChange={(e) => f.setNick(e.target.value)}
+            required
+          />
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted">
+            {NICK_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="reg-embark" className="text-xs uppercase tracking-wide text-muted">
+            Embark ID
+          </label>
+          <input
+            id="reg-embark"
+            name="embark-id"
+            className={fieldCls}
+            autoComplete="off"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={64}
+            placeholder="Ник#1234"
+            value={f.embarkId}
+            onChange={(e) => f.setEmbarkId(e.target.value)}
+            required
+          />
+        </div>
+
+        {f.error && <p className="text-sm text-danger">{f.error}</p>}
+
+        <button type="submit" className="btn btn-primary w-full" disabled={f.sending}>
+          <span>{f.sending ? "Подождите…" : "Зарегистрироваться"}</span>
+        </button>
+      </form>
+
+      <p className="mt-4 text-center text-sm text-muted">
+        Уже есть аккаунт?{" "}
+        <Link href="/login" className="text-accent transition hover:underline">
+          Войти
+        </Link>
+      </p>
+    </Panel>
+  );
 }
 
 export function AuthForm({ redirectTo }: { redirectTo?: string }) {
@@ -101,6 +250,13 @@ export function AuthForm({ redirectTo }: { redirectTo?: string }) {
           <span>{sending ? "Подождите…" : "Войти"}</span>
         </button>
       </form>
+
+      <p className="mt-4 text-center text-sm text-muted">
+        Нет аккаунта?{" "}
+        <Link href="/register" className="text-accent transition hover:underline">
+          Регистрация
+        </Link>
+      </p>
     </Panel>
   );
 }

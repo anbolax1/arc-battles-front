@@ -66,9 +66,14 @@ export function SiteNav() {
       </button>
     </>
   ) : (
-    <Link href="/login" className="btn btn-ghost btn-sm">
-      <span>Войти</span>
-    </Link>
+    <>
+      <Link href="/login" className="btn btn-ghost btn-sm">
+        <span>Войти</span>
+      </Link>
+      <Link href="/register" className="btn btn-primary btn-sm">
+        <span>Регистрация</span>
+      </Link>
+    </>
   );
 
   return (

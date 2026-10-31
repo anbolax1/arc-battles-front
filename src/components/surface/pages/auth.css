@@ -64,6 +64,26 @@
 .au-embark {
   font-family: var(--sf-ff-m);
 }
+/* крупное пояснение для тех, кто играл раньше */
+.au-notice {
+  max-width: 560px;
+  margin: 28px 0 0;
+  padding: 18px 22px;
+  border-left: 4px solid var(--sf-amber);
+  background: rgba(236, 226, 208, 0.07);
+  font: 700 clamp(20px, 2.4vw, 26px) / 1.35 var(--sf-ff-d);
+  color: var(--sf-cream);
+}
+/* требования к нику под полем */
+.au-rules {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  list-style: disc;
+  display: grid;
+  gap: 3px;
+  font: 500 13px/1.45 var(--sf-ff-d);
+  color: var(--sf-ink-2);
+}
 .au-actions {
   display: flex;
   flex-wrap: wrap;

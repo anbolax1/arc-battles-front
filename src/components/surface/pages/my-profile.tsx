@@ -23,6 +23,9 @@ function SignIn() {
           <Link className="sf-btn sf-btn-amber" href="/login?redirect=/profile">
             Войти
           </Link>
+          <Link className="sf-btn sf-btn-line" href="/register">
+            Регистрация
+          </Link>
         </div>
       </div>
     </section>

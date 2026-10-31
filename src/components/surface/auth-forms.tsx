@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { User } from "@/lib/types";
-import { useAuthForm } from "@/components/domain/auth-form";
+import { useAuthForm, useSignupForm } from "@/components/domain/auth-form";
+import { NICK_MAX, NICK_RULES } from "@/lib/signup";
 import { useClaimForm } from "@/components/domain/claim-form";
 import { useJoinRequest } from "@/components/domain/register-form";
 
@@ -56,6 +57,108 @@ export function SurfaceAuthForm({ redirectTo }: { redirectTo?: string }) {
       <button type="submit" className="sf-btn sf-btn-amber au-submit" disabled={f.sending}>
         {f.sending ? "Подождите…" : "Войти"}
       </button>
+      <p className="au-switch">
+        Нет аккаунта? <Link href="/register">Регистрация</Link>
+      </p>
+    </form>
+  );
+}
+
+/** Регистрация: логин, пароль, ник и Embark ID в новом дизайне. */
+export function SurfaceSignupForm() {
+  const f = useSignupForm();
+
+  return (
+    <form className="au-form" onSubmit={f.onSubmit}>
+      <div className="sf-field">
+        <label className="sf-field-label" htmlFor="su-login">
+          Логин
+        </label>
+        <input
+          id="su-login"
+          name="username"
+          className="sf-input"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={32}
+          placeholder="например, raider_07"
+          value={f.login}
+          onChange={(e) => f.setLogin(e.target.value)}
+          required
+        />
+        <p className="sf-field-note">Для входа: 3–32 символа, латиница, цифры и подчёркивание</p>
+      </div>
+      <div className="sf-field">
+        <label className="sf-field-label" htmlFor="su-password">
+          Пароль
+        </label>
+        <input
+          id="su-password"
+          name="password"
+          type="password"
+          className="sf-input"
+          autoComplete="new-password"
+          maxLength={128}
+          placeholder="минимум 8 символов"
+          value={f.password}
+          onChange={(e) => f.setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="sf-field">
+        <label className="sf-field-label" htmlFor="su-nick">
+          Ник
+        </label>
+        <input
+          id="su-nick"
+          name="nickname"
+          className="sf-input"
+          autoComplete="nickname"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={NICK_MAX}
+          value={f.nick}
+          onChange={(e) => f.setNick(e.target.value)}
+          required
+        />
+        <ul className="au-rules">
+          {NICK_RULES.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="sf-field">
+        <label className="sf-field-label" htmlFor="su-embark">
+          Embark ID
+        </label>
+        <input
+          id="su-embark"
+          name="embark-id"
+          className="sf-input au-embark"
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={64}
+          placeholder="Ник#1234"
+          value={f.embarkId}
+          onChange={(e) => f.setEmbarkId(e.target.value)}
+          required
+        />
+      </div>
+      {f.error && (
+        <p className="sf-field-note bad" role="alert">
+          {f.error}
+        </p>
+      )}
+      <button type="submit" className="sf-btn sf-btn-amber au-submit" disabled={f.sending}>
+        {f.sending ? "Подождите…" : "Зарегистрироваться"}
+      </button>
+      <p className="au-switch">
+        Уже есть аккаунт? <Link href="/login">Войти</Link>
+      </p>
     </form>
   );
 }

@@ -2,10 +2,11 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import "./auth.css";
 import { getClaimInfo, getMe } from "@/lib/queries";
-import { JOIN_STEPS, REGISTER_CLOSED_TEXT } from "@/lib/display";
+import { JOIN_STEPS } from "@/lib/display";
+import { REGISTER_EXISTING_PROFILE_TEXT } from "@/lib/signup";
 import { Stripes } from "@/components/surface/stripes";
 import { SurfaceMissing } from "@/components/surface/missing";
-import { SurfaceAuthForm, SurfaceClaimForm, SurfaceJoinForm } from "@/components/surface/auth-forms";
+import { SurfaceAuthForm, SurfaceClaimForm, SurfaceJoinForm, SurfaceSignupForm } from "@/components/surface/auth-forms";
 
 /** Каркас страниц с формой: слева заголовок и пояснение, справа карточка на бумаге. */
 function AuthLayout({ eyebrow, title, lead, aside, card, children }: { eyebrow: string; title: string; lead: string; aside?: ReactNode; card: string; children: ReactNode }) {
@@ -42,14 +43,17 @@ export function SurfaceLogin({ redirectTo }: { redirectTo?: string }) {
   );
 }
 
-/** Регистрации нет: аккаунты заводит организатор, вход игроку выдаёт ссылкой. */
 export function SurfaceRegister() {
   return (
-    <SurfaceMissing eyebrow="Регистрация" title="вход по ссылке" lead={REGISTER_CLOSED_TEXT}>
-      <Link className="sf-btn sf-btn-amber" href="/login">
-        Ко входу
-      </Link>
-    </SurfaceMissing>
+    <AuthLayout
+      eyebrow="Новый рейдер"
+      title="регистрация"
+      lead="Аккаунт нужен, чтобы записываться на матчи, вести профиль и присылать клипы с эфиров."
+      aside={<p className="au-notice">{REGISTER_EXISTING_PROFILE_TEXT}</p>}
+      card="Создай аккаунт"
+    >
+      <SurfaceSignupForm />
+    </AuthLayout>
   );
 }
 
@@ -109,9 +113,12 @@ export async function SurfaceJoin() {
         <SurfaceJoinForm user={user} />
       ) : (
         <div className="au-form">
-          <p className="au-text">Заявка доступна после входа — так она привяжется к твоему аккаунту. Войди по логину и паролю.</p>
+          <p className="au-text">Заявка доступна после входа — так она привяжется к твоему аккаунту. Создай аккаунт или войди по логину и паролю.</p>
           <div className="au-actions">
-            <Link className="sf-btn sf-btn-amber" href="/login?redirect=/join">
+            <Link className="sf-btn sf-btn-amber" href="/register">
+              Регистрация
+            </Link>
+            <Link className="sf-btn sf-btn-ink-line" href="/login?redirect=/join">
               Войти
             </Link>
           </div>
