@@ -55,7 +55,7 @@ export function ClaimForm({ token, login }: { token: string; login: string }) {
       <button type="submit" className="btn btn-primary w-full" disabled={busy}>
         <span>{busy ? "Активируем…" : "Задать пароль и войти"}</span>
       </button>
-      <p className="text-xs text-muted">Логин для входа: <span className="text-fg">@{login}</span></p>
+      <p className="text-xs text-muted">Ник для входа: <span className="text-fg">{login}</span></p>
     </form>
   );
 }

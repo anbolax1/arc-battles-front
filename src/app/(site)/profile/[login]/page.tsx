@@ -27,7 +27,7 @@ export default async function PlayerProfilePage({
     return (
       <div className="mx-auto max-w-[1240px] space-y-4 px-6 py-24 text-center">
         <h1 className="text-3xl">Игрок не найден</h1>
-        <p className="text-muted">Возможно, такого логина нет или он ещё не заходил на сайт.</p>
+        <p className="text-muted">Возможно, такого ника нет или он ещё не заходил на сайт.</p>
         <div className="pt-2">
           <Link href="/rating" className="btn btn-primary">
             <span>К рейтингу</span>

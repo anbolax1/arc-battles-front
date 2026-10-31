@@ -7,7 +7,7 @@ import { SurfaceLogin } from "@/components/surface/pages/auth";
 
 export const metadata = {
   title: "Вход — GOARC.PRO",
-  description: "Вход по логину и паролю.",
+  description: "Вход по нику и паролю.",
 };
 
 // safeInternalRedirect — пускает только внутренний путь. Резолвим относительно фиктивного

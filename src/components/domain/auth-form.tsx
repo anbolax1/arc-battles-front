@@ -9,7 +9,7 @@ import { NICK_MAX, NICK_RULES, validateSignup } from "@/lib/signup";
 import { Panel } from "@/components/ui/card";
 import type { User } from "@/lib/types";
 
-/* Форма входа по логину и паролю. После успеха обновляем контекст авторизации (refresh)
+/* Форма входа по нику и паролю. После успеха обновляем контекст авторизации (refresh)
    и SSR-данные (router.refresh) и уходим на target. */
 
 const fieldCls =
@@ -20,7 +20,7 @@ export function useAuthForm(redirectTo?: string) {
   const router = useRouter();
   const { refresh } = useAuth();
 
-  const [login, setLogin] = React.useState("");
+  const [nick, setNick] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -28,10 +28,10 @@ export function useAuthForm(redirectTo?: string) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const l = login.trim();
+    const l = nick.trim();
 
     if (!l || !password) {
-      setError("Укажите логин и пароль.");
+      setError("Укажите ник и пароль.");
       return;
     }
 
@@ -50,17 +50,16 @@ export function useAuthForm(redirectTo?: string) {
     }
   }
 
-  return { login, setLogin, password, setPassword, sending, error, onSubmit };
+  return { nick, setNick, password, setPassword, sending, error, onSubmit };
 }
 
-/** Регистрация: логин, пароль, ник и Embark ID. После успеха сервер сразу заводит сессию. */
+/** Регистрация: ник, пароль и Embark ID. После успеха сервер сразу заводит сессию. */
 export function useSignupForm() {
   const router = useRouter();
   const { refresh } = useAuth();
 
-  const [login, setLogin] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [nick, setNick] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [embarkId, setEmbarkId] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -69,7 +68,7 @@ export function useSignupForm() {
     e.preventDefault();
     setError("");
 
-    const problem = validateSignup({ login, password, nick, embarkId });
+    const problem = validateSignup({ password, nick, embarkId });
     if (problem) {
       setError(problem);
       return;
@@ -78,9 +77,8 @@ export function useSignupForm() {
     setSending(true);
     try {
       await api.post<User>("/auth/register", {
-        login: login.trim(),
-        password,
         nick: nick.trim(),
+        password,
         embarkId: embarkId.trim(),
       });
       await refresh();
@@ -92,7 +90,7 @@ export function useSignupForm() {
     }
   }
 
-  return { login, setLogin, password, setPassword, nick, setNick, embarkId, setEmbarkId, sending, error, onSubmit };
+  return { nick, setNick, password, setPassword, embarkId, setEmbarkId, sending, error, onSubmit };
 }
 
 export function SignupForm() {
@@ -102,24 +100,27 @@ export function SignupForm() {
     <Panel glow className="p-6">
       <form className="space-y-4" onSubmit={f.onSubmit}>
         <div className="space-y-1.5">
-          <label htmlFor="reg-login" className="text-xs uppercase tracking-wide text-muted">
-            Логин
+          <label htmlFor="reg-nick" className="text-xs uppercase tracking-wide text-muted">
+            Ник
           </label>
           <input
-            id="reg-login"
+            id="reg-nick"
             name="username"
             className={fieldCls}
             autoComplete="username"
-            autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            maxLength={32}
-            placeholder="например, raider_07"
-            value={f.login}
-            onChange={(e) => f.setLogin(e.target.value)}
+            maxLength={NICK_MAX}
+            value={f.nick}
+            onChange={(e) => f.setNick(e.target.value)}
             required
           />
-          <p className="text-xs text-muted">Для входа: 3–32 символа, латиница, цифры и подчёркивание.</p>
+          <p className="text-xs text-muted">Он же имя на сайте и логин для входа.</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted">
+            {NICK_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
         </div>
 
         <div className="space-y-1.5">
@@ -138,29 +139,6 @@ export function SignupForm() {
             onChange={(e) => f.setPassword(e.target.value)}
             required
           />
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="reg-nick" className="text-xs uppercase tracking-wide text-muted">
-            Ник
-          </label>
-          <input
-            id="reg-nick"
-            name="nickname"
-            className={fieldCls}
-            autoComplete="nickname"
-            autoCorrect="off"
-            spellCheck={false}
-            maxLength={NICK_MAX}
-            value={f.nick}
-            onChange={(e) => f.setNick(e.target.value)}
-            required
-          />
-          <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted">
-            {NICK_RULES.map((rule) => (
-              <li key={rule}>{rule}</li>
-            ))}
-          </ul>
         </div>
 
         <div className="space-y-1.5">
@@ -201,17 +179,17 @@ export function SignupForm() {
 }
 
 export function AuthForm({ redirectTo }: { redirectTo?: string }) {
-  const { login, setLogin, password, setPassword, sending, error, onSubmit } = useAuthForm(redirectTo);
+  const { nick, setNick, password, setPassword, sending, error, onSubmit } = useAuthForm(redirectTo);
 
   return (
     <Panel glow className="p-6">
       <form className="space-y-4" onSubmit={onSubmit}>
         <div className="space-y-1.5">
-          <label htmlFor="auth-login" className="text-xs uppercase tracking-wide text-muted">
-            Логин
+          <label htmlFor="auth-nick" className="text-xs uppercase tracking-wide text-muted">
+            Ник
           </label>
           <input
-            id="auth-login"
+            id="auth-nick"
             name="username"
             className={fieldCls}
             autoComplete="username"
@@ -219,9 +197,9 @@ export function AuthForm({ redirectTo }: { redirectTo?: string }) {
             autoCorrect="off"
             spellCheck={false}
             maxLength={32}
-            placeholder="например, raider_07"
-            value={login}
-            onChange={(e) => setLogin(e.target.value)}
+            placeholder="например, Raider07"
+            value={nick}
+            onChange={(e) => setNick(e.target.value)}
             required
           />
         </div>

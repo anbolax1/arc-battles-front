@@ -7,18 +7,18 @@ import { NICK_MAX, NICK_RULES } from "@/lib/signup";
 import { useClaimForm } from "@/components/domain/claim-form";
 import { useJoinRequest } from "@/components/domain/register-form";
 
-/** Вход по логину и паролю в новом дизайне. */
+/** Вход по нику и паролю в новом дизайне. */
 export function SurfaceAuthForm({ redirectTo }: { redirectTo?: string }) {
   const f = useAuthForm(redirectTo);
 
   return (
     <form className="au-form" onSubmit={f.onSubmit}>
       <div className="sf-field">
-        <label className="sf-field-label" htmlFor="au-login">
-          Логин
+        <label className="sf-field-label" htmlFor="au-nick">
+          Ник
         </label>
         <input
-          id="au-login"
+          id="au-nick"
           name="username"
           className="sf-input"
           autoComplete="username"
@@ -26,9 +26,9 @@ export function SurfaceAuthForm({ redirectTo }: { redirectTo?: string }) {
           autoCorrect="off"
           spellCheck={false}
           maxLength={32}
-          placeholder="например, raider_07"
-          value={f.login}
-          onChange={(e) => f.setLogin(e.target.value)}
+          placeholder="например, Raider07"
+          value={f.nick}
+          onChange={(e) => f.setNick(e.target.value)}
           required
         />
       </div>
@@ -64,31 +64,34 @@ export function SurfaceAuthForm({ redirectTo }: { redirectTo?: string }) {
   );
 }
 
-/** Регистрация: логин, пароль, ник и Embark ID в новом дизайне. */
+/** Регистрация: ник, пароль и Embark ID в новом дизайне. */
 export function SurfaceSignupForm() {
   const f = useSignupForm();
 
   return (
     <form className="au-form" onSubmit={f.onSubmit}>
       <div className="sf-field">
-        <label className="sf-field-label" htmlFor="su-login">
-          Логин
+        <label className="sf-field-label" htmlFor="su-nick">
+          Ник
         </label>
         <input
-          id="su-login"
+          id="su-nick"
           name="username"
           className="sf-input"
           autoComplete="username"
-          autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
-          maxLength={32}
-          placeholder="например, raider_07"
-          value={f.login}
-          onChange={(e) => f.setLogin(e.target.value)}
+          maxLength={NICK_MAX}
+          value={f.nick}
+          onChange={(e) => f.setNick(e.target.value)}
           required
         />
-        <p className="sf-field-note">Для входа: 3–32 символа, латиница, цифры и подчёркивание</p>
+        <p className="sf-field-note">Он же имя на сайте и логин для входа</p>
+        <ul className="au-rules">
+          {NICK_RULES.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
       </div>
       <div className="sf-field">
         <label className="sf-field-label" htmlFor="su-password">
@@ -106,28 +109,6 @@ export function SurfaceSignupForm() {
           onChange={(e) => f.setPassword(e.target.value)}
           required
         />
-      </div>
-      <div className="sf-field">
-        <label className="sf-field-label" htmlFor="su-nick">
-          Ник
-        </label>
-        <input
-          id="su-nick"
-          name="nickname"
-          className="sf-input"
-          autoComplete="nickname"
-          autoCorrect="off"
-          spellCheck={false}
-          maxLength={NICK_MAX}
-          value={f.nick}
-          onChange={(e) => f.setNick(e.target.value)}
-          required
-        />
-        <ul className="au-rules">
-          {NICK_RULES.map((rule) => (
-            <li key={rule}>{rule}</li>
-          ))}
-        </ul>
       </div>
       <div className="sf-field">
         <label className="sf-field-label" htmlFor="su-embark">
@@ -198,7 +179,7 @@ export function SurfaceClaimForm({ token, login }: { token: string; login: strin
         {f.busy ? "Активируем…" : "Задать пароль и войти"}
       </button>
       <p className="au-switch">
-        Логин для входа: <b>@{login}</b>
+        Ник для входа: <b>{login}</b>
       </p>
     </form>
   );

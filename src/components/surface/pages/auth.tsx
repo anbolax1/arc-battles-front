@@ -37,7 +37,7 @@ function AuthLayout({ eyebrow, title, lead, aside, card, children }: { eyebrow: 
 
 export function SurfaceLogin({ redirectTo }: { redirectTo?: string }) {
   return (
-    <AuthLayout eyebrow="С возвращением" title="вход" lead="Профиль, заявки на матчи и свои клипы — по логину и паролю." card="Вход по логину">
+    <AuthLayout eyebrow="С возвращением" title="вход" lead="Профиль, заявки на матчи и свои клипы — по нику и паролю." card="Вход по нику">
       <SurfaceAuthForm redirectTo={redirectTo} />
     </AuthLayout>
   );
@@ -77,7 +77,7 @@ export async function SurfaceClaim({ token }: { token: string }) {
     <AuthLayout
       eyebrow="Активация аккаунта"
       title="твой аккаунт"
-      lead={`Аккаунт ${info.displayName || info.login} с историей матчей уже на сайте. Задай пароль — и сразу войдёшь, дальше вход по логину и паролю.`}
+      lead={`Аккаунт ${info.displayName || info.login} с историей матчей уже на сайте. Задай пароль — и сразу войдёшь, дальше вход по нику и паролю.`}
       card={`Аккаунт @${info.login}`}
     >
       <SurfaceClaimForm token={token} login={info.login} />
@@ -113,7 +113,7 @@ export async function SurfaceJoin() {
         <SurfaceJoinForm user={user} />
       ) : (
         <div className="au-form">
-          <p className="au-text">Заявка доступна после входа — так она привяжется к твоему аккаунту. Создай аккаунт или войди по логину и паролю.</p>
+          <p className="au-text">Заявка доступна после входа — так она привяжется к твоему аккаунту. Создай аккаунт или войди по нику и паролю.</p>
           <div className="au-actions">
             <Link className="sf-btn sf-btn-amber" href="/register">
               Регистрация

@@ -8,7 +8,7 @@ import { SurfaceRegister } from "@/components/surface/pages/auth";
 
 export const metadata = {
   title: "Регистрация — GOARC.PRO",
-  description: "Создай аккаунт по логину и паролю, чтобы записываться на матчи лиги.",
+  description: "Создай аккаунт по нику и паролю, чтобы записываться на матчи лиги.",
 };
 
 export default async function RegisterPage() {

@@ -18,7 +18,7 @@ function SignIn() {
         <h1 className="sf-h-big">
           нужно войти<span className="sf-dot">.</span>
         </h1>
-        <p className="sf-lead pf-lead">Профиль, заявки и Embark ID доступны после входа по логину и паролю.</p>
+        <p className="sf-lead pf-lead">Профиль, заявки и Embark ID доступны после входа по нику и паролю.</p>
         <div className="sf-controls">
           <Link className="sf-btn sf-btn-amber" href="/login?redirect=/profile">
             Войти

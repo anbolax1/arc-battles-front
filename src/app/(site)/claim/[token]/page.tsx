@@ -31,7 +31,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
       <Panel glow className="mt-6 max-w-md space-y-4 p-6">
         <p className="text-sm text-muted">
           Это твой аккаунт <b className="text-fg">@{info.login}</b> с историей матчей. Задай пароль —
-          и сразу войдёшь. Дальше вход по логину и паролю.
+          и сразу войдёшь. Дальше вход по нику и паролю.
         </p>
         <ClaimForm token={token} login={info.login} />
       </Panel>

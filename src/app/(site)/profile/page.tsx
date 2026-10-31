@@ -29,7 +29,7 @@ export default async function ProfilePage() {
         <Panel glow className="flex max-w-xl flex-col items-start gap-4 p-6">
           <h3 className="font-display text-lg uppercase">Нужно войти</h3>
           <p className="text-sm text-muted">
-            Профиль, заявки и Embark ID доступны после входа по логину и паролю.
+            Профиль, заявки и Embark ID доступны после входа по нику и паролю.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/login?redirect=/profile" className="btn btn-primary">
