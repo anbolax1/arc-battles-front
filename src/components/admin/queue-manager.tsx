@@ -14,7 +14,9 @@ import {
   dayClock,
   entryStatusLabel,
   mmss,
+  num,
   plural,
+  todayLabel,
   useQueue,
   useSecondsLeft,
   type UseQueue,
@@ -26,6 +28,7 @@ import type {
   QueueEvent,
   QueueFormat,
   QueueMatch,
+  QueueMember,
   QueueSession,
   QueueSnapshot,
 } from "@/lib/types";
@@ -80,6 +83,22 @@ function StatusText({ e }: { e: QueueEntry }) {
       {entryStatusLabel(e)}
     </span>
   );
+}
+
+/** Часы и ноки игрока, как их подтвердил модератор: ведущему видно, с кем он играет. */
+function MemberStats({ m, named }: { m: QueueMember; named: boolean }) {
+  const known = m.hours != null && m.knocks != null;
+  return (
+    <span className={known ? "" : "text-danger"}>
+      {named && <b className="font-semibold">{m.displayName || m.login}: </b>}
+      {m.hours != null ? `${num(m.hours)} ч` : "часы не подтверждены"} · {m.knocks != null ? `${num(m.knocks)} нок` : "ноки не подтверждены"}
+    </span>
+  );
+}
+
+/** Сколько матчей человек сыграл сегодня: сыгравшие стоят позади тех, кто ещё не играл. */
+function TodayChip({ n }: { n: number }) {
+  return <span className={n > 0 ? "font-semibold text-primary" : ""}>сегодня: {todayLabel(n)}</span>;
 }
 
 /* ---------- Создание и настройки сессии ---------- */
@@ -277,6 +296,14 @@ function MatchPanel({
                         {e.members.map((x) => `${x.displayName || x.login}${x.ready ? " ✓" : ""}`).join(" · ")}
                       </div>
                     )}
+                    {e && (
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+                        {e.members.map((x) => (
+                          <MemberStats key={x.userId} m={x} named={e.members.length > 1} />
+                        ))}
+                        <TodayChip n={e.todayMatches} />
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-sm text-muted">ждём вызова</div>
@@ -332,20 +359,20 @@ function EntryRow({
           {e.addedByOrganizer && <span className="ml-2 align-middle text-[0.65rem] normal-case text-muted">добавлен вручную</span>}
         </div>
         <div className="flex flex-wrap gap-x-2 text-xs text-muted">
-          {(e.members.length > 1 ? e.members : []).map((m, i) => (
-            <React.Fragment key={m.userId}>
-              {i > 0 && <span aria-hidden>·</span>}
-              <span>
-                {m.displayName || m.login}
-                {e.status === "invited" && m.ready ? " ✓" : ""}
-              </span>
-            </React.Fragment>
-          ))}
+          {e.status === "invited" && e.members.length > 1 && (
+            <span>{e.members.map((m) => `${m.displayName || m.login}${m.ready ? " ✓" : ""}`).join(" · ")}</span>
+          )}
           <span>
             · MMR {e.mmr} · с {clock(e.joinedAt)}
-            {e.performedCount > 0 ? ` · выступал ${e.performedCount}` : ""}
+            {e.performedCount > 0 ? ` · в сессии ${e.performedCount}` : ""}
             {e.skippedCount > 0 ? ` · пропусков ${e.skippedCount}` : ""}
           </span>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+          {e.members.map((m) => (
+            <MemberStats key={m.userId} m={m} named={e.members.length > 1} />
+          ))}
+          <TodayChip n={e.todayMatches} />
         </div>
       </div>
       <div className="flex min-w-[8rem] flex-col items-start gap-0.5">
@@ -593,8 +620,8 @@ export function QueueManager() {
         }
       />
       <p className="-mt-2 max-w-3xl text-sm text-muted">
-        Игроки записываются сами, порядок считается на сервере и сразу виден всем. Первым выступает тот, кто записался раньше; после
-        матча участники встают в конец, новички идут перед теми, кто уже выступал. Очереди 1×1 и 2×2 идут отдельно.
+        Игроки записываются сами, порядок считается на сервере и сразу виден всем. Первым выступает тот, кто записался раньше; новичок
+        встаёт перед теми, кто сегодня уже играл, а сыгравшие матч уходят в конец. Очереди 1×1 и 2×2 идут отдельно.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">

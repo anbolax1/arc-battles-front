@@ -275,7 +275,7 @@
 }
 .qu-row {
   display: grid;
-  grid-template-columns: 52px auto minmax(0, 1fr) 96px 120px minmax(150px, auto);
+  grid-template-columns: 52px auto minmax(0, 1fr) 90px 110px 110px minmax(150px, auto);
   align-items: center;
   gap: 12px;
   padding: 12px 16px 12px 0;
@@ -368,18 +368,24 @@ a.qu-name:hover {
   color: var(--sf-ink-2);
 }
 .qu-mmr,
-.qu-time {
+.qu-time,
+.qu-today {
   font: 600 14px/1.2 var(--sf-ff-m);
   color: var(--sf-ink);
   font-variant-numeric: tabular-nums;
 }
 .qu-mmr small,
-.qu-time small {
+.qu-time small,
+.qu-today small {
   display: block;
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--sf-ink-2);
+}
+.qu-today.has {
+  color: var(--sf-loss-ink);
+  font-weight: 700;
 }
 .qu-state {
   display: flex;
@@ -611,7 +617,8 @@ a.qu-name:hover {
     grid-template-areas:
       "pos faces who"
       "pos state state"
-      "pos mmr time";
+      "pos mmr time"
+      "pos today today";
     gap: 6px 10px;
     padding-block: 10px;
   }
@@ -637,8 +644,12 @@ a.qu-name:hover {
   .qu-row > .qu-time {
     grid-area: time;
   }
+  .qu-row > .qu-today {
+    grid-area: today;
+  }
   .qu-mmr small,
-  .qu-time small {
+  .qu-time small,
+  .qu-today small {
     display: inline;
     margin-right: 4px;
   }

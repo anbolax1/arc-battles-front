@@ -13,6 +13,7 @@ import {
   entryTone,
   mmss,
   plural,
+  todayLabel,
   useQueue,
   useSecondsLeft,
   type UseQueue,
@@ -286,9 +287,14 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
       )}
       <p className="qu-me-text">
         {me?.canJoin
-          ? "Запись займёт место в конце очереди среди тех, кто ещё не выступал."
+          ? "Запись займёт место в очереди перед теми, кто сегодня уже играл."
           : (me?.joinBlocked ?? "Записаться сейчас нельзя.")}
       </p>
+      {me?.needsStats && (
+        <Link href="/profile" className="sf-btn sf-btn-amber">
+          Заполнить профиль
+        </Link>
+      )}
       <button
         type="button"
         className="sf-btn sf-btn-amber"
@@ -320,6 +326,9 @@ function Row({ e, mine, serverNow }: { e: QueueEntry; mine: boolean; serverNow: 
       </span>
       <span className="qu-time">
         <small>в очереди с</small> {clock(e.joinedAt)}
+      </span>
+      <span className={`qu-today ${e.todayMatches > 0 ? "has" : ""}`}>
+        <small>сегодня</small> {todayLabel(e.todayMatches)}
       </span>
       <span className="qu-state">
         <span className={`qu-badge ${entryTone(e)}`}>{entryStatusLabel(e)}</span>
@@ -419,7 +428,7 @@ export function SurfaceQueue({ initial, format, sessionId }: { initial: QueueSna
             очередь<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead">
-            Записывайся на выступление во время стрима, следи за местом и выходи в эфир, когда дойдёт очередь. Порядок один для всех: первым выступает тот, кто записался раньше.
+            Записывайся на выступление во время стрима, следи за местом и выходи в эфир, когда дойдёт очередь. Порядок один для всех: первым выступает тот, кто записался раньше, а кто уже играл сегодня, пропускает вперёд тех, кто ещё не играл.
           </p>
 
           <div className="qu-bar">

@@ -1401,6 +1401,11 @@ export interface QueueMember {
   login: string;
   displayName: string;
   avatarUrl: string;
+  /** Подтверждённые модератором часы в игре и ноки за всё время. */
+  hours?: number;
+  knocks?: number;
+  /** Матчей, сыгранных сегодня. */
+  todayMatches: number;
   ready: boolean;
   readyAt?: string | null;
 }
@@ -1415,6 +1420,8 @@ export interface QueueEntry {
   members: QueueMember[];
   mmr: number;
   joinedAt: string;
+  /** Матчей за сегодня; у команды - у самого игравшего из двух. */
+  todayMatches: number;
   performedCount: number;
   skippedCount: number;
   invitedAt?: string | null;
@@ -1467,6 +1474,8 @@ export interface QueueMe {
   status?: QueueEntryStatus;
   needsConfirm?: boolean;
   confirmed?: boolean;
+  /** У него нет подтверждённых часов и ноков: сначала нужно заполнить профиль. */
+  needsStats?: boolean;
   canLeave: boolean;
   canJoin: boolean;
   joinBlocked?: string;

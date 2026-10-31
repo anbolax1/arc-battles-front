@@ -217,3 +217,14 @@ export function plural(n: number, forms: [string, string, string]): string {
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return forms[1];
   return forms[2];
 }
+
+const W_MATCHES: [string, string, string] = ["матч", "матча", "матчей"];
+
+/** «Сегодня: 2 матча» - сколько матчей человек уже сыграл за сегодня. */
+export function todayLabel(n: number): string {
+  return n > 0 ? `${n} ${plural(n, W_MATCHES)}` : "не играл";
+}
+
+export function num(n: number): string {
+  return n.toLocaleString("ru-RU");
+}
