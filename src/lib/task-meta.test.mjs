@@ -9,7 +9,7 @@ const task = (over) => ({
   tag: "normal", mapCodes: [], active: true, format: "2x2", rarity: "epic", roundType: "paid", ...over,
 });
 
-test("фильтры комбинируются: 2×2 + PvP + Эпический + Платный раунд", () => {
+test("фильтры комбинируются: 2×2 + PvP + Эпическое + Платный раунд", () => {
   const f = { ...base, format: "2x2", kind: "pvp", rarity: "epic", roundType: "paid" };
   assert.ok(matchesFilter(task({}), f));
   assert.ok(!matchesFilter(task({ format: "1x1" }), f));
@@ -54,9 +54,9 @@ test("задание на время - обычное задание с тего
 test("плашка: «На время» оранжевая, остальные - цвет редкости", () => {
   assert.deepEqual(taskBadge({ tag: "timed", rarity: "epic" }).label, "На время");
   assert.equal(taskBadge({ tag: "timed", rarity: "epic" }).color, "#ff8126");
-  assert.deepEqual(taskBadge({ tag: "normal", rarity: "epic" }), { label: "Эпический", color: "#cc3099", ink: "#ffffff" });
-  assert.equal(taskBadge({}).label, "Обычный");
-  assert.equal(taskBadge({ rarity: "неизвестная" }).label, "Обычный");
+  assert.deepEqual(taskBadge({ tag: "normal", rarity: "epic" }), { label: "Эпическое", color: "#cc3099", ink: "#ffffff" });
+  assert.equal(taskBadge({}).label, "Обычное");
+  assert.equal(taskBadge({ rarity: "неизвестная" }).label, "Обычное");
 });
 
 test("баллы по умолчанию не зависят от редкости", () => {

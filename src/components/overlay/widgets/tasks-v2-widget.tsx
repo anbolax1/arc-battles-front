@@ -9,7 +9,7 @@ const MAX_ROWS = 8;
 
 type Row = { label: string; color: string; ink: string; tag: TaskTag; points: number; done: boolean; text: string };
 
-/** Строка блока: плашка - «На время» или редкость своим цветом. Задание без тега и редкости - «Обычный». */
+/** Строка блока: плашка - «На время» или редкость своим цветом. Задание без тега и редкости - «Обычное». */
 function toRow(r: { tag?: string; rarity?: string; points: number; done: boolean; text: string }): Row {
   const tag: TaskTag = r.tag === "timed" ? "timed" : "normal";
   const badge = taskBadge(r);

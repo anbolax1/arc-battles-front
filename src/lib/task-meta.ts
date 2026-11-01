@@ -9,11 +9,11 @@ export interface RarityMeta {
 }
 
 export const RARITIES: RarityMeta[] = [
-  { id: "common", label: "Обычный", color: "#6c6c6c", ink: "#ffffff" },
-  { id: "uncommon", label: "Необычный", color: "#26bf57", ink: "#07210f" },
-  { id: "rare", label: "Редкий", color: "#00a9f2", ink: "#00202f" },
-  { id: "epic", label: "Эпический", color: "#cc3099", ink: "#ffffff" },
-  { id: "legendary", label: "Легендарный", color: "#ffc600", ink: "#2a2000" },
+  { id: "common", label: "Обычное", color: "#6c6c6c", ink: "#ffffff" },
+  { id: "uncommon", label: "Необычное", color: "#26bf57", ink: "#07210f" },
+  { id: "rare", label: "Редкое", color: "#00a9f2", ink: "#00202f" },
+  { id: "epic", label: "Эпическое", color: "#cc3099", ink: "#ffffff" },
+  { id: "legendary", label: "Легендарное", color: "#ffc600", ink: "#2a2000" },
 ];
 
 /** Дополнительное условие «На время» - независимо от редкости. */
@@ -129,7 +129,7 @@ export function settingsBody(s: TaskSettings, points: number) {
   };
 }
 
-/** Строка для предпросмотра: «2×2 / PvP / Эпический / На время / Платный раунд». */
+/** Строка для предпросмотра: «2×2 / PvP / Эпическое / На время / Платный раунд». */
 export function describeSettings(s: TaskSettings, mapName: (code: string) => string): string {
   const parts: string[] = [formatLabel(s.format)];
   parts.push(kindLabel(s.kind));
