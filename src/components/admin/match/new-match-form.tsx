@@ -222,7 +222,7 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
   const allRarities = RARITIES.map((r) => r.id);
   // Предпочтения игроков стороны из профиля; у команды складываются.
   const profileRarities = (userIds: string[]): TaskRarity[] =>
-    allRarities.filter((r) => userIds.some((id) => (players.find((p) => p.id === id)?.taskRarities ?? allRarities).includes(r)));
+    allRarities.filter((r) => userIds.some((id) => (players.find((p) => p.id === id)?.taskRarities ?? ["common"]).includes(r)));
   const sides = sideDefs
     ? sideDefs.map((d) => ({
         ...(teamMode ? { teamKey: d.key } : { userId: d.key }),

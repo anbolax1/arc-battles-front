@@ -385,7 +385,7 @@ function TaskRaritiesForm({ initial }: { initial: TaskRarity[] }) {
         })}
       </div>
       <p className="sf-field-note">
-        В матче задания будут выпадать этих редкостей; если подходящих не хватит, добавятся ближайшие по редкости. Ведущий может поменять это
+        По умолчанию выпадают только обычные. В матче задания будут выпадать выбранных редкостей; если подходящих не хватит, добавятся ближайшие по редкости. Ведущий может поменять это
         для конкретного матча.
       </p>
       <div className="pf-fav-save">
@@ -512,7 +512,7 @@ export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExt
       <p className="sf-field-note pf-wide pf-stat-hint">
         Скриншот во весь экран. Модератор проведет проверку и подтвердит данные. До проверки и в случае отклонения возле цифр будет надпись «не подтверждено»
       </p>
-      <TaskRaritiesForm initial={extras.taskRarities ?? RARITIES.map((r) => r.id)} />
+      <TaskRaritiesForm initial={extras.taskRarities ?? ["common"]} />
       <FavoritesForm initial={extras.favorites} options={options} allowed={extras.canFavorites} roleName={roleName} />
       <ResetForm tokens={extras.tokens} blocked={extras.resetBlocked} mmr={extras.mmr} start={extras.startMmr} />
     </section>
