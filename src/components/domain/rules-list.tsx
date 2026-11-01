@@ -7,6 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fmtDate, pointsLabel } from "@/lib/format";
+import { RuleTags } from "@/components/domain/rule-tags";
+import { taskFormat } from "@/lib/task-meta";
+
+/** Формат матча в справочнике: all - без фильтра. */
+export type RulesFormat = "all" | "1x1" | "2x2";
+
+export const RULES_FORMATS: Array<[RulesFormat, string]> = [
+  ["all", "Все форматы"],
+  ["1x1", "1×1"],
+  ["2x2", "2×2"],
+];
 
 export const KIND_LABEL: Record<string, string> = {
   pve: "PvE",
@@ -28,8 +39,16 @@ function matches(it: { num: number; label: string }, q: string): boolean {
 
 /** Справочник для показа: задания пула по картам (общие первыми), протоколы и легендарные.
     Номера идут подряд в порядке показа - по ним ищут задание. */
-export function rulesCatalog(tasks: CatalogTask[], legendary: CatalogLegendary[], maps: MapInfo[], pool: "pvp" | "pve", q: string) {
-  const active = tasks.filter((t) => t.active);
+export function rulesCatalog(
+  tasks: CatalogTask[],
+  legendary: CatalogLegendary[],
+  maps: MapInfo[],
+  pool: "pvp" | "pve",
+  q: string,
+  format: RulesFormat = "all",
+) {
+  // Формат матча: «оба» (старые задания) подходит любому выбранному.
+  const active = tasks.filter((t) => t.active && (format === "all" || taskFormat(t) === "any" || taskFormat(t) === format));
   const groupOrder = ["", ...maps.map((m) => m.code)];
   // Задание на нескольких картах стоит в группе каждой своей карты, со своим номером.
   const poolTasks = numbered(
@@ -139,8 +158,9 @@ export function RulesList({
 }) {
   const [q, setQ] = React.useState("");
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
+  const [format, setFormat] = React.useState<RulesFormat>("all");
   const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
-  const { groups, protocols: shownProtocols, legendary: shownLegendary } = rulesCatalog(tasks, legendary, maps, pool, q);
+  const { groups, protocols: shownProtocols, legendary: shownLegendary } = rulesCatalog(tasks, legendary, maps, pool, q, format);
 
   return (
     <div className="space-y-5">
@@ -160,6 +180,13 @@ export function RulesList({
           {(["pvp", "pve"] as const).map((k) => (
             <button key={k} type="button" className="seg-btn" aria-pressed={pool === k} onClick={() => setPool(k)}>
               <span>{k === "pvp" ? "Задания PvP" : "Задания PvE"}</span>
+            </button>
+          ))}
+        </div>
+        <div className="seg seg-wrap" aria-label="Формат матча">
+          {RULES_FORMATS.map(([k, label]) => (
+            <button key={k} type="button" className="seg-btn" aria-pressed={format === k} onClick={() => setFormat(k)}>
+              <span>{label}</span>
             </button>
           ))}
         </div>
@@ -183,7 +210,12 @@ export function RulesList({
                       text={t.label}
                       pts={`+${pointsLabel(t.points)}`}
                       ptsTone="pts-cyan"
-                      meta={<SourceTag source={t.source} author={t.author} title={t.title} />}
+                      meta={
+                        <>
+                          <RuleTags task={t} />
+                          <SourceTag source={t.source} author={t.author} title={t.title} />
+                        </>
+                      }
                     />
                   ))}
                 </ul>
@@ -208,7 +240,12 @@ export function RulesList({
                   text={c.label}
                   pts={`+${pointsLabel(c.points)}`}
                   ptsTone="pts-orange"
-                  meta={<SourceTag source={c.source} author={c.author} title={c.title} />}
+                  meta={
+                    <>
+                      <RuleTags task={c} />
+                      <SourceTag source={c.source} author={c.author} title={c.title} />
+                    </>
+                  }
                 />
               ))}
             </ul>

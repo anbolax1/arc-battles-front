@@ -364,6 +364,12 @@ export type TaskCategory = "task" | "protocol";
 /** Тег задания на экране: «обычное» или «на время». */
 export type TaskTag = "normal" | "timed";
 
+/** Формат матча, для которого задание: any - оба. */
+export type TaskFormat = "any" | "1x1" | "2x2";
+export type TaskRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+/** Тип раунда: бесплатный - бесплатное снаряжение, платный - свой билд, any - любой. */
+export type TaskRoundType = "any" | "free" | "paid";
+
 export interface CatalogTask {
   id: string;
   text: string;
@@ -381,6 +387,10 @@ export interface CatalogTask {
   mapCodes: string[];
   /** Выключенные не раздаются, но остаются в истории матчей. */
   active: boolean;
+  /** Новые поля классификации; у ответа старого сервера их нет - читать через task-meta. */
+  format?: TaskFormat;
+  rarity?: TaskRarity;
+  roundType?: TaskRoundType;
 }
 
 export interface CatalogComplication {

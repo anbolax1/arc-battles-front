@@ -9,10 +9,12 @@ export interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** xl - для форм с большим числом настроек. */
+  size?: "md" | "xl";
 }
 
 /** Простая модалка: скрим + панель. Esc и клик по фону — закрывают. */
-export function Modal({ open, onClose, title, children, footer }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = "md" }: ModalProps) {
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -31,7 +33,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       role="presentation"
     >
       <div
-        className="panel glow-edge max-h-[90vh] w-full max-w-lg overflow-y-auto"
+        className={`panel glow-edge max-h-[92vh] w-full overflow-y-auto ${size === "xl" ? "max-w-6xl" : "max-w-lg"}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

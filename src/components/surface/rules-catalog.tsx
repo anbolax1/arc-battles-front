@@ -4,7 +4,8 @@ import * as React from "react";
 import type { CatalogLegendary, CatalogTask, MapInfo } from "@/lib/types";
 import { mapImage } from "@/lib/match";
 import { pointsLabel } from "@/lib/format";
-import { KIND_LABEL, rulesCatalog } from "@/components/domain/rules-list";
+import { KIND_LABEL, RULES_FORMATS, rulesCatalog, type RulesFormat } from "@/components/domain/rules-list";
+import { RuleTags } from "@/components/domain/rule-tags";
 import { SearchGlyph } from "@/components/surface/ui";
 import { fullDate } from "@/components/surface/fmt";
 
@@ -14,13 +15,32 @@ function sourceLine(it: { source: string; title?: string; author?: string }): st
   return ["Boosty", it.title, it.author].filter(Boolean).join(" · ");
 }
 
-function Item({ num, name, text, points, meta, tone, children }: { num: number; name?: string; text: string; points: number; meta?: string; tone: string; children?: React.ReactNode }) {
+function Item({
+  num,
+  name,
+  text,
+  points,
+  meta,
+  tone,
+  tags,
+  children,
+}: {
+  num: number;
+  name?: string;
+  text: string;
+  points: number;
+  meta?: string;
+  tone: string;
+  tags?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
     <li className="rl-item">
       <span className="rl-num">{num}</span>
       <span className="rl-body">
         {name && <b>{name}</b>}
         <span>{text}</span>
+        {tags}
         {meta && <small>{meta}</small>}
         {children}
       </span>
@@ -33,7 +53,8 @@ function Item({ num, name, text, points, meta, tone, children }: { num: number; 
 export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[]; legendary: CatalogLegendary[]; maps: MapInfo[] }) {
   const [q, setQ] = React.useState("");
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
-  const cat = rulesCatalog(tasks, legendary, maps, pool, q);
+  const [format, setFormat] = React.useState<RulesFormat>("all");
+  const cat = rulesCatalog(tasks, legendary, maps, pool, q, format);
   const map = (code: string) => maps.find((m) => m.code === code);
   const nothing = q ? "Ничего не найдено — попробуй номер или другое слово." : "";
 
@@ -52,6 +73,13 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
               {(["pvp", "pve"] as const).map((k) => (
                 <button key={k} type="button" role="tab" aria-selected={pool === k} onClick={() => setPool(k)}>
                   {k === "pvp" ? "Задания PvP" : "Задания PvE"}
+                </button>
+              ))}
+            </div>
+            <div className="sf-seg" role="tablist" aria-label="Формат матча">
+              {RULES_FORMATS.map(([k, label]) => (
+                <button key={k} type="button" role="tab" aria-selected={format === k} onClick={() => setFormat(k)}>
+                  {label}
                 </button>
               ))}
             </div>
@@ -77,7 +105,7 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
                     </h3>
                     <ul className="rl-list">
                       {g.items.map((t) => (
-                        <Item key={t.id} num={t.num} name={t.name} text={t.text} points={t.points} meta={sourceLine(t)} tone="task" />
+                        <Item key={t.id} num={t.num} name={t.name} text={t.text} points={t.points} meta={sourceLine(t)} tone="task" tags={<RuleTags task={t} />} />
                       ))}
                     </ul>
                   </div>
@@ -96,7 +124,7 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
             {cat.protocols.length ? (
               <ul className="rl-list">
                 {cat.protocols.map((c) => (
-                  <Item key={c.id} num={c.num} name={c.name} text={c.text} points={c.points} meta={sourceLine(c)} tone="proto" />
+                  <Item key={c.id} num={c.num} name={c.name} text={c.text} points={c.points} meta={sourceLine(c)} tone="proto" tags={<RuleTags task={c} />} />
                 ))}
               </ul>
             ) : (

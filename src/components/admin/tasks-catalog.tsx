@@ -5,101 +5,84 @@ import { api, errorText } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel } from "@/components/ui/card";
-import type { CatalogTask, MapInfo, TaskCategory, TaskKind, TaskTag } from "@/lib/types";
+import { SegButton, TaskSettingsFields, TaskTags } from "@/components/admin/task-parts";
+import type { CatalogTask, MapInfo, TaskCategory } from "@/lib/types";
+import {
+  FORMATS,
+  KINDS,
+  MAX_POINTS,
+  MIN_POINTS,
+  RARITIES,
+  ROUND_TYPES,
+  defaultSettings,
+  describeSettings,
+  matchesFilter,
+  parsePoints,
+  rarityMeta,
+  settingsBody,
+  taskFormat,
+  taskRarity,
+  taskRoundType,
+  type TaskFilter,
+  type TaskSettings,
+} from "@/lib/task-meta";
+import { PROBLEM_TEXT, parseBulk, removeRecord, replaceRecord, taskKey, type BulkRow } from "@/lib/task-bulk";
 
-const KINDS: Array<[TaskKind, string]> = [
-  ["pvp", "PvP"],
-  ["pve", "PvE"],
-  ["pvpve", "Для всех"],
-];
+type Draft = { id?: string; name: string; text: string; active: boolean; settings: TaskSettings };
 
-const TAGS: Array<[TaskTag, string]> = [
-  ["normal", "Обычное"],
-  ["timed", "На время"],
-];
+/** Ответ вставки списком: добавленные задания и строки, которые сервер пропустил (с номером в присланном списке). */
+type BulkResult = { created: CatalogTask[]; skipped: Array<{ index: number; reason: string }> };
 
-// Баллы храним строкой, чтобы поле можно было стереть и вписать заново.
-type Draft = {
-  id?: string;
-  name: string;
-  text: string;
-  kind: TaskKind;
-  tag: TaskTag;
-  mapCodes: string[];
-  points: string;
-  active: boolean;
-  source: "official" | "boosty";
-  author: string;
-  title: string;
+const DEFAULT_FILTER: TaskFilter = {
+  category: "task",
+  format: "all",
+  kind: "pvp",
+  rarity: "all",
+  timed: "all",
+  roundType: "all",
+  map: "all",
+  source: "all",
+  showOff: false,
+  query: "",
 };
 
-const MIN_POINTS = 1;
-const MAX_POINTS = 10;
+const sameFilter = (a: TaskFilter, b: TaskFilter) => (Object.keys(a) as Array<keyof TaskFilter>).every((k) => a[k] === b[k]);
 
-/** Баллы из поля, если это целое в допустимых пределах; иначе null. */
-function draftPoints(v: string): number | null {
-  if (!/^\d+$/.test(v.trim())) return null;
-  const n = Number(v);
-  return n >= MIN_POINTS && n <= MAX_POINTS ? n : null;
-}
-
-const emptyDraft = (category: TaskCategory, kind: TaskKind, mapCode: string): Draft => ({
-  name: "",
-  text: "",
-  kind,
-  // протокол выполняют до 15-й минуты, он на время
-  tag: category === "protocol" ? "timed" : "normal",
-  mapCodes: mapCode ? [mapCode] : [],
-  points: category === "protocol" ? "1" : "2",
-  active: true,
-  source: "official",
-  author: "",
-  title: "",
-});
-
-/** Разбор вставленного списка: «Название | Описание» или «Название<Tab>Описание», по строке на задание. */
-function parseBulk(raw: string): Array<{ name: string; text: string }> {
-  return raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const parts = line.split(/\t|\s\|\s/).map((p) => p.trim()).filter(Boolean);
-      const name = (parts.length > 1 ? parts[0] : "").replace(/^«|»$/g, "");
-      const text = parts.length > 1 ? parts.slice(1).join(" ") : parts[0];
-      return { name, text };
-    })
-    .filter((x) => x.text);
-}
+/** Пул протокола не выбирается: он подходит любому типу игроков. */
+const PROTOCOL_KIND = "pvpve";
 
 /** Каталог 3 сезона: задания (общие и на карты, отдельно PvP и PvE) и протоколы за +1. */
 export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: MapInfo[] }) {
   const [items, setItems] = React.useState(initial);
-  const [category, setCategory] = React.useState<TaskCategory>("task");
-  const [kind, setKind] = React.useState<TaskKind | "all">("pvp");
-  const [mapFilter, setMapFilter] = React.useState<string>("all");
-  const [showOff, setShowOff] = React.useState(false);
-  const [query, setQuery] = React.useState("");
+  const [filter, setFilter] = React.useState<TaskFilter>(DEFAULT_FILTER);
   const [draft, setDraft] = React.useState<Draft | null>(null);
-  const [bulk, setBulk] = React.useState<string | null>(null);
+  const [bulk, setBulk] = React.useState<{ raw: string; settings: TaskSettings } | null>(null);
   const [deleting, setDeleting] = React.useState<CatalogTask | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
+  const [notice, setNotice] = React.useState<{ text: string; hidden: number } | null>(null);
 
+  const category = filter.category;
+  const setF = (patch: Partial<TaskFilter>) => setFilter((f) => ({ ...f, ...patch }));
   const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
-  const q = query.trim().toLowerCase();
-  const visible = items.filter(
-    (t) =>
-      (t.category || "task") === category &&
-      (showOff || t.active) &&
-      (kind === "all" || t.kind === kind || category === "protocol") &&
-      (mapFilter === "all" || (mapFilter === "universal" ? !t.mapCodes.length : t.mapCodes.includes(mapFilter))) &&
-      (!q || `${t.name ?? ""} ${t.text}`.toLowerCase().includes(q)),
-  );
-  const defaultKind: TaskKind = category === "protocol" ? "pvpve" : kind === "all" ? "pvp" : kind;
-  const defaultMap = mapFilter !== "all" && mapFilter !== "universal" ? mapFilter : "";
+  const visible = items.filter((t) => matchesFilter(t, filter));
+
+  /** Настройки нового задания: выбранные фильтры становятся значениями по умолчанию, чтобы задание не пропало из списка. */
+  function settingsFromFilter(): TaskSettings {
+    const f = filter;
+    return defaultSettings(category, {
+      format: f.format === "all" ? "1x1" : f.format,
+      kind: category === "protocol" ? PROTOCOL_KIND : f.kind === "all" ? "pvp" : f.kind,
+      rarity: f.rarity === "all" ? "common" : f.rarity,
+      timed: category === "protocol" ? f.timed !== "normal" : f.timed === "timed",
+      roundType: f.roundType === "all" ? "any" : f.roundType,
+      mapCodes: category === "task" && f.map !== "all" && f.map !== "universal" ? [f.map] : [],
+      source: f.source === "boosty" ? "boosty" : "official",
+    });
+  }
 
   // Задание на нескольких картах стоит в группе каждой своей карты.
+  const defaultMap = filter.map !== "all" && filter.map !== "universal" ? filter.map : "";
   const groups = new Map<string, CatalogTask[]>();
   for (const t of visible) {
     const keys = defaultMap ? [defaultMap] : t.mapCodes.length ? t.mapCodes : [""];
@@ -107,24 +90,36 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
   }
   const groupOrder = ["", ...maps.map((m) => m.code)].filter((k) => groups.has(k));
 
+  /** Сообщение после добавления; если часть заданий скрыта текущими фильтрами, говорим об этом. */
+  function announce(text: string, created: CatalogTask[]) {
+    const hidden = created.filter((t) => !matchesFilter(t, filter)).length;
+    setNotice({ text, hidden });
+  }
+
+  const resetFilters = () => {
+    setFilter({ ...DEFAULT_FILTER, category, kind: "all" });
+    setNotice(null);
+  };
+
   async function save() {
     if (!draft || !draft.text.trim()) {
       setErr("Укажите описание задания.");
       return;
     }
-    const points = draftPoints(draft.points);
+    const points = parsePoints(draft.settings.points);
     if (points === null) {
-      setErr(`Баллы — от ${MIN_POINTS} до ${MAX_POINTS}.`);
+      setErr(`Баллы - от ${MIN_POINTS} до ${MAX_POINTS}.`);
       return;
     }
     setBusy(true);
     setErr("");
-    const body = { ...draft, points, category, mapCodes: category === "protocol" ? [] : draft.mapCodes, valueType: "fixed" };
+    const body = { ...settingsBody(draft.settings, category, points), name: draft.name, text: draft.text, active: draft.active };
     try {
       const saved = draft.id
         ? await api.patch<CatalogTask>(`/catalog/tasks/${draft.id}`, body)
         : await api.post<CatalogTask>("/catalog/tasks", body);
       setItems((xs) => (draft.id ? xs.map((x) => (x.id === saved.id ? saved : x)) : [...xs, saved]));
+      if (!draft.id) announce("Задание добавлено.", [saved]);
       setDraft(null);
     } catch (e) {
       setErr(errorText(e));
@@ -138,34 +133,6 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
     try {
       const saved = await api.patch<CatalogTask>(`/catalog/tasks/${t.id}`, { ...t, active: !t.active });
       setItems((xs) => xs.map((x) => (x.id === saved.id ? saved : x)));
-    } catch (e) {
-      setErr(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function importBulk() {
-    const rows = parseBulk(bulk ?? "");
-    if (!rows.length) {
-      setErr("Вставьте хотя бы одну строку.");
-      return;
-    }
-    setBusy(true);
-    setErr("");
-    try {
-      const created = await api.post<CatalogTask[]>("/catalog/tasks/bulk", {
-        items: rows.map((r) => ({
-          ...r,
-          category,
-          kind: defaultKind,
-          mapCodes: category === "protocol" || !defaultMap ? [] : [defaultMap],
-          points: category === "protocol" ? 1 : 2,
-          valueType: "fixed",
-        })),
-      });
-      setItems((xs) => [...xs, ...created]);
-      setBulk(null);
     } catch (e) {
       setErr(errorText(e));
     } finally {
@@ -188,78 +155,163 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
     }
   }
 
+  const edit = (t: CatalogTask) => {
+    setErr("");
+    setDraft({
+      id: t.id,
+      name: t.name ?? "",
+      text: t.text,
+      active: t.active,
+      settings: {
+        format: taskFormat(t),
+        kind: t.kind,
+        rarity: taskRarity(t),
+        timed: t.tag === "timed",
+        roundType: taskRoundType(t),
+        mapCodes: t.mapCodes,
+        points: String(t.points),
+        // у существующего задания баллы заданы: переключение «На время» их не трогает
+        pointsTouched: true,
+        source: t.source === "boosty" ? "boosty" : "official",
+        author: t.author ?? "",
+        title: t.title ?? "",
+      },
+    });
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl">Задания и протоколы</h2>
         <div className="flex gap-2">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBulk("")}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setErr("");
+              setBulk({ raw: "", settings: settingsFromFilter() });
+            }}
+          >
             <span>Вставить списком</span>
           </button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setDraft(emptyDraft(category, defaultKind, defaultMap))}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setErr("");
+              setDraft({ name: "", text: "", active: true, settings: settingsFromFilter() });
+            }}
+          >
             <span>+ Добавить</span>
           </button>
         </div>
       </div>
       <p className="text-sm text-muted">
-        В матче каждой стороне на раунд выпадает общее задание, задание на карту раунда и протокол — из пула под тип игроков, без
-        повторов в матче. Задание стоит 2 балла, протокол — 1 балл; задания соперника не засчитываются. Тег «обычное» или «на время»
-        виден на стриме в виджете «Задания V2».
+        В матче каждой стороне на раунд выпадает общее задание, задание на карту раунда и протокол - из пула под тип игроков, формат матча
+        и тип раунда, без повторов в матче. Обычное задание стоит 2 балла, на время и протокол - 1; баллы можно задать вручную, от редкости
+        они не зависят. Тег «На время» виден на стриме в виджете «Задания V2».
       </p>
 
-      <Panel className="flex flex-wrap items-end gap-x-6 gap-y-3 p-4">
-        <div className="space-y-1.5">
-          <span className="field-label">Раздел</span>
-          <div className="seg">
-            <button type="button" className="seg-btn" aria-pressed={category === "task"} onClick={() => setCategory("task")}>
-              <span>Задания</span>
-            </button>
-            <button type="button" className="seg-btn" aria-pressed={category === "protocol"} onClick={() => setCategory("protocol")}>
-              <span>Протоколы</span>
-            </button>
+      <Panel className="space-y-3 p-4">
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+          <div className="space-y-1.5">
+            <span className="field-label block">Раздел</span>
+            <div className="seg">
+              <SegButton pressed={category === "task"} onClick={() => setF({ category: "task" })}>
+                Задания
+              </SegButton>
+              <SegButton pressed={category === "protocol"} onClick={() => setF({ category: "protocol" })}>
+                Протоколы
+              </SegButton>
+            </div>
           </div>
-        </div>
-        {category === "task" && (
-          <>
-            <div className="space-y-1.5">
-              <span className="field-label">Пул</span>
-              <div className="seg">
-                {(["pvp", "pve", "all"] as const).map((k) => (
-                  <button key={k} type="button" className="seg-btn" aria-pressed={kind === k} onClick={() => setKind(k)}>
-                    <span>{k === "all" ? "Все" : k === "pvp" ? "PvP" : "PvE"}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="field-label" htmlFor="cat-map">
-                Карта
-              </label>
-              <select id="cat-map" className="select" value={mapFilter} onChange={(e) => setMapFilter(e.target.value)}>
-                <option value="all">Все</option>
-                <option value="universal">Общие (без карты)</option>
-                {maps.map((m) => (
-                  <option key={m.code} value={m.code}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        )}
-        <div className="min-w-[200px] flex-1 space-y-1.5">
-          <label className="field-label" htmlFor="cat-q">
-            Поиск
+          <div className="min-w-[200px] flex-1 space-y-1.5">
+            <label className="field-label" htmlFor="cat-q">
+              Поиск
+            </label>
+            <input id="cat-q" className="input" value={filter.query} onChange={(e) => setF({ query: e.target.value })} placeholder="Название или текст" />
+          </div>
+          <label className="flex items-center gap-2 pb-2 text-sm text-muted">
+            <input type="checkbox" checked={filter.showOff} onChange={(e) => setF({ showOff: e.target.checked })} />
+            показывать выключенные
           </label>
-          <input id="cat-q" className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Название или текст" />
         </div>
-        <label className="flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" checked={showOff} onChange={(e) => setShowOff(e.target.checked)} />
-          показывать выключенные
-        </label>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+          <FilterSelect label="Формат" id="f-format" value={filter.format} onChange={(v) => setF({ format: v as TaskFilter["format"] })}>
+            {FORMATS.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
+              </option>
+            ))}
+          </FilterSelect>
+          {category === "task" && (
+            <FilterSelect label="Пул" id="f-kind" value={filter.kind} onChange={(v) => setF({ kind: v as TaskFilter["kind"] })}>
+              {KINDS.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.label}
+                </option>
+              ))}
+            </FilterSelect>
+          )}
+          <FilterSelect label="Редкость" id="f-rarity" value={filter.rarity} onChange={(v) => setF({ rarity: v as TaskFilter["rarity"] })}>
+            {RARITIES.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </FilterSelect>
+          <FilterSelect label="Условие" id="f-timed" value={filter.timed} all="Любое" onChange={(v) => setF({ timed: v as TaskFilter["timed"] })}>
+            <option value="timed">На время</option>
+            <option value="normal">Не на время</option>
+          </FilterSelect>
+          <FilterSelect label="Тип раунда" id="f-round" value={filter.roundType} onChange={(v) => setF({ roundType: v as TaskFilter["roundType"] })}>
+            {ROUND_TYPES.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.id === "any" ? "Любой (без привязки)" : r.label}
+              </option>
+            ))}
+          </FilterSelect>
+          {category === "task" && (
+            <FilterSelect label="Карта" id="f-map" value={filter.map} onChange={(v) => setF({ map: v })}>
+              <option value="universal">Общие (без карты)</option>
+              {maps.map((m) => (
+                <option key={m.code} value={m.code}>
+                  {m.name}
+                </option>
+              ))}
+            </FilterSelect>
+          )}
+          <FilterSelect label="Источник" id="f-source" value={filter.source} onChange={(v) => setF({ source: v as TaskFilter["source"] })}>
+            <option value="official">Организатор</option>
+            <option value="boosty">Подписчик Boosty</option>
+          </FilterSelect>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+          <span>
+            Показано {visible.length} из {items.filter((t) => (t.category || "task") === category).length}
+          </span>
+          {!sameFilter(filter, { ...DEFAULT_FILTER, category }) && (
+            <button type="button" className="underline hover:text-fg" onClick={resetFilters}>
+              Сбросить фильтры
+            </button>
+          )}
+        </div>
       </Panel>
 
-      {err && <p className="text-sm text-danger">{err}</p>}
+      {notice && (
+        <p className="flex flex-wrap items-center gap-3 text-sm text-[var(--accent)]">
+          <span>{notice.text}</span>
+          {notice.hidden > 0 && (
+            <>
+              <span className="text-muted">Не видно под текущими фильтрами: {notice.hidden}.</span>
+              <button type="button" className="underline" onClick={resetFilters}>
+                Показать все
+              </button>
+            </>
+          )}
+        </p>
+      )}
+      {err && !draft && !bulk && <p className="text-sm text-danger">{err}</p>}
 
       {groupOrder.length ? (
         groupOrder.map((key) => (
@@ -269,10 +321,17 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
             </h3>
             <Panel className="divide-y divide-[var(--border)]">
               {groups.get(key)!.map((t) => (
-                <div key={t.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${t.active ? "" : "opacity-50"}`}>
-                  <div className="min-w-[240px] flex-1">
-                    <div className="text-sm font-semibold">{t.name ? `«${t.name}»` : t.text}</div>
-                    {t.name && <div className="text-sm text-muted">{t.text}</div>}
+                <div
+                  key={t.id}
+                  className={`flex flex-wrap items-center gap-3 px-4 py-3 ${t.active ? "" : "opacity-50"}`}
+                  style={{ borderLeft: `3px solid ${rarityMeta(taskRarity(t)).color}` }}
+                >
+                  <div className="min-w-[240px] flex-1 space-y-1.5">
+                    <div>
+                      <div className="text-sm font-semibold">{t.name ? `«${t.name}»` : t.text}</div>
+                      {t.name && <div className="text-sm text-muted">{t.text}</div>}
+                    </div>
+                    <TaskTags task={t} showKind={category === "task"} />
                     {t.mapCodes.length > 1 && <div className="text-xs text-muted">Карты: {t.mapCodes.map(mapName).join(", ")}</div>}
                     {t.source === "boosty" && (
                       <div className="text-xs text-[var(--boosty)]">
@@ -280,31 +339,13 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                       </div>
                     )}
                   </div>
-                  {t.tag === "timed" && <span className="badge badge-champ"><span>на время</span></span>}
-                  <span className="badge badge-official"><span>{KINDS.find(([k]) => k === t.kind)?.[1] ?? t.kind}</span></span>
-                  <span className="pts pts-orange"><span>+{t.points}</span></span>
+                  <span className="pts pts-orange">
+                    <span>+{t.points}</span>
+                  </span>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => toggle(t)}>
                     <span>{t.active ? "Выключить" : "Включить"}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() =>
-                      setDraft({
-                        id: t.id,
-                        name: t.name ?? "",
-                        text: t.text,
-                        kind: t.kind,
-                        tag: t.tag,
-                        mapCodes: t.mapCodes,
-                        points: String(t.points),
-                        active: t.active,
-                        source: t.source === "boosty" ? "boosty" : "official",
-                        author: t.author ?? "",
-                        title: t.title ?? "",
-                      })
-                    }
-                  >
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => edit(t)}>
                     <span>Изм.</span>
                   </button>
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleting(t)}>
@@ -322,114 +363,36 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
       <Modal open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Изменить" : category === "protocol" ? "Новый протокол" : "Новое задание"}>
         {draft && (
           <form
-            className="space-y-3"
+            className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
               void save();
             }}
           >
-            <div className="space-y-1.5">
-              <label className="field-label" htmlFor="d-name">
-                Название
-              </label>
-              <input id="d-name" className="input" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Голыми руками" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="field-label" htmlFor="d-text">
-                Описание
-              </label>
-              <textarea id="d-text" className="input min-h-[80px]" value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {category === "task" && (
-                <div className="space-y-1.5">
-                  <label className="field-label" htmlFor="d-kind">
-                    Пул
-                  </label>
-                  <select id="d-kind" className="select" value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value as TaskKind })}>
-                    {KINDS.map(([k, label]) => (
-                      <option key={k} value={k}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+            <div className="space-y-3">
               <div className="space-y-1.5">
-                <span className="field-label block">Тег</span>
-                <div className="seg">
-                  {TAGS.map(([k, label]) => (
-                    <button key={k} type="button" className="seg-btn" aria-pressed={draft.tag === k} onClick={() => setDraft({ ...draft, tag: k })}>
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {category === "task" && (
-              <div className="space-y-1.5">
-                <span className="field-label">Карты</span>
-                <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
-                  {maps.map((m) => (
-                    <label key={m.code} className="flex items-center gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-[var(--primary)]"
-                        checked={draft.mapCodes.includes(m.code)}
-                        onChange={(e) =>
-                          setDraft({
-                            ...draft,
-                            mapCodes: e.target.checked ? [...draft.mapCodes, m.code] : draft.mapCodes.filter((c) => c !== m.code),
-                          })
-                        }
-                      />
-                      {m.name}
-                    </label>
-                  ))}
-                </div>
-                {!draft.mapCodes.length && <p className="text-xs text-muted">Карта не отмечена — задание общее, выпадает на любой карте.</p>}
-              </div>
-            )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="field-label" htmlFor="d-pts">
-                  Баллы
+                <label className="field-label" htmlFor="d-name">
+                  Название
                 </label>
-                <input
-                  id="d-pts"
-                  type="number"
-                  inputMode="numeric"
-                  min={MIN_POINTS}
-                  max={MAX_POINTS}
-                  className="input"
-                  aria-invalid={draftPoints(draft.points) === null}
-                  value={draft.points}
-                  onChange={(e) => setDraft({ ...draft, points: e.target.value })}
-                />
+                <input id="d-name" className="input" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Голыми руками" />
               </div>
               <div className="space-y-1.5">
-                <label className="field-label" htmlFor="d-src">
-                  Источник
+                <label className="field-label" htmlFor="d-text">
+                  Описание
                 </label>
-                <select
-                  id="d-src"
-                  className="select"
-                  value={draft.source}
-                  onChange={(e) => setDraft({ ...draft, source: e.target.value as Draft["source"] })}
-                >
-                  <option value="official">Организатор</option>
-                  <option value="boosty">Подписчик Boosty</option>
-                </select>
+                <textarea id="d-text" className="input min-h-[72px]" value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} />
               </div>
             </div>
-            {draft.source === "boosty" && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input className="input" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Титул: «Советник Арены»" />
-                <input className="input" value={draft.author} onChange={(e) => setDraft({ ...draft, author: e.target.value })} placeholder="Ник автора" />
-              </div>
-            )}
+            <TaskSettingsFields
+              idPrefix="d"
+              category={category}
+              maps={maps}
+              value={draft.settings}
+              onChange={(settings) => setDraft({ ...draft, settings })}
+              pointsHint="Обычное - 2, на время - 1; можно задать своё."
+            />
             {err && <p className="text-sm text-danger">{err}</p>}
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-1">
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(null)}>
                 <span>Отмена</span>
               </button>
@@ -441,35 +404,319 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
         )}
       </Modal>
 
-      <Modal open={bulk !== null} onClose={() => setBulk(null)} title="Вставить списком">
-        <div className="space-y-3">
-          <p className="text-sm text-muted">
-            По строке на {category === "protocol" ? "протокол" : "задание"}: «Название | Описание» или две колонки, скопированные из таблицы.
-            Всё уйдёт в {category === "protocol" ? "протоколы" : `пул ${KINDS.find(([k]) => k === defaultKind)?.[1]}`}
-            {category === "task" && (defaultMap ? `, карта «${mapName(defaultMap)}»` : ", общие задания")} — поменять можно фильтрами сверху.
-          </p>
-          <textarea className="input min-h-[200px] font-mono text-xs" value={bulk ?? ""} onChange={(e) => setBulk(e.target.value)} />
-          <p className="text-xs text-muted">Распознано строк: {parseBulk(bulk ?? "").length}</p>
-          {err && <p className="text-sm text-danger">{err}</p>}
-          <div className="flex justify-end gap-3">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBulk(null)}>
-              <span>Отмена</span>
-            </button>
-            <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={importBulk}>
-              <span>Добавить</span>
-            </button>
-          </div>
-        </div>
+      <Modal open={bulk !== null} onClose={() => setBulk(null)} title="Вставить списком" size="xl">
+        {bulk && (
+          <BulkForm
+            category={category}
+            maps={maps}
+            items={items}
+            state={bulk}
+            setState={setBulk}
+            busy={busy}
+            err={err}
+            mapName={mapName}
+            onClose={() => setBulk(null)}
+            onSubmit={async (rows, settings) => {
+              const points = parsePoints(settings.points);
+              if (points === null) {
+                setErr(`Баллы - от ${MIN_POINTS} до ${MAX_POINTS}.`);
+                return null;
+              }
+              setBusy(true);
+              setErr("");
+              try {
+                const common = settingsBody(settings, category, points);
+                const res = await api.post<BulkResult>("/catalog/tasks/bulk", {
+                  items: rows.map((r) => ({ ...common, name: r.name, text: r.text })),
+                });
+                setItems((xs) => [...xs, ...res.created]);
+                announce(`Добавлено заданий: ${res.created.length}.`, res.created);
+                return res;
+              } catch (e) {
+                setErr(errorText(e));
+                return null;
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog
         open={!!deleting}
         title="Удалить?"
-        message={`«${deleting?.name || deleting?.text}» — если оно уже выпадало в матчах, оно просто выключится, история останется.`}
+        message={`«${deleting?.name || deleting?.text}» - если оно уже выпадало в матчах, оно просто выключится, история останется.`}
         busy={busy}
         onCancel={() => setDeleting(null)}
         onConfirm={() => deleting && remove(deleting)}
       />
     </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  id,
+  value,
+  onChange,
+  children,
+  all = "Все",
+}: {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  all?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="field-label" htmlFor={id}>
+        {label}
+      </label>
+      <select id={id} className="select" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="all">{all}</option>
+        {children}
+      </select>
+    </div>
+  );
+}
+
+/**
+ * Вставка списком: общие настройки один раз, затем список. Текст в поле - единственный источник правды:
+ * предпросмотр читает его, а исправление строки переписывает только её.
+ */
+function BulkForm({
+  category,
+  maps,
+  items,
+  state,
+  setState,
+  busy,
+  err,
+  mapName,
+  onClose,
+  onSubmit,
+}: {
+  category: TaskCategory;
+  maps: MapInfo[];
+  items: CatalogTask[];
+  state: { raw: string; settings: TaskSettings };
+  setState: (s: { raw: string; settings: TaskSettings }) => void;
+  busy: boolean;
+  err: string;
+  mapName: (code: string) => string;
+  onClose: () => void;
+  onSubmit: (rows: BulkRow[], settings: TaskSettings) => Promise<BulkResult | null>;
+}) {
+  const { raw, settings } = state;
+  const [editing, setEditing] = React.useState<number | null>(null);
+  const [report, setReport] = React.useState("");
+
+  // Повтор - то же название и описание в том же разделе, пуле и формате (как проверяет сервер).
+  const existing = React.useMemo(() => {
+    const kind = category === "protocol" ? PROTOCOL_KIND : settings.kind;
+    return new Set(
+      items
+        .filter((t) => (t.category || "task") === category && t.kind === kind && taskFormat(t) === settings.format)
+        .map((t) => taskKey(t.name ?? "", t.text)),
+    );
+  }, [items, category, settings.kind, settings.format]);
+  const rows = React.useMemo(() => parseBulk(raw, existing), [raw, existing]);
+  const ready = rows.filter((r) => !r.problem);
+  const problems = rows.filter((r) => r.problem);
+  const pointsOk = parsePoints(settings.points) !== null;
+  const summary = describeSettings(settings, category, mapName);
+
+  const setRaw = (next: string) => {
+    setReport("");
+    setState({ ...state, raw: next });
+  };
+
+  async function submit() {
+    const res = await onSubmit(ready, settings);
+    if (!res) return;
+    if (!res.skipped.length) {
+      onClose();
+      return;
+    }
+    // Часть строк сервер не принял: добавленные убираем из списка, остальные оставляем для правки.
+    const refused = new Set(res.skipped.map((s) => s.index));
+    const added = new Set(ready.filter((_, i) => !refused.has(i)).map((r) => r.n));
+    const rest = rows.filter((r) => !added.has(r.n)).map((r) => (r.problem === "no-separator" ? r.record.text : `${r.name} | ${r.text}`));
+    const why = res.skipped.map((s) => `строка ${ready[s.index]?.n ?? s.index + 1}: ${s.reason}`).join("; ");
+    setReport(`Добавлено: ${res.created.length}. Не добавлено: ${res.skipped.length} (${why}).`);
+    setState({ ...state, raw: rest.join("\n") });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="text-sm text-muted">
+          Выберите общие настройки: их получат <b>все</b> задания из списка.
+          {category === "protocol" ? " Протоколы подходят любому пулу." : ""}
+        </p>
+        <TaskSettingsFields
+          idPrefix="b"
+          category={category}
+          maps={maps}
+          value={settings}
+          onChange={(s) => setState({ ...state, settings: s })}
+          pointsHint="Обычное - 2, на время - 1."
+          layout="flow"
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className="field-label block" htmlFor="b-raw">
+            Список заданий
+          </label>
+          <textarea
+            id="b-raw"
+            className="input min-h-[220px] font-mono text-xs"
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            placeholder={"Уничтожить 3 ARC:Уничтожьте три единицы ARC за рейд\nУбить рейдера | Убейте одного вражеского рейдера\nили две колонки, скопированные из таблицы"}
+          />
+          <p className="text-xs text-muted">
+            По строке на {category === "protocol" ? "протокол" : "задание"}: «Название:Описание» (делит первое двоеточие), «Название | Описание» или две
+            колонки из Excel / Google Таблиц.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <span className="field-label block">Предпросмотр</span>
+          {rows.length === 0 ? (
+            <p className="bg-[var(--surface-2)] px-3 py-6 text-center text-sm text-muted shadow-[inset_0_0_0_1px_var(--border)]">
+              Вставьте список слева - здесь появятся распознанные задания.
+            </p>
+          ) : (
+            <>
+              <div className="text-sm">
+                <div className="font-semibold">
+                  Распознано заданий: {rows.length}
+                  {problems.length > 0 && (
+                    <span className="font-normal text-muted">
+                      {" "}
+                      · будет добавлено {ready.length}, пропущено {problems.length}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted">Все задания будут добавлены: {summary}</div>
+              </div>
+              <ul className="max-h-[210px] divide-y divide-[var(--border)] overflow-y-auto bg-[var(--surface-2)] shadow-[inset_0_0_0_1px_var(--border)]">
+                {rows.map((r) => (
+                  <PreviewRow
+                    key={`${r.n}-${r.record.start}`}
+                    row={r}
+                    editing={editing === r.n}
+                    onEdit={() => setEditing(r.n)}
+                    onCancel={() => setEditing(null)}
+                    onApply={(name, text) => {
+                      setRaw(replaceRecord(raw, r.record, name, text));
+                      setEditing(null);
+                    }}
+                    onRemove={() => {
+                      setRaw(removeRecord(raw, r.record));
+                      setEditing(null);
+                    }}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </div>
+
+      {report && <p className="text-sm text-[var(--primary-2)]">{report}</p>}
+      {err && <p className="text-sm text-danger">{err}</p>}
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {!pointsOk && (
+          <span className="mr-auto text-xs text-danger">
+            Баллы - от {MIN_POINTS} до {MAX_POINTS}.
+          </span>
+        )}
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+          <span>Отмена</span>
+        </button>
+        <button type="button" className="btn btn-primary btn-sm" disabled={busy || !ready.length || !pointsOk} onClick={() => void submit()}>
+          <span>{ready.length ? `Добавить ${ready.length}` : "Добавить"}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Строка предпросмотра: распознанное задание или причина пропуска с возможностью поправить. */
+function PreviewRow({
+  row,
+  editing,
+  onEdit,
+  onCancel,
+  onApply,
+  onRemove,
+}: {
+  row: BulkRow;
+  editing: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onApply: (name: string, text: string) => void;
+  onRemove: () => void;
+}) {
+  const [name, setName] = React.useState(row.name);
+  const [text, setText] = React.useState(row.text);
+  const fixable = row.problem === "no-separator" || row.problem === "empty-name" || row.problem === "empty-text";
+
+  if (editing) {
+    return (
+      <li className="space-y-2 px-3 py-2.5">
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Название" aria-label={`Название, строка ${row.n}`} />
+        <textarea className="input min-h-[56px]" value={text} onChange={(e) => setText(e.target.value)} placeholder="Описание" aria-label={`Описание, строка ${row.n}`} />
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+            <span>Отмена</span>
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => onApply(name, text)}>
+            <span>Готово</span>
+          </button>
+        </div>
+      </li>
+    );
+  }
+  return (
+    <li className={`flex items-start gap-2 px-3 py-2 text-sm ${row.problem ? "bg-[rgba(255,90,90,0.06)]" : ""}`}>
+      <span className="w-6 shrink-0 pt-0.5 text-xs text-muted">{row.n}</span>
+      <div className="min-w-0 flex-1">
+        {row.name || row.text ? (
+          <div className="break-words">
+            {row.name && <b>«{row.name}»</b>} <span className="text-muted">{row.text}</span>
+          </div>
+        ) : (
+          <span className="text-muted">пустая строка</span>
+        )}
+        {row.problem && (
+          <div className="text-xs text-danger">
+            {PROBLEM_TEXT[row.problem]}
+            {row.duplicateOf ? ` (${row.duplicateOf})` : ""} - строка не будет добавлена
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        className="text-xs text-muted underline hover:text-fg"
+        onClick={() => {
+          setName(row.name);
+          setText(row.text);
+          onEdit();
+        }}
+      >
+        {fixable ? "Исправить" : "Изм."}
+      </button>
+      <button type="button" className="text-xs text-muted underline hover:text-danger" onClick={onRemove} aria-label={`Убрать строку ${row.n}`}>
+        Убрать
+      </button>
+    </li>
   );
 }
