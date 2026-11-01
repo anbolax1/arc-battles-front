@@ -35,7 +35,7 @@ type BulkResult = { created: CatalogTask[]; skipped: Array<{ index: number; reas
 
 const DEFAULT_FILTER: TaskFilter = {
   format: "all",
-  kind: "pvp",
+  kind: "all",
   rarity: "all",
   timed: "all",
   roundType: "all",
@@ -92,7 +92,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
   }
 
   const resetFilters = () => {
-    setFilter({ ...DEFAULT_FILTER, kind: "all" });
+    setFilter(DEFAULT_FILTER);
     setNotice(null);
   };
 
