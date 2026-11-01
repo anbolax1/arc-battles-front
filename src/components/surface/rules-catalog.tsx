@@ -49,7 +49,7 @@ function Item({
   );
 }
 
-/** Справочник заданий в новом дизайне: пул PvP или PvE, поиск по номеру или тексту, протоколы и легендарные задания. */
+/** Справочник заданий в новом дизайне: пул PvP или PvE, поиск по номеру или тексту, задания на время и легендарные задания. */
 export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[]; legendary: CatalogLegendary[]; maps: MapInfo[] }) {
   const [q, setQ] = React.useState("");
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
@@ -63,7 +63,7 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
       <div className="sf-wrap">
         <div className="sf-sec-head">
           <div>
-            <p className="sf-eyebrow">Справочник · перед раундом два задания и протокол</p>
+            <p className="sf-eyebrow">Справочник · перед раундом два задания и одно на время</p>
             <h2 className="sf-h-big" id="rl-t">
               задания<span className="sf-dot">.</span>
             </h2>
@@ -85,7 +85,7 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
             </div>
             <label className="sf-search">
               <SearchGlyph />
-              <input type="search" placeholder="Номер или текст" autoComplete="off" aria-label="Поиск заданий и протоколов" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input type="search" placeholder="Номер или текст" autoComplete="off" aria-label="Поиск заданий" value={q} onChange={(e) => setQ(e.target.value)} />
             </label>
           </div>
         </div>
@@ -118,17 +118,17 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
 
           <aside className="rl-side" aria-labelledby="rl-proto">
             <h3 className="sf-h-mid" id="rl-proto">
-              протоколы<span className="sf-dot">.</span>
+              на время<span className="sf-dot">.</span>
             </h3>
-            <p className="rl-sub">Один на раунд · выполнить до 15-й минуты рейда</p>
-            {cat.protocols.length ? (
+            <p className="rl-sub">Одно на раунд · выполнить до 15-й минуты рейда</p>
+            {cat.timed.length ? (
               <ul className="rl-list">
-                {cat.protocols.map((c) => (
+                {cat.timed.map((c) => (
                   <Item key={c.id} num={c.num} name={c.name} text={c.text} points={c.points} meta={sourceLine(c)} tone="proto" tags={<RuleTags task={c} />} />
                 ))}
               </ul>
             ) : (
-              <p className="sf-note">{nothing || "Протоколов пока нет."}</p>
+              <p className="sf-note">{nothing || "Заданий на время пока нет."}</p>
             )}
           </aside>
         </div>

@@ -3,6 +3,7 @@
 
 import { knocksLabel } from "@/lib/format";
 import type { MapInfo, MatchStage, MatchState, Participant, RoundBonusTask, Tournament, VetoStep } from "@/lib/types";
+import { taskBadge, type TaskBadge } from "@/lib/task-meta";
 
 /** Превью карты по коду (картинки лежат в /public/maps). */
 export function mapImage(code?: string | null): string {
@@ -169,7 +170,13 @@ export function taskDescription(t: RoundBonusTask): string {
   return t.name ? t.text : "";
 }
 
+/** Плашка задания: «На время» - оранжевая, остальные - редкость своим цветом. Задание на карту
+    встречается только в прошедших матчах, его плашка прежняя. */
+export function taskKindBadge(t: RoundBonusTask): TaskBadge {
+  if (t.tag !== "timed" && t.mapCode) return { label: "На карту", color: "#3a8a9c", ink: "#ffffff" };
+  return taskBadge(t);
+}
+
 export function taskKindLabel(t: RoundBonusTask): string {
-  if (t.category === "protocol") return "Протокол";
-  return t.mapCode ? "На карту" : "Задание";
+  return taskKindBadge(t).label;
 }

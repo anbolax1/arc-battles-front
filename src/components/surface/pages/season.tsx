@@ -840,7 +840,7 @@ function TasksSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
       <div className="h">
         <b>
           {t.name}
-          {t.category === "protocol" ? <span className="sn-cat">протокол</span> : t.map ? <span className="sn-cat">{names[t.map] ?? t.map}</span> : null}
+          {t.timed ? <span className="sn-cat">на время</span> : t.map ? <span className="sn-cat">{names[t.map] ?? t.map}</span> : null}
         </b>
         <span className="n">
           {t.done}
@@ -857,15 +857,15 @@ function TasksSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
     <Sec
       id="tasks"
       tone={tone}
-      eyebrow="Задания, задания на карту и протоколы"
+      eyebrow="Задания, задания на карту и на время"
       title="задания"
-      lead="В каждом раунде у стороны общее задание, задание на карту раунда и протокол, который нужно успеть до 15-й минуты."
+      lead="В каждом раунде у стороны три задания, одно из них на время: его нужно успеть до 15-й минуты. Раньше одно из двух обычных было заданием на карту раунда."
     >
       <div className="sn-tasks-top">
         <div>
           <div className="sn-hero-num">{f1((T.all[0] * 100) / T.all[1])}%</div>
           <p className="sf-lead sn-lead">
-            заданий и протоколов выполнено: {T.all[0]} из {T.all[1]}, выданных в сыгранных раундах. Всего в матчах встретилось {T.distinct} разных.
+            заданий выполнено: {T.all[0]} из {T.all[1]}, выданных в сыгранных раундах. Всего в матчах встретилось {T.distinct} разных.
           </p>
         </div>
         <div className="sn-meters">
@@ -873,7 +873,7 @@ function TasksSection({ recap, tone }: { recap: SeasonRecap; tone: Tone }) {
             [
               ["Задания на карту", "уничтожить роботов в здании или на крыше", T.mapTasks],
               ["Общие задания", "PvP и всё остальное", T.general],
-              ["Протоколы", "до 15-й минуты", T.protocols],
+              ["На время", "до 15-й минуты", T.timed],
             ] as const
           ).map(([name, hint, v]) => (
             <div key={name} className="sn-mrow">

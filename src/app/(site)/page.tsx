@@ -29,7 +29,7 @@ const QUICK = [
   { href: "/schedule", title: "Расписание", desc: "Анонсы шоу-матчей", Icon: CalendarIcon },
   { href: "/rating", title: "Рейтинг", desc: "Таблица лидеров сезона", Icon: TrophyIcon },
   { href: "/archive", title: "Архив", desc: "Сыгранные матчи и VOD", Icon: PlayIcon },
-  { href: "/rules", title: "Правила", desc: "Задания, протоколы, MMR", Icon: ScrollIcon },
+  { href: "/rules", title: "Правила", desc: "Задания, MMR", Icon: ScrollIcon },
 ];
 
 export default async function HomePage() {
@@ -65,7 +65,7 @@ export default async function HomePage() {
         </h1>
         <p className="max-w-2xl text-lg text-muted">
           Матчи 1×1 и 2×2 по ARC Raiders в эфире у Дениса Блима. Два раунда,
-          пики-баны карт, задания, протоколы и рейтинг по MMR — выходи на арену
+          пики-баны карт, задания и рейтинг по MMR — выходи на арену
           и забирай звание Чемпиона.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">

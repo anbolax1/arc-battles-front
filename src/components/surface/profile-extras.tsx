@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { api, apiFetch, errorText } from "@/lib/api";
+import { RARITIES } from "@/lib/task-meta";
+import type { TaskRarity } from "@/lib/types";
 import { fmtCount, REGIONS, regionLabel, STAT_KINDS, STAT_LABEL, STAT_LIMIT } from "@/lib/tokens";
 import type { FavoriteOptions, MyExtras, NumericStatKind, PlayerFavorites, StatClaim, TeamMember, TokenWallet } from "@/lib/types";
 
@@ -334,6 +336,68 @@ function FavoritesForm({ initial, options, allowed, roleName }: { initial: Playe
   );
 }
 
+/** Какие по редкости задания игрок хочет получать в матчах: несколько редкостей, по умолчанию все. */
+function TaskRaritiesForm({ initial }: { initial: TaskRarity[] }) {
+  const router = useRouter();
+  const [on, setOn] = React.useState<TaskRarity[]>(initial);
+  const [busy, setBusy] = React.useState(false);
+  const [note, setNote] = React.useState<{ ok: boolean; text: string } | null>(null);
+
+  const toggle = (r: TaskRarity) => {
+    const next = on.includes(r) ? on.filter((x) => x !== r) : [...on, r];
+    if (!next.length) return;
+    setOn(RARITIES.map((x) => x.id).filter((x) => next.includes(x)));
+    setNote(null);
+  };
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.put("/me/task-rarities", { rarities: on });
+      setNote({ ok: true, text: "Сохранено" });
+      router.refresh();
+    } catch (err) {
+      setNote({ ok: false, text: errorText(err, "Не удалось сохранить.") });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="pf-wide pf-fav-form" onSubmit={save}>
+      <p className="sf-field-label">Какие задания хочу получать</p>
+      <div className="pf-rar" role="group" aria-label="Редкость заданий">
+        {RARITIES.map((r) => {
+          const pressed = on.includes(r.id);
+          return (
+            <button
+              key={r.id}
+              type="button"
+              aria-pressed={pressed}
+              onClick={() => toggle(r.id)}
+              style={pressed ? { background: r.color, borderColor: r.color, color: r.ink } : { borderColor: r.color }}
+            >
+              {r.label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="sf-field-note">
+        В матче задания будут выпадать этих редкостей; если подходящих не хватит, добавятся ближайшие по редкости. Ведущий может поменять это
+        для конкретного матча.
+      </p>
+      <div className="pf-fav-save">
+        <button type="submit" className="sf-btn sf-btn-amber sf-btn-sm" disabled={busy}>
+          {busy ? "Сохраняем…" : "Сохранить"}
+        </button>
+        {note && <p className={`sf-field-note ${note.ok ? "good" : "bad"}`}>{note.text}</p>}
+      </div>
+    </form>
+  );
+}
+
 /** Кнопка, которая срабатывает, только если держать её HOLD_MS: сброс рейтинга не отменить. */
 function HoldButton({ disabled, onDone, children }: { disabled: boolean; onDone: () => void; children: React.ReactNode }) {
   const [p, setP] = React.useState(0);
@@ -448,6 +512,7 @@ export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExt
       <p className="sf-field-note pf-wide pf-stat-hint">
         Скриншот во весь экран. Модератор проведет проверку и подтвердит данные. До проверки и в случае отклонения возле цифр будет надпись «не подтверждено»
       </p>
+      <TaskRaritiesForm initial={extras.taskRarities ?? RARITIES.map((r) => r.id)} />
       <FavoritesForm initial={extras.favorites} options={options} allowed={extras.canFavorites} roleName={roleName} />
       <ResetForm tokens={extras.tokens} blocked={extras.resetBlocked} mmr={extras.mmr} start={extras.startMmr} />
     </section>

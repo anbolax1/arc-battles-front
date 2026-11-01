@@ -1,4 +1,4 @@
-import type { CatalogTask, TaskCategory, TaskFormat, TaskKind, TaskRarity, TaskRoundType } from "./types";
+import type { CatalogTask, TaskFormat, TaskKind, TaskRarity, TaskRoundType } from "./types";
 
 /** Редкость задания: название, цвет и цвет текста на залитой кнопке (читаемость на светлых цветах). */
 export interface RarityMeta {
@@ -61,9 +61,9 @@ export const MAX_POINTS = 10;
 const DEFAULT_TASK_POINTS = 2;
 const DEFAULT_TIMED_POINTS = 1;
 
-/** Баллы по умолчанию: обычное задание - 2, на время и протокол - 1. Редкость на них не влияет. */
-export function defaultPoints(category: TaskCategory, timed: boolean): number {
-  return timed || category === "protocol" ? DEFAULT_TIMED_POINTS : DEFAULT_TASK_POINTS;
+/** Баллы по умолчанию: обычное задание - 2, на время - 1. Редкость на них не влияет. */
+export function defaultPoints(timed: boolean): number {
+  return timed ? DEFAULT_TIMED_POINTS : DEFAULT_TASK_POINTS;
 }
 
 /** Баллы из поля, если это целое в допустимых пределах; иначе null. */
@@ -90,16 +90,15 @@ export interface TaskSettings {
   title: string;
 }
 
-export function defaultSettings(category: TaskCategory, over: Partial<TaskSettings> = {}): TaskSettings {
-  const timed = category === "protocol";
+export function defaultSettings(over: Partial<TaskSettings> = {}): TaskSettings {
   return {
     format: "1x1",
     kind: "pvp",
     rarity: "common",
-    timed,
+    timed: false,
     roundType: "any",
     mapCodes: [],
-    points: String(defaultPoints(category, timed)),
+    points: String(defaultPoints(false)),
     pointsTouched: false,
     source: "official",
     author: "",
@@ -109,20 +108,19 @@ export function defaultSettings(category: TaskCategory, over: Partial<TaskSettin
 }
 
 /** Переключает «На время»; неправленые баллы переходят на значение по умолчанию. */
-export function withTimed(s: TaskSettings, category: TaskCategory, timed: boolean): TaskSettings {
-  return { ...s, timed, points: s.pointsTouched ? s.points : String(defaultPoints(category, timed)) };
+export function withTimed(s: TaskSettings, timed: boolean): TaskSettings {
+  return { ...s, timed, points: s.pointsTouched ? s.points : String(defaultPoints(timed)) };
 }
 
 /** Тело запроса из общих характеристик; одно и то же для создания, правки и вставки списком. */
-export function settingsBody(s: TaskSettings, category: TaskCategory, points: number) {
+export function settingsBody(s: TaskSettings, points: number) {
   return {
-    category,
     kind: s.kind,
     format: s.format,
     rarity: s.rarity,
     tag: s.timed ? "timed" : "normal",
     roundType: s.roundType,
-    mapCodes: category === "protocol" ? [] : s.mapCodes,
+    mapCodes: s.mapCodes,
     points,
     valueType: "fixed",
     source: s.source,
@@ -132,20 +130,19 @@ export function settingsBody(s: TaskSettings, category: TaskCategory, points: nu
 }
 
 /** Строка для предпросмотра: «2×2 / PvP / Эпический / На время / Платный раунд». */
-export function describeSettings(s: TaskSettings, category: TaskCategory, mapName: (code: string) => string): string {
+export function describeSettings(s: TaskSettings, mapName: (code: string) => string): string {
   const parts: string[] = [formatLabel(s.format)];
-  if (category === "task") parts.push(kindLabel(s.kind));
+  parts.push(kindLabel(s.kind));
   parts.push(rarityMeta(s.rarity).label);
   if (s.timed) parts.push(TIMED_META.label);
   if (s.roundType !== "any") parts.push(roundTypeMeta(s.roundType).label);
-  if (category === "task") parts.push(s.mapCodes.length ? s.mapCodes.map(mapName).join(", ") : "все карты");
+  parts.push(s.mapCodes.length ? s.mapCodes.map(mapName).join(", ") : "все карты");
   parts.push(`${s.points || "?"} б.`);
   return parts.join(" / ");
 }
 
 /** Фильтры списка заданий в кабинете; "all" - без ограничения по этой характеристике. */
 export interface TaskFilter {
-  category: TaskCategory;
   format: TaskFormat | "all";
   kind: TaskKind | "all";
   rarity: TaskRarity | "all";
@@ -158,20 +155,31 @@ export interface TaskFilter {
   query: string;
 }
 
-/** Задание проходит все выбранные фильтры сразу (И). Протоколы под фильтры пула и карты не попадают. */
+/** Задание проходит все выбранные фильтры сразу (И). */
 export function matchesFilter(t: CatalogTask, f: TaskFilter): boolean {
-  const protocol = f.category === "protocol";
   const q = f.query.trim().toLowerCase();
   return (
-    (t.category || "task") === f.category &&
     (f.showOff || t.active) &&
     (f.format === "all" || taskFormat(t) === f.format) &&
-    (protocol || f.kind === "all" || t.kind === f.kind) &&
+    (f.kind === "all" || t.kind === f.kind) &&
     (f.rarity === "all" || taskRarity(t) === f.rarity) &&
     (f.timed === "all" || (f.timed === "timed") === (t.tag === "timed")) &&
     (f.roundType === "all" || taskRoundType(t) === f.roundType) &&
-    (protocol || f.map === "all" || (f.map === "universal" ? !t.mapCodes.length : t.mapCodes.includes(f.map))) &&
+    (f.map === "all" || (f.map === "universal" ? !t.mapCodes.length : t.mapCodes.includes(f.map))) &&
     (f.source === "all" || t.source === f.source) &&
     (!q || `${t.name ?? ""} ${t.text}`.toLowerCase().includes(q))
   );
+}
+
+/** Плашка задания в матче и виджете: «На время» оранжевая, остальные - редкость своим цветом. */
+export interface TaskBadge {
+  label: string;
+  color: string;
+  ink: string;
+}
+
+export function taskBadge(t: { tag?: string; rarity?: string }): TaskBadge {
+  if (t.tag === "timed") return { label: TIMED_META.label, color: TIMED_META.color, ink: TIMED_META.ink };
+  const r = rarityMeta(t.rarity);
+  return { label: r.label, color: r.color, ink: r.ink };
 }

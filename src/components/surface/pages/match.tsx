@@ -19,7 +19,7 @@ import {
   roundsLabel,
   stageLabel,
   taskDescription,
-  taskKindLabel,
+  taskKindBadge,
   taskTitle,
   totalScore,
   vetoOrder,
@@ -155,9 +155,12 @@ function SideColumn({ st, round, p, other }: { st: MatchState; round: number; p:
           {tasks.map((x) => {
             const own = x.completedBy === x.participantId;
             const byOpp = !!x.completedBy && !own;
+            const badge = taskKindBadge(x);
             return (
               <li key={x.id} className={x.completedBy ? "" : "miss"}>
-                <span className={`sf-k ${x.category === "protocol" ? "pr" : x.mapCode ? "map" : ""}`}>{taskKindLabel(x)}</span>
+                <span className="sf-k sf-k-task" style={{ background: badge.color, color: badge.ink }}>
+                  {badge.label}
+                </span>
                 <span>
                   <b>«{taskTitle(x)}»</b>
                   {taskDescription(x) && ` — ${taskDescription(x)}`}

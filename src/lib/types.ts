@@ -360,7 +360,6 @@ export interface TeamProfile {
   analytics?: Record<string, SeasonAnalytics>;
 }
 
-export type TaskCategory = "task" | "protocol";
 /** Тег задания на экране: «обычное» или «на время». */
 export type TaskTag = "normal" | "timed";
 
@@ -381,7 +380,6 @@ export interface CatalogTask {
   title?: string;
   /** Название задания, например «Голыми руками». */
   name?: string;
-  category: TaskCategory;
   tag: TaskTag;
   /** Карты задания; пусто - общее, на любую карту. */
   mapCodes: string[];
@@ -444,7 +442,8 @@ export interface RoundBonusTask {
   /** Игрок команды 2×2, которому засчитано задание. */
   completedUserId?: string | null;
   name?: string;
-  category: TaskCategory;
+  tag?: TaskTag;
+  rarity?: TaskRarity;
   mapCode?: string;
 }
 
@@ -507,11 +506,12 @@ export interface LiveComplication {
   times?: number;
   /** Минуты штрафа (= times). Дублируется для явности в оверлее. */
   minutes?: number;
-  /** Протокол 3 сезона: награда за выполнение (+1); у старого протокола-штрафа нет. */
+  /** Задание на время: награда за выполнение (+1); у старого протокола-штрафа нет. */
   reward?: number;
-  /** Протокол 3 сезона выполнен. */
+  /** Задание на время выполнено. */
   done?: boolean;
   tag?: TaskTag;
+  rarity?: TaskRarity;
 }
 
 /** Ход пиков-банов в оверлее. */
@@ -597,8 +597,9 @@ export interface LiveBonus {
   times: number; // 0 — не зачтён, >0 — зачтён (подсветка)
   who?: string; // имя стороны-владельца
   opponent?: boolean; // задание противника фокусной стороны
-  category?: "task" | "map" | "protocol";
+  category?: "task" | "map";
   tag?: TaskTag;
+  rarity?: TaskRarity;
 }
 
 /** Типы виджетов модульного оверлея. */
@@ -854,6 +855,8 @@ export interface MyExtras {
   resetBlocked?: string;
   mmr: number;
   startMmr: number;
+  /** Какие по редкости задания игрок хочет получать в матчах. */
+  taskRarities?: TaskRarity[];
 }
 
 /** Жетон ×2, поставленный игроком на матч. */
@@ -1016,7 +1019,7 @@ export interface RecapRoundStat {
 export interface RecapTask {
   name: string;
   text: string;
-  category: "task" | "protocol";
+  timed: boolean;
   map: string;
   done: number;
   offered: number;
@@ -1055,7 +1058,7 @@ export interface SeasonRecap {
     all: DoneOffered;
     mapTasks: DoneOffered;
     general: DoneOffered;
-    protocols: DoneOffered;
+    timed: DoneOffered;
     distinct: number;
     easy: RecapTask[];
     hard: RecapTask[];
@@ -1290,6 +1293,8 @@ export interface MatchPlayer {
   prevGames: number;
   /** Сегодня играет без очереди. */
   priority?: boolean;
+  /** Какие по редкости задания игрок хочет получать (из профиля). */
+  taskRarities?: TaskRarity[];
 }
 
 /** Команда 2×2 из списка организатора (GET /api/match-teams): MMR и счёт - в текущем сезоне. */

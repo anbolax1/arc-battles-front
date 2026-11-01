@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { CatalogTask, MapInfo, TaskCategory } from "@/lib/types";
+import type { CatalogTask, MapInfo } from "@/lib/types";
 import {
   FORMATS,
   FORMAT_COLOR,
@@ -101,7 +101,6 @@ const ROUND_HINT: Record<string, string> = {
 export function TaskSettingsFields({
   value,
   onChange,
-  category,
   maps,
   idPrefix,
   pointsHint,
@@ -109,7 +108,6 @@ export function TaskSettingsFields({
 }: {
   value: TaskSettings;
   onChange: (next: TaskSettings) => void;
-  category: TaskCategory;
   maps: MapInfo[];
   idPrefix: string;
   pointsHint?: string;
@@ -130,8 +128,7 @@ export function TaskSettingsFields({
       </div>
     </Field>
   );
-  const kind =
-    category === "task" ? (
+  const kind = (
       <Field label="Пул">
         <div className="seg seg-wrap">
           {KINDS.map((k) => (
@@ -141,7 +138,7 @@ export function TaskSettingsFields({
           ))}
         </div>
       </Field>
-    ) : null;
+  );
   const rarity = (
     <Field label="Редкость">
       <div className="seg seg-wrap">
@@ -156,7 +153,7 @@ export function TaskSettingsFields({
   const timed = (
     <Field label={flow ? "Условие" : "Условие"} hint={flow ? undefined : "Отдельно от редкости: обычное задание тоже может быть на время."}>
       <div className="seg">
-        <SegButton pressed={value.timed} color={TIMED_META.color} ink={TIMED_META.ink} onClick={() => onChange(withTimed(value, category, !value.timed))}>
+        <SegButton pressed={value.timed} color={TIMED_META.color} ink={TIMED_META.ink} onClick={() => onChange(withTimed(value, !value.timed))}>
           {TIMED_META.label}
         </SegButton>
       </div>
@@ -173,9 +170,8 @@ export function TaskSettingsFields({
       </div>
     </Field>
   );
-  const mapsField =
-    category === "task" ? (
-      <Field label="Карты" hint={value.mapCodes.length ? undefined : "Ничего не выбрано - задание действует на всех картах."}>
+  const mapsField = (
+      <Field label="Карты" hint={value.mapCodes.length ? "Задания на карту в матчах пока не выдаются." : "Ничего не выбрано - задание действует на всех картах. Задания на карту в матчах пока не выдаются."}>
         <div className="flex flex-wrap gap-1.5">
           {maps.map((m) => {
             const on = value.mapCodes.includes(m.code);
@@ -193,7 +189,7 @@ export function TaskSettingsFields({
           })}
         </div>
       </Field>
-    ) : null;
+  );
   const points = (
     <Field
       label="Баллы"
@@ -206,7 +202,7 @@ export function TaskSettingsFields({
               <button
                 type="button"
                 className="underline hover:text-fg"
-                onClick={() => onChange({ ...value, pointsTouched: false, points: String(defaultPoints(category, value.timed)) })}
+                onClick={() => onChange({ ...value, pointsTouched: false, points: String(defaultPoints(value.timed)) })}
               >
                 Вернуть стандартные
               </button>
@@ -259,7 +255,7 @@ export function TaskSettingsFields({
         {round}
         <div className="w-28">{points}</div>
         {source}
-        {mapsField && <div className="basis-full">{mapsField}</div>}
+        <div className="basis-full">{mapsField}</div>
         {boosty && <div className="basis-full">{boosty}</div>}
       </div>
     );

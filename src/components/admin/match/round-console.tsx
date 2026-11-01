@@ -10,7 +10,7 @@ import {
   roundBreakdown,
   roundScore,
   taskDescription,
-  taskKindLabel,
+  taskKindBadge,
   taskTitle,
   teamPlayers,
   totalScore,
@@ -39,12 +39,6 @@ const SIDE_STYLE = [
     ring: "shadow-[0_0_0_2px_rgba(34,211,238,0.85),0_0_28px_-8px_rgba(34,211,238,0.6)]",
   },
 ] as const;
-
-const KIND_STYLE: Record<string, string> = {
-  Задание: "bg-[rgba(255,106,26,0.16)] text-primary-2 shadow-[inset_0_0_0_1px_rgba(255,106,26,0.35)]",
-  "На карту": "bg-[rgba(34,211,238,0.12)] text-accent shadow-[inset_0_0_0_1px_rgba(34,211,238,0.3)]",
-  Протокол: "bg-[rgba(192,38,211,0.14)] text-[#e070ff] shadow-[inset_0_0_0_1px_rgba(192,38,211,0.34)]",
-};
 
 function SideTag({ i }: { i: 0 | 1 }) {
   return (
@@ -138,7 +132,7 @@ function TaskRow({
   /** Нет - задание не перебросить: раунд уже сыгран. */
   onReroll?: (id: string) => void;
 }) {
-  const kind = taskKindLabel(t);
+  const badge = taskKindBadge(t);
   const done = !!t.completedBy;
   const desc = taskDescription(t);
   const doneBy = players.find((pl) => pl.userId === t.completedUserId)?.name;
@@ -153,10 +147,10 @@ function TaskRow({
       <div className="min-w-0 flex-1">
         {/* Плашка и название - один абзац: длинное название переносится по словам рядом с плашкой, а не уходит под неё целиком. */}
         <p className="text-[0.95rem] font-semibold leading-snug">
-          <span className={`badge mr-2 ${KIND_STYLE[kind]}`}>
+          <span className="badge mr-2" style={{ background: badge.color, color: badge.ink }}>
             <span>
-              {kind} · {t.points}
-              {t.category === "protocol" ? " · до 15:00" : ""}
+              {badge.label} · {t.points}
+              {t.tag === "timed" ? " · до 15:00" : ""}
             </span>
           </span>
           «{taskTitle(t)}»

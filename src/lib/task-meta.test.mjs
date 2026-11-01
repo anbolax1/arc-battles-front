@@ -1,11 +1,11 @@
 // Запуск: npm test. Проверяет фильтры списка заданий и баллы по умолчанию.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { defaultPoints, matchesFilter, parsePoints, rarityMeta, RARITIES, withTimed, defaultSettings } from "./task-meta.ts";
+import { defaultPoints, matchesFilter, parsePoints, rarityMeta, RARITIES, withTimed, defaultSettings, taskBadge } from "./task-meta.ts";
 
-const base = { category: "task", format: "all", kind: "all", rarity: "all", timed: "all", roundType: "all", map: "all", source: "all", showOff: false, query: "" };
+const base = { format: "all", kind: "all", rarity: "all", timed: "all", roundType: "all", map: "all", source: "all", showOff: false, query: "" };
 const task = (over) => ({
-  id: "1", text: "Описание", name: "Имя", points: 2, valueType: "fixed", kind: "pvp", source: "official", category: "task",
+  id: "1", text: "Описание", name: "Имя", points: 2, valueType: "fixed", kind: "pvp", source: "official",
   tag: "normal", mapCodes: [], active: true, format: "2x2", rarity: "epic", roundType: "paid", ...over,
 });
 
@@ -45,19 +45,27 @@ test("карта, источник, поиск, выключенные", () => {
   assert.ok(matchesFilter(task({ active: false }), { ...base, showOff: true }));
 });
 
-test("протокол не режется фильтрами пула и карты", () => {
-  const p = task({ category: "protocol", kind: "pvpve", tag: "timed" });
-  assert.ok(matchesFilter(p, { ...base, category: "protocol", kind: "pve", map: "x" }));
+test("задание на время - обычное задание с тегом: те же фильтры пула и карты", () => {
+  const p = task({ kind: "pvpve", tag: "timed" });
+  assert.ok(matchesFilter(p, { ...base, timed: "timed" }));
+  assert.ok(!matchesFilter(p, { ...base, kind: "pve" }));
+});
+
+test("плашка: «На время» оранжевая, остальные - цвет редкости", () => {
+  assert.deepEqual(taskBadge({ tag: "timed", rarity: "epic" }).label, "На время");
+  assert.equal(taskBadge({ tag: "timed", rarity: "epic" }).color, "#ff8126");
+  assert.deepEqual(taskBadge({ tag: "normal", rarity: "epic" }), { label: "Эпический", color: "#cc3099", ink: "#ffffff" });
+  assert.equal(taskBadge({}).label, "Обычный");
+  assert.equal(taskBadge({ rarity: "неизвестная" }).label, "Обычный");
 });
 
 test("баллы по умолчанию не зависят от редкости", () => {
-  assert.equal(defaultPoints("task", false), 2);
-  assert.equal(defaultPoints("task", true), 1);
-  assert.equal(defaultPoints("protocol", false), 1);
-  for (const r of RARITIES) assert.equal(defaultSettings("task", { rarity: r.id }).points, "2");
-  const s = defaultSettings("task");
-  assert.equal(withTimed(s, "task", true).points, "1");
-  assert.equal(withTimed({ ...s, points: "5", pointsTouched: true }, "task", true).points, "5");
+  assert.equal(defaultPoints(false), 2);
+  assert.equal(defaultPoints(true), 1);
+  for (const r of RARITIES) assert.equal(defaultSettings({ rarity: r.id }).points, "2");
+  const s = defaultSettings();
+  assert.equal(withTimed(s, true).points, "1");
+  assert.equal(withTimed({ ...s, points: "5", pointsTouched: true }, true).points, "5");
   assert.equal(parsePoints("0"), null);
   assert.equal(parsePoints("10"), 10);
   assert.equal(parsePoints("11"), null);

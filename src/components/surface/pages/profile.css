@@ -615,6 +615,23 @@
 .pf-stat-hint {
   margin-top: -10px;
 }
+/* Выбор редкости заданий: кнопки в цвет редкости */
+.pf-rar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pf-rar button {
+  padding: 7px 12px;
+  border: 2px solid;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: 700 11px/1 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
 .pf-fav-form {
   display: grid;
   gap: 16px;

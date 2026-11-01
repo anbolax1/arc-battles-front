@@ -37,8 +37,8 @@ function matches(it: { num: number; label: string }, q: string): boolean {
   return String(it.num) === s || String(it.num).startsWith(s) || it.label.toLowerCase().includes(s);
 }
 
-/** Справочник для показа: задания пула по картам (общие первыми), протоколы и легендарные.
-    Номера идут подряд в порядке показа - по ним ищут задание. */
+/** Справочник для показа: обычные задания пула, задания на время и легендарные. Задания на карту
+    пока не выдаются, поэтому в справочнике их нет. Номера идут подряд в порядке показа - по ним ищут задание. */
 export function rulesCatalog(
   tasks: CatalogTask[],
   legendary: CatalogLegendary[],
@@ -53,7 +53,7 @@ export function rulesCatalog(
   // Задание на нескольких картах стоит в группе каждой своей карты, со своим номером.
   const poolTasks = numbered(
     active
-      .filter((t) => t.category !== "protocol" && (t.kind === pool || t.kind === "pvpve"))
+      .filter((t) => t.tag !== "timed" && !t.mapCodes.length && (t.kind === pool || t.kind === "pvpve"))
       .flatMap((t) => (t.mapCodes.length ? t.mapCodes : [""]).map((mapCode) => ({ ...t, mapCode })))
       .filter((t) => groupOrder.includes(t.mapCode))
       .sort((x, y) => groupOrder.indexOf(x.mapCode) - groupOrder.indexOf(y.mapCode)),
@@ -62,7 +62,7 @@ export function rulesCatalog(
     groups: groupOrder
       .map((code) => ({ code, items: poolTasks.filter((t) => t.mapCode === code && matches(t, q)) }))
       .filter((g) => g.items.length),
-    protocols: numbered(active.filter((t) => t.category === "protocol")).filter((t) => matches(t, q)),
+    timed: numbered(active.filter((t) => t.tag === "timed" && !t.mapCodes.length && (t.kind === pool || t.kind === "pvpve"))).filter((t) => matches(t, q)),
     legendary: numbered(legendary).filter((l) => matches(l, q)),
   };
 }
@@ -160,7 +160,7 @@ export function RulesList({
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
   const [format, setFormat] = React.useState<RulesFormat>("all");
   const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
-  const { groups, protocols: shownProtocols, legendary: shownLegendary } = rulesCatalog(tasks, legendary, maps, pool, q, format);
+  const { groups, timed: shownTimed, legendary: shownLegendary } = rulesCatalog(tasks, legendary, maps, pool, q, format);
 
   return (
     <div className="space-y-5">
@@ -172,7 +172,7 @@ export function RulesList({
             onChange={(e) => setQ(e.target.value)}
             placeholder="Поиск по номеру или тексту…"
             className="input pl-9"
-            aria-label="Поиск заданий и протоколов"
+            aria-label="Поиск заданий"
           />
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">⌕</span>
         </div>
@@ -196,7 +196,7 @@ export function RulesList({
         <Panel glow className="space-y-5 p-6">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="font-display text-lg uppercase">Задания</h3>
-            <span className="text-xs text-muted">2 на раунд: общее и на карту раунда</span>
+            <span className="text-xs text-muted">2 обычных на раунд</span>
           </div>
           {groups.length ? (
             groups.map((g) => (
@@ -228,12 +228,12 @@ export function RulesList({
 
         <Panel glow className="p-6">
           <div className="mb-4 flex items-baseline justify-between gap-3">
-            <h3 className="font-display text-lg uppercase">Протоколы</h3>
+            <h3 className="font-display text-lg uppercase">На время</h3>
             <span className="text-xs text-muted">1 на раунд · до 15-й минуты</span>
           </div>
-          {shownProtocols.length ? (
+          {shownTimed.length ? (
             <ul>
-              {shownProtocols.map((c) => (
+              {shownTimed.map((c) => (
                 <CatalogItem
                   key={c.id}
                   num={c.num}
@@ -250,7 +250,7 @@ export function RulesList({
               ))}
             </ul>
           ) : (
-            <EmptyState title={q ? "Ничего не найдено" : "Протоколов пока нет"} />
+            <EmptyState title={q ? "Ничего не найдено" : "Заданий на время пока нет"} />
           )}
         </Panel>
       </div>

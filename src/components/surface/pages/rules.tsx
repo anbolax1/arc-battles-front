@@ -21,7 +21,7 @@ export async function SurfaceRules() {
             правила<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead rl-lead">
-            Как устроен матч, за что дают очки и как считается рейтинг. Ниже — все задания, протоколы и легендарные задания с поиском по номеру.
+            Как устроен матч, за что дают очки и как считается рейтинг. Ниже — все задания, задания на время и легендарные задания с поиском по номеру.
           </p>
           <div className="sf-controls">
             <a className="sf-btn sf-btn-amber" href="#tasks">

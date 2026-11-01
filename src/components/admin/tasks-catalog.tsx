@@ -5,8 +5,8 @@ import { api, errorText } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel } from "@/components/ui/card";
-import { SegButton, TaskSettingsFields, TaskTags } from "@/components/admin/task-parts";
-import type { CatalogTask, MapInfo, TaskCategory } from "@/lib/types";
+import { TaskSettingsFields, TaskTags } from "@/components/admin/task-parts";
+import type { CatalogTask, MapInfo } from "@/lib/types";
 import {
   FORMATS,
   KINDS,
@@ -34,7 +34,6 @@ type Draft = { id?: string; name: string; text: string; active: boolean; setting
 type BulkResult = { created: CatalogTask[]; skipped: Array<{ index: number; reason: string }> };
 
 const DEFAULT_FILTER: TaskFilter = {
-  category: "task",
   format: "all",
   kind: "pvp",
   rarity: "all",
@@ -48,10 +47,7 @@ const DEFAULT_FILTER: TaskFilter = {
 
 const sameFilter = (a: TaskFilter, b: TaskFilter) => (Object.keys(a) as Array<keyof TaskFilter>).every((k) => a[k] === b[k]);
 
-/** Пул протокола не выбирается: он подходит любому типу игроков. */
-const PROTOCOL_KIND = "pvpve";
-
-/** Каталог 3 сезона: задания (общие и на карты, отдельно PvP и PvE) и протоколы за +1. */
+/** Каталог заданий 3 сезона: обычные и на время, отдельно PvP и PvE. */
 export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: MapInfo[] }) {
   const [items, setItems] = React.useState(initial);
   const [filter, setFilter] = React.useState<TaskFilter>(DEFAULT_FILTER);
@@ -62,7 +58,6 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
   const [err, setErr] = React.useState("");
   const [notice, setNotice] = React.useState<{ text: string; hidden: number } | null>(null);
 
-  const category = filter.category;
   const setF = (patch: Partial<TaskFilter>) => setFilter((f) => ({ ...f, ...patch }));
   const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
   const visible = items.filter((t) => matchesFilter(t, filter));
@@ -70,13 +65,13 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
   /** Настройки нового задания: выбранные фильтры становятся значениями по умолчанию, чтобы задание не пропало из списка. */
   function settingsFromFilter(): TaskSettings {
     const f = filter;
-    return defaultSettings(category, {
+    return defaultSettings({
       format: f.format === "all" ? "1x1" : f.format,
-      kind: category === "protocol" ? PROTOCOL_KIND : f.kind === "all" ? "pvp" : f.kind,
+      kind: f.kind === "all" ? "pvp" : f.kind,
       rarity: f.rarity === "all" ? "common" : f.rarity,
-      timed: category === "protocol" ? f.timed !== "normal" : f.timed === "timed",
+      timed: f.timed === "timed",
       roundType: f.roundType === "all" ? "any" : f.roundType,
-      mapCodes: category === "task" && f.map !== "all" && f.map !== "universal" ? [f.map] : [],
+      mapCodes: f.map !== "all" && f.map !== "universal" ? [f.map] : [],
       source: f.source === "boosty" ? "boosty" : "official",
     });
   }
@@ -97,7 +92,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
   }
 
   const resetFilters = () => {
-    setFilter({ ...DEFAULT_FILTER, category, kind: "all" });
+    setFilter({ ...DEFAULT_FILTER, kind: "all" });
     setNotice(null);
   };
 
@@ -113,7 +108,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
     }
     setBusy(true);
     setErr("");
-    const body = { ...settingsBody(draft.settings, category, points), name: draft.name, text: draft.text, active: draft.active };
+    const body = { ...settingsBody(draft.settings, points), name: draft.name, text: draft.text, active: draft.active };
     try {
       const saved = draft.id
         ? await api.patch<CatalogTask>(`/catalog/tasks/${draft.id}`, body)
@@ -182,7 +177,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl">Задания и протоколы</h2>
+        <h2 className="text-2xl">Задания</h2>
         <div className="flex gap-2">
           <button
             type="button"
@@ -207,24 +202,13 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
         </div>
       </div>
       <p className="text-sm text-muted">
-        В матче каждой стороне на раунд выпадает общее задание, задание на карту раунда и протокол - из пула под тип игроков, формат матча
-        и тип раунда, без повторов в матче. Обычное задание стоит 2 балла, на время и протокол - 1; баллы можно задать вручную, от редкости
-        они не зависят. Тег «На время» виден на стриме в виджете «Задания V2».
+        В матче каждой стороне на раунд выпадают три задания, одно из них на время (его выполняет только владелец): из пула под тип
+        игроков, формат матча и тип раунда, без повторов в матче. Задания на карту пока не выдаются. Обычное задание стоит 2 балла, на время - 1;
+        баллы можно задать вручную, от редкости они не зависят. Редкость и «На время» видны на стриме в виджете «Задания V2».
       </p>
 
       <Panel className="space-y-3 p-4">
         <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <div className="space-y-1.5">
-            <span className="field-label block">Раздел</span>
-            <div className="seg">
-              <SegButton pressed={category === "task"} onClick={() => setF({ category: "task" })}>
-                Задания
-              </SegButton>
-              <SegButton pressed={category === "protocol"} onClick={() => setF({ category: "protocol" })}>
-                Протоколы
-              </SegButton>
-            </div>
-          </div>
           <div className="min-w-[200px] flex-1 space-y-1.5">
             <label className="field-label" htmlFor="cat-q">
               Поиск
@@ -244,15 +228,13 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
               </option>
             ))}
           </FilterSelect>
-          {category === "task" && (
-            <FilterSelect label="Пул" id="f-kind" value={filter.kind} onChange={(v) => setF({ kind: v as TaskFilter["kind"] })}>
-              {KINDS.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.label}
-                </option>
-              ))}
-            </FilterSelect>
-          )}
+          <FilterSelect label="Пул" id="f-kind" value={filter.kind} onChange={(v) => setF({ kind: v as TaskFilter["kind"] })}>
+            {KINDS.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.label}
+              </option>
+            ))}
+          </FilterSelect>
           <FilterSelect label="Редкость" id="f-rarity" value={filter.rarity} onChange={(v) => setF({ rarity: v as TaskFilter["rarity"] })}>
             {RARITIES.map((r) => (
               <option key={r.id} value={r.id}>
@@ -271,16 +253,14 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
               </option>
             ))}
           </FilterSelect>
-          {category === "task" && (
-            <FilterSelect label="Карта" id="f-map" value={filter.map} onChange={(v) => setF({ map: v })}>
-              <option value="universal">Общие (без карты)</option>
-              {maps.map((m) => (
-                <option key={m.code} value={m.code}>
-                  {m.name}
-                </option>
-              ))}
-            </FilterSelect>
-          )}
+          <FilterSelect label="Карта" id="f-map" value={filter.map} onChange={(v) => setF({ map: v })}>
+            <option value="universal">Общие (без карты)</option>
+            {maps.map((m) => (
+              <option key={m.code} value={m.code}>
+                {m.name}
+              </option>
+            ))}
+          </FilterSelect>
           <FilterSelect label="Источник" id="f-source" value={filter.source} onChange={(v) => setF({ source: v as TaskFilter["source"] })}>
             <option value="official">Организатор</option>
             <option value="boosty">Подписчик Boosty</option>
@@ -288,9 +268,9 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
           <span>
-            Показано {visible.length} из {items.filter((t) => (t.category || "task") === category).length}
+            Показано {visible.length} из {items.length}
           </span>
-          {!sameFilter(filter, { ...DEFAULT_FILTER, category }) && (
+          {!sameFilter(filter, DEFAULT_FILTER) && (
             <button type="button" className="underline hover:text-fg" onClick={resetFilters}>
               Сбросить фильтры
             </button>
@@ -317,7 +297,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
         groupOrder.map((key) => (
           <section key={key || "universal"} className="space-y-2">
             <h3 className="font-display text-sm uppercase text-muted">
-              {key ? mapName(key) : category === "protocol" ? "Протоколы" : "Общие задания"} · {groups.get(key)!.length}
+              {key ? mapName(key) : "Общие задания"} · {groups.get(key)!.length}
             </h3>
             <Panel className="divide-y divide-[var(--border)]">
               {groups.get(key)!.map((t) => (
@@ -331,7 +311,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                       <div className="text-sm font-semibold">{t.name ? `«${t.name}»` : t.text}</div>
                       {t.name && <div className="text-sm text-muted">{t.text}</div>}
                     </div>
-                    <TaskTags task={t} showKind={category === "task"} />
+                    <TaskTags task={t} />
                     {t.mapCodes.length > 1 && <div className="text-xs text-muted">Карты: {t.mapCodes.map(mapName).join(", ")}</div>}
                     {t.source === "boosty" && (
                       <div className="text-xs text-[var(--boosty)]">
@@ -360,7 +340,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
         <Panel className="p-8 text-center text-sm text-muted">Под эти фильтры ничего нет.</Panel>
       )}
 
-      <Modal open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Изменить" : category === "protocol" ? "Новый протокол" : "Новое задание"} size="lg">
+      <Modal open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Изменить" : "Новое задание"} size="lg">
         {draft && (
           <form
             className="space-y-4"
@@ -385,7 +365,6 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
             </div>
             <TaskSettingsFields
               idPrefix="d"
-              category={category}
               maps={maps}
               value={draft.settings}
               onChange={(settings) => setDraft({ ...draft, settings })}
@@ -409,7 +388,6 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
       <Modal open={bulk !== null} onClose={() => setBulk(null)} title="Вставить списком" size="xl">
         {bulk && (
           <BulkForm
-            category={category}
             maps={maps}
             items={items}
             state={bulk}
@@ -427,7 +405,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
               setBusy(true);
               setErr("");
               try {
-                const common = settingsBody(settings, category, points);
+                const common = settingsBody(settings, points);
                 const res = await api.post<BulkResult>("/catalog/tasks/bulk", {
                   items: rows.map((r) => ({ ...common, name: r.name, text: r.text })),
                 });
@@ -490,7 +468,6 @@ function FilterSelect({
  * предпросмотр читает его, а исправление строки переписывает только её.
  */
 function BulkForm({
-  category,
   maps,
   items,
   state,
@@ -501,7 +478,6 @@ function BulkForm({
   onClose,
   onSubmit,
 }: {
-  category: TaskCategory;
   maps: MapInfo[];
   items: CatalogTask[];
   state: { raw: string; settings: TaskSettings };
@@ -518,18 +494,17 @@ function BulkForm({
 
   // Повтор - то же название и описание в том же разделе, пуле и формате (как проверяет сервер).
   const existing = React.useMemo(() => {
-    const kind = category === "protocol" ? PROTOCOL_KIND : settings.kind;
     return new Set(
       items
-        .filter((t) => (t.category || "task") === category && t.kind === kind && taskFormat(t) === settings.format)
+        .filter((t) => t.kind === settings.kind && taskFormat(t) === settings.format)
         .map((t) => taskKey(t.name ?? "", t.text)),
     );
-  }, [items, category, settings.kind, settings.format]);
+  }, [items, settings.kind, settings.format]);
   const rows = React.useMemo(() => parseBulk(raw, existing), [raw, existing]);
   const ready = rows.filter((r) => !r.problem);
   const problems = rows.filter((r) => r.problem);
   const pointsOk = parsePoints(settings.points) !== null;
-  const summary = describeSettings(settings, category, mapName);
+  const summary = describeSettings(settings, mapName);
 
   const setRaw = (next: string) => {
     setReport("");
@@ -557,11 +532,9 @@ function BulkForm({
       <div className="space-y-2">
         <p className="text-sm text-muted">
           Выберите общие настройки: их получат <b>все</b> задания из списка.
-          {category === "protocol" ? " Протоколы подходят любому пулу." : ""}
         </p>
         <TaskSettingsFields
           idPrefix="b"
-          category={category}
           maps={maps}
           value={settings}
           onChange={(s) => setState({ ...state, settings: s })}
@@ -583,7 +556,7 @@ function BulkForm({
             placeholder={"Уничтожить 3 ARC:Уничтожьте три единицы ARC за рейд\nУбить рейдера | Убейте одного вражеского рейдера\nили две колонки, скопированные из таблицы"}
           />
           <p className="text-xs text-muted">
-            По строке на {category === "protocol" ? "протокол" : "задание"}: «Название:Описание» (делит первое двоеточие), «Название | Описание» или две
+            По строке на задание: «Название:Описание» (делит первое двоеточие), «Название | Описание» или две
             колонки из Excel / Google Таблиц.
           </p>
         </div>

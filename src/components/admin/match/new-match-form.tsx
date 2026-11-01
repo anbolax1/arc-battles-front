@@ -12,6 +12,8 @@ import { DateTimePicker, toMskInput } from "@/components/admin/date-time-picker"
 import { createPlaceholderPlayer, PlayerPicker } from "@/components/admin/match/player-picker";
 import { TeamPicker } from "@/components/admin/match/team-picker";
 import { TeamForm } from "@/components/admin/team-form";
+import { SideRarities } from "@/components/admin/match/side-rarities";
+import { RARITIES } from "@/lib/task-meta";
 import {
   MAX_PRIZE,
   PreviewImage,
@@ -19,7 +21,7 @@ import {
   putShowPreview,
   useChosenPreview,
 } from "@/components/admin/match/show-preview";
-import type { Belt, MatchFormat, MatchPlayer, MatchState, MatchTeam, PlayerType, Registration, TournamentMode } from "@/lib/types";
+import type { Belt, MatchFormat, MatchPlayer, MatchState, MatchTeam, PlayerType, Registration, TaskRarity, TournamentMode } from "@/lib/types";
 import { holderName } from "@/components/surface/belt-lib";
 
 const PLAYER_TYPES: Array<[PlayerType, string]> = [
@@ -143,6 +145,8 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
   const [playerType, setPlayerType] = React.useState<PlayerType>("pvp");
   const [rounds, setRounds] = React.useState<2 | 3>(2);
   const [prize, setPrize] = React.useState("");
+  // Ручная настройка редкости заданий сторон на этот матч: ключ - игрок или команда; нет ключа - из профиля.
+  const [rarityManual, setRarityManual] = React.useState<Record<string, TaskRarity[]>>({});
   const [preview, choosePreview] = useChosenPreview();
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
@@ -207,13 +211,24 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
 
   const show = format === "show";
   const roundCount = show ? 3 : rounds;
-  const sides = teamMode
+  // Стороны матча: ключ (игрок или команда), подпись и игроки, чьи предпочтения по заданиям учитываются.
+  const sideDefs = teamMode
     ? teamA && teamB
-      ? [{ teamKey: teamA.teamKey }, { teamKey: teamB.teamKey }]
+      ? [teamA, teamB].map((t) => ({ key: t.teamKey, name: t.name, userIds: t.members.map((m) => m.userId) }))
       : null
     : sideA && sideB
-      ? [{ userId: sideA.id }, { userId: sideB.id }]
+      ? [sideA, sideB].map((p) => ({ key: p.id, name: p.displayName || p.login, userIds: [p.id] }))
       : null;
+  const allRarities = RARITIES.map((r) => r.id);
+  // Предпочтения игроков стороны из профиля; у команды складываются.
+  const profileRarities = (userIds: string[]): TaskRarity[] =>
+    allRarities.filter((r) => userIds.some((id) => (players.find((p) => p.id === id)?.taskRarities ?? allRarities).includes(r)));
+  const sides = sideDefs
+    ? sideDefs.map((d) => ({
+        ...(teamMode ? { teamKey: d.key } : { userId: d.key }),
+        ...(rarityManual[d.key] ? { taskRarities: rarityManual[d.key] } : {}),
+      }))
+    : null;
   const create = async () => {
     if (!sides) return;
     if (show && !startsAt) {
@@ -522,6 +537,33 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
             );
           })}
           <span className="text-xs text-muted">нажмите — игрок встанет в свободный слот</span>
+        </Panel>
+      )}
+
+      {sideDefs && (
+        <Panel className="space-y-3 p-5">
+          <div>
+            <h3 className="font-display text-lg uppercase">Какие задания выдавать</h3>
+            <p className="text-xs text-muted">
+              Выбор игроков из профиля. Для этого матча можно поменять вручную: задания выпадут выбранных редкостей, при нехватке добавятся ближайшие.
+            </p>
+          </div>
+          {sideDefs.map((d, i) => (
+            <SideRarities
+              key={d.key}
+              title={`${i === 0 ? "A" : "B"} · ${d.name}`}
+              profile={profileRarities(d.userIds)}
+              manual={rarityManual[d.key] ?? null}
+              onChange={(next) =>
+                setRarityManual((m) => {
+                  const rest = { ...m };
+                  if (next) rest[d.key] = next;
+                  else delete rest[d.key];
+                  return rest;
+                })
+              }
+            />
+          ))}
         </Panel>
       )}
 

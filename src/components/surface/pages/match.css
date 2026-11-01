@@ -180,6 +180,14 @@
 .sf-rd-col .sf-k.leg {
   background: #9a5b00;
 }
+/* Плашки заданий одной ширины: редкость, «на время», «на карту» и легендарка в колонку ровно */
+.sf-rd-col li .sf-k {
+  box-sizing: border-box;
+  width: 96px;
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+}
 .sf-mh-extra + .sf-mh-extra {
   margin-top: 20px;
 }
