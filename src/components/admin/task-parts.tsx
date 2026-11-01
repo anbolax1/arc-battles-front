@@ -50,13 +50,40 @@ export function SegButton({
   );
 }
 
+/** В форме одного задания поля идут строками «подпись слева - значения справа». */
+const InlineCtx = React.createContext(false);
+
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: React.ReactNode }) {
+  const inline = React.useContext(InlineCtx);
+  const body = (
+    <>
+      {children}
+      {hint && <p className="text-xs leading-snug text-muted">{hint}</p>}
+    </>
+  );
+  if (inline) {
+    return (
+      <div className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[110px_minmax(0,1fr)]">
+        <span className="field-label block sm:pt-2.5">{label}</span>
+        <div className="space-y-1.5">{body}</div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-1.5">
       <span className="field-label block">{label}</span>
-      {children}
-      {hint && <p className="text-xs text-muted">{hint}</p>}
+      {body}
     </div>
+  );
+}
+
+/** Блок формы с заголовком: связанные настройки рядом, блоки разделены линией. */
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3.5">
+      <h4 className="border-b border-[var(--border)] pb-1.5 font-display text-xs uppercase tracking-wider text-[var(--primary-2)]">{title}</h4>
+      {children}
+    </section>
   );
 }
 
@@ -127,7 +154,7 @@ export function TaskSettingsFields({
     </Field>
   );
   const timed = (
-    <Field label={flow ? "Условие" : "Дополнительное условие"} hint={flow ? undefined : "Независимо от редкости: «Обычный» тоже может быть на время."}>
+    <Field label={flow ? "Условие" : "Условие"} hint={flow ? undefined : "Отдельно от редкости: обычное задание тоже может быть на время."}>
       <div className="seg">
         <SegButton pressed={value.timed} color={TIMED_META.color} ink={TIMED_META.ink} onClick={() => onChange(withTimed(value, category, !value.timed))}>
           {TIMED_META.label}
@@ -195,6 +222,7 @@ export function TaskSettingsFields({
         min={MIN_POINTS}
         max={MAX_POINTS}
         className="input"
+        style={flow ? undefined : { maxWidth: 112 }}
         aria-invalid={pointsBad}
         value={value.points}
         onChange={(e) => set({ points: e.target.value, pointsTouched: true })}
@@ -236,25 +264,26 @@ export function TaskSettingsFields({
       </div>
     );
   }
-  const grid = "grid gap-x-5 gap-y-4 sm:grid-cols-2";
   return (
-    <div className="space-y-4">
-      <div className={grid}>
-        {format}
-        {kind}
+    <InlineCtx.Provider value>
+      <div className="space-y-6">
+        <Group title="Где выпадает">
+          {format}
+          {kind}
+          {round}
+          {mapsField}
+        </Group>
+        <Group title="Сложность">
+          {rarity}
+          {timed}
+        </Group>
+        <Group title="Награда и источник">
+          {points}
+          {source}
+          {boosty}
+        </Group>
       </div>
-      {rarity}
-      <div className={grid}>
-        {timed}
-        {round}
-      </div>
-      {mapsField}
-      <div className={grid}>
-        {points}
-        {source}
-      </div>
-      {boosty}
-    </div>
+    </InlineCtx.Provider>
   );
 }
 

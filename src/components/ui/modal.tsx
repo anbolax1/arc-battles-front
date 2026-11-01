@@ -9,8 +9,8 @@ export interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  /** xl - для форм с большим числом настроек. */
-  size?: "md" | "xl";
+  /** lg и xl - для форм с большим числом настроек. */
+  size?: "md" | "lg" | "xl";
 }
 
 /** Простая модалка: скрим + панель. Esc и клик по фону — закрывают. */
@@ -33,7 +33,7 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
       role="presentation"
     >
       <div
-        className={`panel glow-edge max-h-[92vh] w-full overflow-y-auto ${size === "xl" ? "max-w-6xl" : "max-w-lg"}`}
+        className={`panel glow-edge max-h-[92vh] w-full overflow-y-auto ${size === "xl" ? "max-w-6xl" : size === "lg" ? "max-w-3xl" : "max-w-lg"}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

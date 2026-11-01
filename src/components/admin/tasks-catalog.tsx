@@ -360,7 +360,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
         <Panel className="p-8 text-center text-sm text-muted">Под эти фильтры ничего нет.</Panel>
       )}
 
-      <Modal open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Изменить" : category === "protocol" ? "Новый протокол" : "Новое задание"}>
+      <Modal open={!!draft} onClose={() => setDraft(null)} title={draft?.id ? "Изменить" : category === "protocol" ? "Новый протокол" : "Новое задание"} size="lg">
         {draft && (
           <form
             className="space-y-4"
@@ -391,14 +391,16 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
               onChange={(settings) => setDraft({ ...draft, settings })}
               pointsHint="Обычное - 2, на время - 1; можно задать своё."
             />
-            {err && <p className="text-sm text-danger">{err}</p>}
-            <div className="flex justify-end gap-3 pt-1">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(null)}>
-                <span>Отмена</span>
-              </button>
-              <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
-                <span>Сохранить</span>
-              </button>
+            <div className="sticky bottom-[-1.25rem] z-10 -mx-5 -mb-5 space-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3">
+              {err && <p className="text-sm text-danger">{err}</p>}
+              <div className="flex justify-end gap-3">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(null)}>
+                  <span>Отмена</span>
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+                  <span>Сохранить</span>
+                </button>
+              </div>
             </div>
           </form>
         )}
