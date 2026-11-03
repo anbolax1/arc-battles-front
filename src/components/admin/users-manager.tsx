@@ -150,6 +150,24 @@ export function UsersManager({
     }
   }
 
+  // Сброс пароля: два клика, чтобы случайно не выкинуть игрока из аккаунта.
+  const [resetAsk, setResetAsk] = React.useState<string | null>(null);
+  const [resetError, setResetError] = React.useState<Record<string, string>>({});
+
+  async function resetPassword(u: UserOverview) {
+    setClaimBusy(u.id);
+    setResetError((prev) => ({ ...prev, [u.id]: "" }));
+    try {
+      const res = await api.post<{ token: string }>(`/users/${u.id}/reset-password`, {});
+      setClaimLink((prev) => ({ ...prev, [u.id]: `${window.location.origin}/claim/${res.token}` }));
+    } catch (e) {
+      setResetError((prev) => ({ ...prev, [u.id]: e instanceof Error ? e.message : "не удалось сбросить пароль" }));
+    } finally {
+      setClaimBusy(null);
+      setResetAsk(null);
+    }
+  }
+
   async function changeRole(u: UserOverview, role: Role) {
     setRoleBusyId(u.id);
     setRoleError((m) => ({ ...m, [u.id]: "" }));
@@ -304,8 +322,8 @@ export function UsersManager({
                         <td className="whitespace-nowrap px-4 py-3 text-muted">
                           {/* У заглушки дата создания - это дата импорта, а не регистрации игрока */}
                           {u.isPlaceholder ? (
-                            <span className="text-gold" title="Аккаунт создан автоматически: игрок ещё не зарегистрировался и не задал пароль по ссылке">
-                              не зарегистрирован
+                            <span className="text-gold" title="У аккаунта нет пароля: игрок ещё не задал его по ссылке">
+                              нет пароля
                             </span>
                           ) : u.createdAt ? (
                             fmtDate(u.createdAt)
@@ -353,7 +371,28 @@ export function UsersManager({
                                 <span>Полная статистика ↗</span>
                               </a>
                             </div>
-                            {u.isPlaceholder && (
+                            {!u.isPlaceholder && !claimLink[u.id] && currentUser?.id !== u.id && (
+                              <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
+                                <span className="text-xs uppercase tracking-wide text-muted">Пароль</span>
+                                {resetAsk === u.id ? (
+                                  <>
+                                    <button type="button" className="btn btn-danger btn-sm" disabled={claimBusy === u.id} onClick={() => resetPassword(u)}>
+                                      <span>{claimBusy === u.id ? "…" : "Да, сбросить"}</span>
+                                    </button>
+                                    <button type="button" className="btn btn-ghost btn-sm" disabled={claimBusy === u.id} onClick={() => setResetAsk(null)}>
+                                      <span>Отмена</span>
+                                    </button>
+                                    <span className="text-xs text-muted">Старый пароль перестанет работать, игрока выкинет из аккаунта.</span>
+                                  </>
+                                ) : (
+                                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setResetAsk(u.id)}>
+                                    <span>Сбросить пароль</span>
+                                  </button>
+                                )}
+                                {resetError[u.id] && <span className="text-sm text-danger">{resetError[u.id]}</span>}
+                              </div>
+                            )}
+                            {(u.isPlaceholder || claimLink[u.id]) && (
                               <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
                                 <span className="text-xs uppercase tracking-wide text-muted">Доступ игроку</span>
                                 <button
