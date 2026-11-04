@@ -300,6 +300,11 @@
   border-left-color: var(--sf-loss-ink);
   background: #fbe5e1;
 }
+.qu-row.prio {
+  border-left-color: var(--sf-amber);
+  background: #fff8e6;
+  box-shadow: 0 0 0 1px var(--sf-amber);
+}
 .qu-row.skipped {
   border-left-style: dashed;
 }
@@ -366,6 +371,11 @@ a.qu-name:hover {
 .qu-prio {
   border: 1.5px solid var(--sf-ink-2);
   color: var(--sf-ink-2);
+}
+.qu-row.prio .qu-prio {
+  background: var(--sf-amber);
+  border-color: var(--sf-amber);
+  color: var(--sf-ink);
 }
 .qu-mmr,
 .qu-time,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, apiFetch, errorText } from "@/lib/api";
 import { RARITIES } from "@/lib/task-meta";
 import type { TaskRarity } from "@/lib/types";
+import { hhmm, shortDate } from "@/components/surface/fmt";
 import { fmtCount, REGIONS, regionLabel, STAT_KINDS, STAT_LABEL, STAT_LIMIT } from "@/lib/tokens";
 import type { FavoriteOptions, MyExtras, NumericStatKind, PlayerFavorites, StatClaim, TeamMember, TokenWallet } from "@/lib/types";
 
@@ -458,6 +459,52 @@ function HoldButton({ disabled, onDone, children }: { disabled: boolean; onDone:
   );
 }
 
+/** «Без очереди»: игрок сам активирует жетон на сегодня, и в очереди выступлений его запись встаёт выше остальных. */
+function PriorityForm({ tokens }: { tokens: TokenWallet }) {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const active = !!tokens.priorityUntil || msg?.ok === true;
+  const cooldown = !active && tokens.priorityNext ? tokens.priorityNext : "";
+
+  async function activate() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.post<TokenWallet>("/me/priority");
+      setMsg({ ok: true, text: "Жетон активирован: до конца игрового дня вы выше остальных в очереди." });
+      router.refresh();
+    } catch (err) {
+      setMsg({ ok: false, text: errorText(err, "Не удалось активировать жетон.") });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const note =
+    msg?.text ??
+    (active
+      ? "Жетон действует до конца игрового дня: в очереди выступлений вы выше тех, кто без него. Кто активировал раньше, тот выше."
+      : tokens.priority < 1
+        ? "Жетонов «Без очереди» нет - их выдают модераторы и организатор."
+        : cooldown
+          ? `Перезарядка: снова можно с ${shortDate(cooldown)} ${hhmm(cooldown)}.`
+          : "Действует до конца игрового дня и поднимает вас в очереди выступлений выше остальных. Отменить после активации нельзя.");
+  return (
+    <div className="sf-field pf-wide pf-reset">
+      <p className="sf-field-label">Без очереди · жетонов: {tokens.priority}</p>
+      <div className="pf-reset-row">
+        <button type="button" className="sf-btn sf-btn-amber sf-btn-sm" disabled={busy || active || tokens.priority < 1 || !!cooldown} onClick={activate}>
+          {active ? "Активирован на сегодня" : busy ? "Активируем…" : "Активировать на сегодня"}
+        </button>
+      </div>
+      <p className={`sf-field-note ${msg ? (msg.ok ? "good" : "bad") : ""}`} aria-live="polite">
+        {note}
+      </p>
+    </div>
+  );
+}
+
 /** Сброс рейтинга жетоном: игрок сам, раз в сезон, подтверждает удержанием кнопки. */
 function ResetForm({ tokens, blocked, mmr, start }: { tokens: TokenWallet; blocked?: string; mmr: number; start: number }) {
   const router = useRouter();
@@ -500,7 +547,7 @@ function ResetForm({ tokens, blocked, mmr, start }: { tokens: TokenWallet; block
   );
 }
 
-/** Под настройками своего профиля: часы, ноки и сервер со скриншотом, любимое и сброс рейтинга жетоном. */
+/** Под настройками своего профиля: часы, ноки и сервер со скриншотом, любимое и жетоны «Без очереди» и сброса рейтинга. */
 export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExtras; options: FavoriteOptions | null; roleName: string }) {
   const claim = (k: StatClaim["kind"]) => extras.claims.find((c) => c.kind === k);
   return (
@@ -514,6 +561,7 @@ export function ProfileExtrasDesk({ extras, options, roleName }: { extras: MyExt
       </p>
       <TaskRaritiesForm initial={extras.taskRarities ?? ["common"]} />
       <FavoritesForm initial={extras.favorites} options={options} allowed={extras.canFavorites} roleName={roleName} />
+      <PriorityForm tokens={extras.tokens} />
       <ResetForm tokens={extras.tokens} blocked={extras.resetBlocked} mmr={extras.mmr} start={extras.startMmr} />
     </section>
   );

@@ -54,9 +54,11 @@ const EVENT_LABEL: Record<string, string> = {
   no_show: "Неявка: пропущен после вызова",
   return: "Возвращён в очередь",
   move: "Переставлен",
+  priority: "Жетон «Без очереди»: поднят",
   match_started: "Матч начался",
   match_finished: "Матч завершён",
   match_cancelled: "Матч отменён",
+  performed: "Отыграл матч, вышел из очереди",
 };
 
 function Countdown({ until, serverNow }: { until: string; serverNow: () => number }) {
@@ -346,16 +348,18 @@ function EntryRow({
   const inMatch = e.status === "invited" || e.status === "ready" || e.status === "performing";
   const matchFull = !!snap.match && snap.match.sides.length >= 2;
   const canCall = (e.status === "waiting" || e.status === "skipped") && !s.paused && snap.match?.status !== "live" && !matchFull;
+  // Без очереди сегодня ещё не сыграл: запись стоит в начале выше остальных.
+  const jumped = !!e.priority && e.todayMatches === 0 && (e.status === "waiting" || e.status === "skipped");
   const num = Number(pos);
   const posOk = Number.isInteger(num) && num >= 1 && num <= last && num !== e.position;
 
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+    <li className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 ${jumped ? "border-l-4 border-primary bg-primary/10" : ""}`}>
       <span className="w-8 text-center font-display text-xl tabular-nums">{e.position}</span>
       <div className="min-w-0 flex-1 basis-48 space-y-0.5">
         <div className="truncate font-display text-lg uppercase">
           {e.name}
-          {e.priority && <span className="ml-2 align-middle text-[0.65rem] normal-case text-primary">без очереди</span>}
+          {e.priority && <span className="ml-2 align-middle text-[0.65rem] font-semibold normal-case text-primary">без очереди</span>}
           {e.addedByOrganizer && <span className="ml-2 align-middle text-[0.65rem] normal-case text-muted">добавлен вручную</span>}
         </div>
         <div className="flex flex-wrap gap-x-2 text-xs text-muted">
@@ -496,6 +500,7 @@ function eventText(ev: QueueEvent): string {
   const d = ev.data ?? {};
   let t = EVENT_LABEL[ev.kind] ?? ev.kind;
   if (ev.kind === "move") t += ` с ${String(d.from)} на ${String(d.to)}`;
+  if (ev.kind === "priority") t += d.from === d.to ? `, остался на месте ${String(d.to)}` : ` с ${String(d.from)} на ${String(d.to)}`;
   if (ev.kind === "invite") t += ` (матч №${String(d.match)})`;
   if ((ev.kind === "skip" || ev.kind === "no_show") && d.mode === "remove") t += ", исключён из сессии";
   if (ev.kind === "match_cancelled" || ev.kind === "match_started" || ev.kind === "match_finished") t += ` №${String(d.match)}`;
@@ -621,7 +626,7 @@ export function QueueManager() {
       />
       <p className="-mt-2 max-w-3xl text-sm text-muted">
         Игроки записываются сами, порядок считается на сервере и сразу виден всем. Первым выступает тот, кто записался раньше; новичок
-        встаёт перед теми, кто сегодня уже играл, а сыгравшие матч уходят в конец. Очереди 1×1 и 2×2 идут отдельно.
+        встаёт перед теми, кто сегодня уже играл. Сыгравший матч выходит из очереди и может записаться снова. Очереди 1×1 и 2×2 идут отдельно.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">

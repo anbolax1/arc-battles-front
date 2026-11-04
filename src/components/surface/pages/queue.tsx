@@ -311,8 +311,10 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
 /* ---------- Список очереди ---------- */
 
 function Row({ e, mine, serverNow }: { e: QueueEntry; mine: boolean; serverNow: () => number }) {
+  // Без очереди сегодня ещё не играл: запись стоит выше остальных и выделена.
+  const jumped = !!e.priority && e.todayMatches === 0 && (e.status === "waiting" || e.status === "skipped");
   return (
-    <li className={`qu-row ${entryTone(e)} ${mine ? "mine" : ""}`} aria-current={mine ? "true" : undefined}>
+    <li className={`qu-row ${entryTone(e)} ${jumped ? "prio" : ""} ${mine ? "mine" : ""}`} aria-current={mine ? "true" : undefined}>
       <span className="qu-pos">{e.position}</span>
       <Faces members={e.members} />
       <span className="qu-who">
