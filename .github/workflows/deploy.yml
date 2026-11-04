@@ -2,7 +2,7 @@ name: Deploy frontend
 
 # Автодеплой: сборка Next (standalone) на раннере → заливка бандла на VPS → swap + рестарт.
 # NEXT_PUBLIC_API_BASE вшивается из .env.production (в репо). Секреты репозитория:
-#   SSH_HOST  — IP/домен VPS (напр. 155.212.133.147)
+#   SSH_HOST  — IP/домен VPS (сейчас 179.252.219.141; настройка доступа - deploy/setup-ci-access.sh)
 #   SSH_USER  — admin2
 #   SSH_KEY   — приватный deploy-ключ (целиком, с BEGIN/END)
 
@@ -66,11 +66,25 @@ jobs:
           $SSH "$SSH_USER@$SSH_HOST" '
             set -e
             export XDG_RUNTIME_DIR=/run/user/$(id -u)
-            test -f ~/front_new/frontend/server.js
+            # Раскладка зависит от сервера: на старом server.js лежит в ~/front/frontend/ (юнит запускает
+            # frontend/server.js), на новом - прямо в ~/front (юнит запускает server.js).
+            if [ -f ~/front/server.js ]; then
+              mv ~/front_new/frontend ~/front_flat
+              rm -rf ~/front_new
+              mv ~/front_flat ~/front_new
+              test -f ~/front_new/server.js
+            else
+              test -f ~/front_new/frontend/server.js
+            fi
             rm -rf ~/front_old
             mv ~/front ~/front_old
             mv ~/front_new ~/front
-            systemctl --user restart respect-front
+            # Сервис пользовательский (старый сервер) или системный (новый, рестарт через sudo без пароля).
+            if systemctl --user cat respect-front >/dev/null 2>&1; then
+              systemctl --user restart respect-front
+            else
+              sudo -n systemctl restart respect-front
+            fi
             sleep 2
             curl -fsS -o /dev/null -w "front %{http_code}\n" localhost:3000
           '
