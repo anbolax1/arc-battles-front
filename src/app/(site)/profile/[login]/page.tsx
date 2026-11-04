@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getHighlights, getPlayer, getSeasons } from "@/lib/queries";
 import { HighlightsGrid } from "@/components/domain/highlights-grid";
 import { PlayerStatsBlock } from "@/components/domain/player-stats";
@@ -12,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import { fmtDate } from "@/lib/format";
 import { getDesign } from "@/lib/design";
+import { profileMovedTo } from "@/lib/profile-url";
 import { SurfaceProfile } from "@/components/surface/pages/profile";
 
 export default async function PlayerProfilePage({
@@ -22,6 +24,8 @@ export default async function PlayerProfilePage({
   const { login } = await params;
   if ((await getDesign()) === "surface") return <SurfaceProfile login={login} />;
   const profile = await getPlayer(login);
+  const moved = profile && profileMovedTo(login, profile.user.login);
+  if (moved) redirect(moved);
 
   if (!profile) {
     return (

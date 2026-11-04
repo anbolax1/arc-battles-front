@@ -103,6 +103,102 @@ function pageWindow(current: number, totalPages: number): (number | "…")[] {
   return out;
 }
 
+/** Смена ника и удаление пустого профиля. Ник - и логин, и имя на сайте. Удалить можно только профиль
+    без матчей и истории: остальное сервер не даст, а кнопка показывается лишь тем, у кого матчей нет. */
+function AccountAdmin({
+  u,
+  isSelf,
+  onRenamed,
+  onDeleted,
+}: {
+  u: UserOverview;
+  isSelf: boolean;
+  onRenamed: (updated: User) => void;
+  onDeleted: () => void;
+}) {
+  const [nick, setNick] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [askDelete, setAskDelete] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const boss = u.role === "superadmin";
+  if (boss) return null;
+  const ready = nick.trim().length > 0 && nick.trim() !== u.login;
+  const canDelete = !isSelf && u.participations === 0;
+
+  async function rename(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ready || busy) return;
+    setBusy(true);
+    setError("");
+    setNote("");
+    try {
+      const updated = await api.patch<User>(`/users/${u.id}/nick`, { nick: nick.trim() });
+      onRenamed(updated);
+      setNick("");
+      setNote(`Ник изменён на «${updated.login}». Войти можно и по новому нику, и по прежнему.`);
+    } catch (err) {
+      setError(errorText(err, "Не удалось сменить ник."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    setError("");
+    try {
+      await api.del(`/users/${u.id}`);
+      onDeleted();
+    } catch (err) {
+      setError(errorText(err, "Не удалось удалить профиль."));
+      setAskDelete(false);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
+      <span className="text-xs uppercase tracking-wide text-muted">Ник</span>
+      <form onSubmit={rename} className="flex flex-wrap items-center gap-2">
+        <input
+          className="input h-8 w-40 text-sm"
+          maxLength={12}
+          placeholder={u.login}
+          autoComplete="off"
+          aria-label={`Новый ник для ${userName(u)}`}
+          value={nick}
+          onChange={(e) => setNick(e.target.value)}
+        />
+        <button type="submit" className="btn btn-ghost btn-sm" disabled={!ready || busy}>
+          <span>Сменить ник</span>
+        </button>
+      </form>
+      {canDelete &&
+        (askDelete ? (
+          <>
+            <button type="button" className="btn btn-danger btn-sm ml-auto" disabled={busy} onClick={remove}>
+              <span>{busy ? "…" : "Да, удалить профиль"}</span>
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setAskDelete(false)}>
+              <span>Отмена</span>
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn btn-ghost btn-sm ml-auto" onClick={() => setAskDelete(true)}>
+            <span>Удалить пустой профиль</span>
+          </button>
+        ))}
+      {error && <span className="w-full text-sm text-danger">{error}</span>}
+      {note && <span className="w-full text-xs text-muted">{note}</span>}
+      <span className="w-full text-xs text-muted">
+        Ник станет и логином, и именем на сайте, по нему идёт поиск; адрес профиля изменится. Прежний ник остаётся рабочим для входа и занят.
+        {canDelete ? " Удаление не отменить: только профиль без матчей, команд, жетонов и клипов." : ""}
+      </span>
+    </div>
+  );
+}
+
 export function UsersManager({
   initialItems,
   initialTotal,
@@ -371,6 +467,22 @@ export function UsersManager({
                                 <span>Полная статистика ↗</span>
                               </a>
                             </div>
+                            <AccountAdmin
+                              u={u}
+                              isSelf={currentUser?.id === u.id}
+                              onRenamed={(upd) =>
+                                setItems((list) =>
+                                  list.map((it) =>
+                                    it.id === u.id ? { ...it, login: upd.login, displayName: upd.displayName } : it,
+                                  ),
+                                )
+                              }
+                              onDeleted={() => {
+                                setItems((list) => list.filter((it) => it.id !== u.id));
+                                setTotal((n) => Math.max(0, n - 1));
+                                setOpenId(null);
+                              }}
+                            />
                             {!u.isPlaceholder && !claimLink[u.id] && currentUser?.id !== u.id && (
                               <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-4">
                                 <span className="text-xs uppercase tracking-wide text-muted">Пароль</span>

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { api, errorText } from "@/lib/api";
 import { fmtCount, regionLabel, STAT_LABEL, TOKEN_KINDS, TOKEN_LABEL, tokensWord } from "@/lib/tokens";
 import { fullDate, hhmm, shortDate } from "@/components/surface/fmt";
-import type { MatchState, PlayerModeration, StatClaim, TokenKind, TokenWallet } from "@/lib/types";
+import { ProfileAccount } from "@/components/surface/profile-account";
+import type { MatchState, PlayerModeration, StatClaim, TokenKind, TokenWallet, User } from "@/lib/types";
 
 // За что выдан жетон - одной строкой в журнале, как и на сервере.
 const MAX_NOTE = 120;
@@ -19,18 +20,21 @@ const CLAIM_STATUS: Record<StatClaim["status"], string> = {
   rejected: "отклонено",
 };
 
-/** Модерация на странице игрока: выдача жетонов, «Без очереди» на сегодня, жетон ×2 на матч до его начала
-    и скриншоты с часами и ноками. */
+/** Модерация на странице игрока: выдача жетонов, «Без очереди» на сегодня, жетон ×2 на матч до его начала,
+    скриншоты с часами и ноками и аккаунт (пароль, ник, удаление). Блок аккаунта показывается, если им можно
+    распоряжаться: canRename и canDelete решают, какие из кнопок есть. */
 export function ProfileModeration({
   userId,
   name,
   wallet,
   initial,
+  account,
 }: {
   userId: string;
   name: string;
   wallet: TokenWallet;
   initial: PlayerModeration;
+  account?: { user: Pick<User, "id" | "login" | "displayName">; canRename: boolean; canDelete: boolean };
 }) {
   const router = useRouter();
   const [w, setW] = React.useState(wallet);
@@ -238,6 +242,8 @@ export function ProfileModeration({
           </ul>
         )}
       </div>
+
+      {account && <ProfileAccount user={account.user} noPassword={mod.noPassword} canRename={account.canRename} canDelete={account.canDelete} />}
 
       <div className="pf-mod-log">
         <button type="button" className="pf-mod-toggle" aria-expanded={log} onClick={() => setLog((x) => !x)}>

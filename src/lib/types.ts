@@ -841,6 +841,8 @@ export interface PlayerModeration {
   claims: StatClaim[];
   ledger: TokenEntry[];
   matches: PendingMatch[];
+  /** Рабочего пароля нет (импорт или сброс): войти можно только по ссылке. */
+  noPassword: boolean;
 }
 
 /** GET /api/me/extras: свои часы и ноки, любимое, жетоны и можно ли сбросить рейтинг. */

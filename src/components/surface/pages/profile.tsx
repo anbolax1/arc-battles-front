@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import "./profile.css";
 import { getBelt, getHighlights, getMaps, getMe, getPlayer, getPlayerModeration, getSeasons } from "@/lib/queries";
 import type { PlayerPatch, PlayerProfile, Season, StatValue } from "@/lib/types";
@@ -16,6 +17,7 @@ import { firstProfileSeason } from "@/components/surface/profile-season";
 import { BeltProfile } from "@/components/surface/belt-parts";
 import { ProfileModeration } from "@/components/surface/profile-moderation";
 import { roleAtLeast } from "@/lib/roles";
+import { profileMovedTo } from "@/lib/profile-url";
 import { fmtCount, regionLabel, STAT_LABEL, TOKEN_KINDS, TOKEN_LABEL } from "@/lib/tokens";
 
 function NotFound({ login }: { login: string }) {
@@ -304,9 +306,18 @@ export async function ProfileView({
 export async function SurfaceProfile({ login }: { login: string }) {
   const [profile, me] = await Promise.all([getPlayer(login), getMe()]);
   if (!profile) return <NotFound login={login} />;
+  // Ник сменил модератор: старая ссылка ведёт на новый адрес.
+  const moved = profileMovedTo(login, profile.user.login);
+  if (moved) redirect(moved);
   // Модератор ведёт жетоны и скриншоты игрока прямо на его странице; свои - нет, их ведёт организатор.
   const self = me?.id === profile.user.id && !roleAtLeast(me?.role, "superadmin");
   const mod = roleAtLeast(me?.role, "moderator") && !self ? await getPlayerModeration(profile.user.id) : null;
-  const moderation = mod && <ProfileModeration userId={profile.user.id} name={profile.user.displayName || profile.user.login} wallet={profile.tokens} initial={mod} />;
+  // Аккаунтом модератор распоряжается только у игроков, организатор - у всех, кроме себя; ник и профиль организатора не трогаем.
+  const target = profile.user;
+  const manageable = me?.id !== target.id && (roleAtLeast(me?.role, "superadmin") || !roleAtLeast(target.role, "moderator"));
+  const account = manageable
+    ? { user: target, canRename: target.role !== "superadmin", canDelete: target.role !== "superadmin" }
+    : undefined;
+  const moderation = mod && <ProfileModeration userId={target.id} name={target.displayName || target.login} wallet={profile.tokens} initial={mod} account={account} />;
   return <ProfileView profile={profile} back moderation={moderation} />;
 }

@@ -513,6 +513,34 @@
   font: 900 20px/1 var(--sf-ff-cc);
   color: var(--sf-amber);
 }
+.pf-mod-account {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--sf-cream-line);
+}
+.pf-mod-account p {
+  margin: 0;
+}
+.pf-mod-account .pf-mod-name {
+  flex: none;
+  min-width: 76px;
+}
+.pf-mod-account .sf-input {
+  flex: 1 1 12rem;
+  max-width: 18rem;
+  min-width: 0;
+  min-height: 34px;
+  font-size: 14px;
+}
+.pf-mod-link {
+  display: flex;
+  gap: 6px;
+}
+.pf-mod-link .sf-input {
+  max-width: none;
+}
 .pf-mod-reject {
   display: flex;
   gap: 6px;
