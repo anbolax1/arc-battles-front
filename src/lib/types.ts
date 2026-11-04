@@ -777,6 +777,8 @@ export interface StatClaim {
   reason?: string;
   createdAt: string;
   decidedAt?: string | null;
+  /** Ник модератора, принявшего решение. */
+  decidedBy?: string;
 }
 
 /** Любимое игрока: тиммейты (до пяти), карта, оружие, усилитель и щит. */

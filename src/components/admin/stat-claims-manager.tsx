@@ -158,6 +158,12 @@ export function StatClaimsManager() {
                   {c.kind !== "server" && c.previous != null && <span className="text-xs text-muted tnum">было подтверждено {fmtCount(c.previous)}</span>}
                 </div>
                 <div className="text-xs text-muted">{fmtDate(c.createdAt)}</div>
+                {c.status !== "pending" && c.decidedBy && (
+                  <div className="text-xs text-muted">
+                    {c.status === "approved" ? "Подтвердил" : "Отклонил"}: <b className="text-fg">{c.decidedBy}</b>
+                    {c.decidedAt ? ` · ${fmtDate(c.decidedAt)}` : ""}
+                  </div>
+                )}
                 {c.reason && <p className="text-xs text-danger">Причина: {c.reason}</p>}
                 {c.userId === user?.id && !isSuperadmin ? (
                   <p className="mt-auto pt-2 text-xs text-muted">Ваш скриншот проверит другой модератор или организатор.</p>
