@@ -11,8 +11,10 @@ export function mapImage(code?: string | null): string {
 }
 
 /** Порядок пиков-банов, как его строит сервер: два раунда - бан A, бан B, бан A, бан B, пик B, пик A;
-    три раунда - бан A, бан B, пик A, пик B, а третью карту выбирает чат. */
+    три раунда - бан A, бан B, пик A, пик B, а третью карту выбирает чат; единственный раунд - без пиков-банов,
+    карта выпадает случайно. */
 export function vetoOrder(rounds: number): VetoStep[] {
+  if (rounds === 1) return [];
   if (rounds !== 3) {
     return [
       { action: "ban", side: "A" },
@@ -156,9 +158,11 @@ export function roundsLabel(n: number): string {
   return n === 1 ? "1 раунд" : `${n} раунда`;
 }
 
-/** Набор на раунд по правилам 3 сезона: в первом - бесплатный, дальше - свой; в шоу-матче всегда свой. */
-export function loadoutLabel(t: Pick<Tournament, "format">, round: number): string {
-  return round === 1 && !isShowMatch(t) ? "бесплатный набор" : "свой набор";
+/** Набор на раунд по правилам 3 сезона: в первом раунде матча из нескольких - бесплатный, дальше - свой;
+    в шоу-матче и в матче на один раунд всегда свой. */
+export function loadoutLabel(t: Pick<Tournament, "format" | "totalRounds" | "rounds">, round: number): string {
+  const total = t.rounds?.length || t.totalRounds;
+  return round === 1 && total > 1 && !isShowMatch(t) ? "бесплатный набор" : "свой набор";
 }
 
 /** Задание для показа: у задания на карту описание уже начинается с локации. */

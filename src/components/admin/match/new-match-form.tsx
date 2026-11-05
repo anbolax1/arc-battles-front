@@ -143,7 +143,7 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
   // Новую команду заводят прямо в карточке стороны: name - то, что набрали в поиске.
   const [newTeam, setNewTeam] = React.useState<{ slot: 0 | 1; name: string } | null>(null);
   const [playerType, setPlayerType] = React.useState<PlayerType>("pvp");
-  const [rounds, setRounds] = React.useState<2 | 3>(2);
+  const [rounds, setRounds] = React.useState<1 | 2 | 3>(2);
   const [prize, setPrize] = React.useState("");
   // Ручная настройка редкости заданий сторон на этот матч: ключ - игрок или команда; нет ключа - из профиля.
   const [rarityManual, setRarityManual] = React.useState<Record<string, TaskRarity[]>>({});
@@ -357,14 +357,22 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
         <div className="space-y-1.5">
           <span className="field-label">Раунды</span>
           <div className="seg">
-            {([2, 3] as const).map((n) => (
+            {([1, 2, 3] as const).map((n) => (
               <button
                 key={n}
                 type="button"
-                className={`seg-btn ${show && n === 2 ? "opacity-50" : ""}`}
+                className={`seg-btn ${show && n !== 3 ? "opacity-50" : ""}`}
                 aria-pressed={roundCount === n}
-                disabled={show && n === 2}
-                title={show ? "У шоу-матча всегда три раунда" : n === 3 ? "Пики-баны как в шоу-матче" : undefined}
+                disabled={show && n !== 3}
+                title={
+                  show
+                    ? "У шоу-матча всегда три раунда"
+                    : n === 1
+                      ? "Один платный раунд, карта выпадает случайно"
+                      : n === 3
+                        ? "Пики-баны как в шоу-матче"
+                        : undefined
+                }
                 onClick={() => setRounds(n)}
               >
                 <span>{n}</span>
@@ -583,6 +591,9 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
               : `Название соберётся из ${teamMode ? "названий команд" : "ников"}, матч сразу станет текущим`}
           </div>
           {note && <div className="text-xs text-gold">{note}</div>}
+          {roundCount === 1 && (
+            <div className="text-xs text-muted">Один платный раунд, на своём наборе. Карту выберет случайный жребий из пула, пиков-банов не будет</div>
+          )}
           {roundCount === 3 && (
             <div className="text-xs text-muted">
               Пики-баны на три раунда: бан A → бан B → пик A → пик B, карту 3-го раунда выбирает чат
@@ -590,7 +601,7 @@ export function NewMatchForm({ liveMatchId = "", belt = null }: { liveMatchId?: 
           )}
         </div>
         <button type="button" className="btn btn-primary" disabled={!sides || busy || !!createdId} onClick={create}>
-          <span>{busy ? "Создаём…" : show ? "Запланировать шоу-матч →" : "Создать и перейти к пикам →"}</span>
+          <span>{busy ? "Создаём…" : show ? "Запланировать шоу-матч →" : roundCount === 1 ? "Создать и перейти к матчу →" : "Создать и перейти к пикам →"}</span>
         </button>
       </Panel>
 
