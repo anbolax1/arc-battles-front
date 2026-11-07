@@ -425,12 +425,12 @@ export function SurfaceQueue({ initial, format, sessionId }: { initial: QueueSna
       <section className="sf-page-head sf-night sf-grain qu-head">
         <Stripes shape="corner" draw className="corner" />
         <div className="sf-wrap">
-          <p className="sf-eyebrow">{s ? s.title : "Очередь выступлений"}</p>
+          <p className="sf-eyebrow">{s ? s.title : "Играй по очереди"}</p>
           <h1 className="sf-h-big">
-            очередь<span className="sf-dot">.</span>
+            играть<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead">
-            Записывайся на выступление во время стрима, следи за местом и выходи в эфир, когда дойдёт очередь. Порядок один для всех: первым выступает тот, кто записался раньше, а кто уже играл сегодня, пропускает вперёд тех, кто ещё не играл.
+            Здесь вы можете встать в очередь для выступления на лиге GOARC.PRO Смотрите трансляцию Дениса, чтобы не пропустить начало игрового дня и чтобы сыграть в числе первых.
           </p>
 
           <div className="qu-bar">
@@ -473,8 +473,8 @@ export function SurfaceQueue({ initial, format, sessionId }: { initial: QueueSna
           {q.error && !snap && <p className="qu-err">{q.error}</p>}
           {snap && !s && (
             <div className="qu-none">
-              <h2 className="sf-h-mid">очередь не открыта</h2>
-              <p className="sf-lead">Сейчас никто не записывается. Организатор откроет очередь перед стримом, обычно она появляется здесь заранее.</p>
+              <h2 className="sf-h-mid">отдыхаем</h2>
+              <p className="sf-lead">Сейчас записаться нельзя. Ожидайте начало игрового дня.</p>
               <PastSessions />
             </div>
           )}
