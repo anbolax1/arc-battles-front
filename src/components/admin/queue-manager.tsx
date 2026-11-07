@@ -255,6 +255,7 @@ function MatchPanel({
           <label className="flex items-center gap-2">
             <span className="text-muted">Раундов</span>
             <select className="input h-8 py-0" value={rounds} onChange={(e) => setRounds(Number(e.target.value))}>
+              <option value={1}>1</option>
               <option value={2}>2</option>
               <option value={3}>3</option>
             </select>
@@ -268,6 +269,7 @@ function MatchPanel({
             </select>
           </label>
           <span className="text-xs text-muted">«Создать матч» делает обычный матч сайта на этих двоих - он сразу становится текущим.</span>
+          {rounds === 1 && <span className="text-xs text-muted">Один платный раунд, на своём наборе. Карту выберет случайный жребий из пула, пиков-банов не будет.</span>}
         </div>
       )}
       {m?.status === "live" && m.tournamentId && (
