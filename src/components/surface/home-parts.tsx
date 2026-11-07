@@ -94,8 +94,8 @@ export function Hero({
             чемпиона и выиграй призы.
           </p>
           <div className="sf-hero-actions">
-            <Link href="/join" className="sf-btn sf-btn-amber">
-              Участвовать в лиге
+            <Link href="/queue" className="sf-btn sf-btn-amber">
+              Играть на лиге
             </Link>
             <a className="sf-btn sf-btn-line" href={STREAM_URL} target="_blank" rel="noopener noreferrer">
               <TwitchIcon />
