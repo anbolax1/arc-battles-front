@@ -3687,7 +3687,7 @@ a.sf-side-name:hover {
 .sf-foot-top {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px 48px;
+  gap: 24px 32px;
   align-items: center;
   justify-content: space-between;
   padding-bottom: 28px;
@@ -3698,11 +3698,12 @@ a.sf-side-name:hover {
 }
 .sf-foot-links {
   display: flex;
+  flex: 1;
   flex-wrap: wrap;
-  gap: 10px 24px;
+  gap: 10px 18px;
 }
 .sf-foot-links a {
-  font: 600 15px/1 var(--sf-ff-d);
+  font: 600 14px/1 var(--sf-ff-d);
   text-decoration: none;
   color: var(--sf-cream-2);
 }
