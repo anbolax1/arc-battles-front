@@ -10,15 +10,18 @@ import { LogoutIcon } from "@/components/icons";
 import { Mark, Wordmark } from "@/components/surface/stripes";
 import { SfAvatar } from "@/components/surface/ui";
 import { ShortCountdown } from "@/components/surface/motion";
+import type { FooterSeason } from "@/components/surface/footer";
 
-const LINKS = [
-  { href: "/schedule", label: "Шоу-матчи" },
-  { href: "/queue", label: "Очередь" },
-  { href: "/archive", label: "Результаты" },
-  { href: "/rating", label: "Рейтинг" },
-  { href: "/rules", label: "Правила" },
-  { href: "/highlights", label: "Лучшие моменты" },
-];
+function navLinks(seasonNumber?: number | null) {
+  return [
+    { href: "/queue", label: "Играть" },
+    { href: "/schedule", label: "Шоу-матчи" },
+    { href: "/archive", label: "Матчи" },
+    { href: "/rating", label: "Рейтинг" },
+    ...(seasonNumber ? [{ href: `/season/${seasonNumber}`, label: "Сезон" }] : []),
+    { href: "/rules", label: "Правила" },
+  ];
+}
 
 /** Что показать в шапке рядом с кнопкой: идущий матч или отсчёт до шоу-матча. */
 export interface NavLive {
@@ -31,7 +34,7 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SurfaceNav({ live }: { live: NavLive | null }) {
+export function SurfaceNav({ live, season }: { live: NavLive | null; season?: FooterSeason | null }) {
   const { user, isSuperadmin, refresh } = useAuth();
   const pathname = usePathname() || "/";
   const router = useRouter();
@@ -40,11 +43,12 @@ export function SurfaceNav({ live }: { live: NavLive | null }) {
   const open = openAt === pathname;
   const progress = React.useRef<HTMLDivElement>(null);
   // Модератору в кабинете открыта только проверка скриншотов - ссылка ведёт прямо в неё.
+  const linksAll = navLinks(season?.number);
   const links = isSuperadmin
-    ? [...LINKS, { href: "/admin", label: "Кабинет" }]
+    ? [...linksAll, { href: "/admin", label: "Кабинет" }]
     : roleAtLeast(user?.role, "moderator")
-      ? [...LINKS, { href: "/admin/review", label: "Проверка" }]
-      : LINKS;
+      ? [...linksAll, { href: "/admin/review", label: "Проверка" }]
+      : linksAll;
 
   React.useEffect(() => {
     let tick = false;

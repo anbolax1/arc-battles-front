@@ -32,7 +32,7 @@ export async function SurfaceShell({ children }: { children: ReactNode }) {
       <a href="#main" className="sf-skip">
         К основному содержимому
       </a>
-      <SurfaceNav live={live} />
+      <SurfaceNav live={live} season={season} />
       <main id="main" className="sf-main">
         {children}
       </main>
