@@ -41,13 +41,13 @@ export async function SurfaceHome() {
       <Hero season={season} show={show} showMatchup={showMatchup} showOrder={order} />
       <Schedule live={match.current} shows={shows} />
       <PrizePool season={season} />
-      <BeltHome belt={belt} />
+      <Ticker matches={finished} />
       {show && <ShowSection t={show} matchup={showMatchup} order={order} />}
       {lastState && <LastMatch st={lastState} />}
-      <Ticker matches={finished} />
       <Leaders rows={top} season={season} />
       <HowSection maps={maps} finished={finished} last={lastState} season={season} />
       <SurfaceHighlights items={hl.items} />
+      <BeltHome belt={belt} />
       <JoinCta />
     </>
   );
