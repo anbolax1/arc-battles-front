@@ -147,6 +147,7 @@ export interface LeaderboardRow {
   wins: number;
   losses: number; // без ничьих
   tournaments: number; // матчей, вместе с ничьими
+  knocks: number; // ноки за матчи таблицы
   tags?: UserTag[]; // теги, видные на сайте
   patches?: PatchCode[]; // самые редкие нашивки сезона, до трёх
   patchCount?: number; // всего нашивок в сезоне
@@ -170,6 +171,7 @@ export interface TeamLeaderboardRow {
   wins: number;
   losses: number;
   games: number;
+  knocks: number; // ноки обоих игроков за матчи таблицы
   members: TeamMember[];
 }
 

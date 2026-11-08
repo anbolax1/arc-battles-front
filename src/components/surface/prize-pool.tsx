@@ -9,11 +9,11 @@ import { dayMonth } from "@/components/surface/fmt";
 import "@/components/surface/prize-pool.css";
 
 /** Призовой фонд сезона: рубли за места с первого. Блок виден, только пока идёт этот сезон. */
-const PRIZE_SEASON = 4;
-const PRIZES = [12000, 9000, 6000, 3000];
+export const PRIZE_SEASON = 4;
+export const PRIZES = [12000, 9000, 6000, 3000];
 
 // Разряды вручную: toLocaleString на сервере и в браузере ставит разные пробелы, и разметка не совпадёт.
-const rub = (n: number) => `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")}\u00a0₽`;
+export const rub = (n: number) => `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0")}\u00a0₽`;
 
 /** Призовой фонд на главной: места ступенями пьедестала, суммы докручиваются при появлении. */
 export function PrizePool({ season }: { season?: Season }) {

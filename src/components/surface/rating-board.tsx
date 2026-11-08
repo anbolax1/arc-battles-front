@@ -14,6 +14,7 @@ import type {
 import { SearchGlyph, SfAvatar, SfEmpty, TagChips } from "@/components/surface/ui";
 import { CountUp } from "@/components/surface/motion";
 import { dayMonth, winrate } from "@/components/surface/fmt";
+import { PRIZES, PRIZE_SEASON, rub } from "@/components/surface/prize-pool";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_INFO } from "@/components/surface/patch-meta";
 
@@ -40,16 +41,11 @@ function Rank({ place }: { place: number }) {
   return <span className={`sf-rank ${place <= 3 ? `r${place}` : ""}`}>{place}</span>;
 }
 
-function WinLoss({ wins, losses }: { wins: number; losses: number }) {
+/** Приз за место: только в призовом сезоне и только в таблице 1×1; у остальных ячейка пустая. */
+function Prize({ amount }: { amount: number | undefined }) {
   return (
-    <span className="c-wl">
-      <span className="sf-wl" title={`${wins} побед, ${losses} поражений`}>
-        <i className="w" style={{ flex: wins || 0.001 }} />
-        <i className="l" style={{ flex: losses || 0.001 }} />
-      </span>
-      <span className="sf-wl-txt">
-        {wins}–{losses}
-      </span>
+    <span role="cell" className={`num prz ${amount ? "on" : ""}`}>
+      {amount ? rub(amount) : null}
     </span>
   );
 }
@@ -73,18 +69,24 @@ function Head({ who, sort, onSort }: { who: string; sort: SortKey; onSort: (k: S
           MMR
         </SortButton>
       </span>
-      <span role="columnheader" className="c-wl">
-        Победы — поражения
+      <span role="columnheader" className="num c-m">
+        Ноков
       </span>
       <span role="columnheader" className="num c-m">
         <SortButton k="m" sort={sort} onSort={onSort}>
           Матчей
         </SortButton>
       </span>
+      <span role="columnheader" className="num c-m">
+        Побед
+      </span>
       <span role="columnheader" className="num">
         <SortButton k="wr" sort={sort} onSort={onSort}>
           Винрейт
         </SortButton>
+      </span>
+      <span role="columnheader" className="num">
+        Приз
       </span>
     </div>
   );
@@ -92,15 +94,16 @@ function Head({ who, sort, onSort }: { who: string; sort: SortKey; onSort: (k: S
 
 const rowStyle = (i: number) => ({ "--i": Math.min(i, 24) }) as React.CSSProperties;
 
-function SoloRows({ rows, place }: { rows: LeaderboardRow[]; place: Map<string, number> }) {
+function SoloRows({ rows, place, prizes }: { rows: LeaderboardRow[]; place: Map<string, number>; prizes: number[] }) {
   return (
     <>
       {rows.map((r, i) => {
         const name = r.displayName || r.login;
+        const pl = place.get(r.userId || r.login) ?? i + 1;
         return (
           <Link key={r.userId || r.login} className="sf-tr" role="row" href={r.login ? `/profile/${r.login}` : "#"} style={rowStyle(i)}>
             <span role="cell">
-              <Rank place={place.get(r.userId || r.login) ?? i + 1} />
+              <Rank place={pl} />
             </span>
             <span role="cell" className="sf-pl">
               <SfAvatar name={name} src={r.avatarUrl} />
@@ -125,13 +128,19 @@ function SoloRows({ rows, place }: { rows: LeaderboardRow[]; place: Map<string, 
             <span role="cell" className="num mm">
               {r.mmr}
             </span>
-            <WinLoss wins={r.wins} losses={r.losses} />
+            <span role="cell" className="num m c-m">
+              {r.knocks}
+            </span>
             <span role="cell" className="num m c-m">
               {r.tournaments}
+            </span>
+            <span role="cell" className="num m c-m">
+              {r.wins}
             </span>
             <span role="cell" className="num pct">
               {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
             </span>
+            <Prize amount={prizes[pl - 1]} />
           </Link>
         );
       })}
@@ -175,13 +184,19 @@ function TeamRows({ rows, place }: { rows: TeamLeaderboardRow[]; place: Map<stri
           <span role="cell" className="num mm">
             {r.mmr}
           </span>
-          <WinLoss wins={r.wins} losses={r.losses} />
+          <span role="cell" className="num m c-m">
+            {r.knocks}
+          </span>
           <span role="cell" className="num m c-m">
             {r.games}
+          </span>
+          <span role="cell" className="num m c-m">
+            {r.wins}
           </span>
           <span role="cell" className="num pct">
             {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
           </span>
+          <Prize amount={undefined} />
         </div>
       ))}
     </>
@@ -234,6 +249,7 @@ export function RatingBoard({
   const shownSeason = seasonSel === "all" ? null : seasonSel ? seasons.find((s) => s.id === seasonSel) : active;
   const seasonOver = shownSeason?.status === "finished";
   const startMmr = shownSeason?.startMmr ?? active?.startMmr ?? 1000;
+  const prizes = shownSeason?.number === PRIZE_SEASON ? PRIZES : [];
 
   const soloPlace = React.useMemo(() => new Map(solo.map((r, i) => [r.userId || r.login, i + 1])), [solo]);
   const duoPlace = React.useMemo(() => new Map(duo.map((r, i) => [r.teamKey, i + 1])), [duo]);
@@ -365,7 +381,7 @@ export function RatingBoard({
                 <Head who={tab === "1x1" ? "Игрок" : "Состав"} sort={sort} onSort={setSort} />
                 {/* Ключ по режиму и сезону: строки заново выезжают при переключении, но не при поиске. */}
                 <div key={`${tab}-${seasonSel}`} className="sfr-rows" role="rowgroup">
-                  {tab === "1x1" ? <SoloRows rows={soloShown} place={soloPlace} /> : <TeamRows rows={duoShown} place={duoPlace} />}
+                  {tab === "1x1" ? <SoloRows rows={soloShown} place={soloPlace} prizes={prizes} /> : <TeamRows rows={duoShown} place={duoPlace} />}
                 </div>
               </div>
             )}

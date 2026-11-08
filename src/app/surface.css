@@ -3939,7 +3939,7 @@ a.sf-side-name:hover {
 }
 .sf-tr {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 96px 190px 80px 86px;
+  grid-template-columns: 52px minmax(0, 1fr) 84px 64px 72px 64px 80px 120px;
   gap: 16px;
   align-items: center;
   padding: 12px 8px;
@@ -4038,9 +4038,19 @@ a.sf-tr:hover,
   height: 38px;
   font-size: 14px;
 }
-/* MMR прижат к правому краю своей колонки - полоске побед нужен отступ от него */
-.sf-tr .c-wl {
-  padding-left: 20px;
+/* Приз - плашка на всю высоту строки, у призовых мест подряд сливается в колонку. */
+.sf-tr .prz.on {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: -12px -8px -12px 0;
+  padding: 0 14px;
+  background: linear-gradient(90deg, var(--sf-ink) 30%, #8a1216);
+  color: var(--sf-paper);
+  font: 900 18px/1 var(--sf-ff-cc);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .sf-wl {
   display: flex;
@@ -4100,10 +4110,13 @@ a.sf-tr:hover,
 }
 @media (max-width: 760px) {
   .sf-tr {
-    grid-template-columns: 40px minmax(0, 1fr) 54px 64px;
+    grid-template-columns: 40px minmax(0, 1fr) 54px 56px 96px;
     gap: 10px;
   }
-  .sf-tr .c-wl,
+  .sf-tr .prz.on {
+    padding: 0 10px;
+    font-size: 15px;
+  }
   .sf-tr .c-m {
     display: none;
   }
