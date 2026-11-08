@@ -4038,17 +4038,19 @@ a.sf-tr:hover,
   height: 38px;
   font-size: 14px;
 }
-/* Приз - плашка на всю высоту строки, у призовых мест подряд сливается в колонку. */
+/* Приз - мягкая янтарная подложка на всю высоту строки, у призовых мест подряд сливается в колонку. */
 .sf-tr .prz.on {
   align-self: stretch;
+  justify-self: stretch;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   margin: -12px -8px -12px 0;
   padding: 0 14px;
-  background: linear-gradient(90deg, var(--sf-ink) 30%, #8a1216);
-  color: var(--sf-paper);
-  font: 900 18px/1 var(--sf-ff-cc);
+  background: color-mix(in srgb, var(--sf-amber) 18%, transparent);
+  box-shadow: inset 3px 0 0 var(--sf-amber);
+  color: var(--sf-ink);
+  font: 800 16px/1 var(--sf-ff-cc);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -4115,7 +4117,7 @@ a.sf-tr:hover,
   }
   .sf-tr .prz.on {
     padding: 0 10px;
-    font-size: 15px;
+    font-size: 14px;
   }
   .sf-tr .c-m {
     display: none;
