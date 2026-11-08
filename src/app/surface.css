@@ -4050,8 +4050,8 @@ a.sf-tr:hover,
   height: 38px;
   font-size: 14px;
 }
-/* Приз - янтарный градиент на всю высоту строки: к правому краю гуще, у призовых мест подряд
-   сливается в колонку. Чем выше место, тем насыщеннее (--pz-a - густота у правого края). */
+/* Приз - янтарный градиент с отступом сверху и снизу: к правому краю гуще. Чем выше место,
+   тем насыщеннее (--pz-a - густота у правого края). */
 .sf-tr .prz.on {
   --pz-a: 34%;
   align-self: stretch;
@@ -4059,8 +4059,9 @@ a.sf-tr:hover,
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: -12px -8px -12px 0;
+  margin: -4px 0;
   padding: 0 14px;
+  border-radius: 3px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--sf-amber) 3%, transparent), color-mix(in srgb, var(--sf-amber) var(--pz-a), transparent));
   box-shadow: inset -3px 0 0 var(--sf-amber);
   color: var(--sf-ink);
