@@ -27,7 +27,7 @@ export async function SurfaceRules() {
             <a className="sf-btn sf-btn-amber" href="#tasks">
               К заданиям
             </a>
-            <Link className="sf-btn sf-btn-line" href="/join">
+            <Link className="sf-btn sf-btn-line" href="/queue">
               Участвовать в лиге
             </Link>
           </div>

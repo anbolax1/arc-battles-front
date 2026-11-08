@@ -69,7 +69,7 @@ export default async function HomePage() {
           и забирай звание Чемпиона.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
-          <Link href="/join" className="btn btn-primary">
+          <Link href="/queue" className="btn btn-primary">
             <span>Записаться</span>
           </Link>
           <StreamButtons />
@@ -128,7 +128,7 @@ export default async function HomePage() {
             Войди и подай заявку — организатор позовёт тебя на матч.
           </p>
         </div>
-        <Link href="/join" className="btn btn-primary flex-none">
+        <Link href="/queue" className="btn btn-primary flex-none">
           <span>Подать заявку</span>
         </Link>
       </section>

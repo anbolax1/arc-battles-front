@@ -98,7 +98,7 @@ export function SurfaceNav({ live, season }: { live: NavLive | null; season?: Fo
       <Link href="/login" className="sf-btn sf-btn-ink-line sf-btn-sm">
         Войти
       </Link>
-      <Link href="/join" className="sf-btn sf-btn-amber sf-btn-sm">
+      <Link href="/queue" className="sf-btn sf-btn-amber sf-btn-sm">
         Играть
       </Link>
     </>

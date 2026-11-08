@@ -532,7 +532,7 @@ export async function SurfaceMatch({ id }: { id: string }) {
               {(live || (upcoming && show)) && <div className="sf-mh-actions">{streams}</div>}
               {upcoming && !show && (
                 <div className="sf-mh-actions">
-                  <Link className="sf-btn sf-btn-amber" href="/join">
+                  <Link className="sf-btn sf-btn-amber" href="/queue">
                     Участвовать в лиге
                   </Link>
                 </div>

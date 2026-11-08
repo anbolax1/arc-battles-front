@@ -228,7 +228,7 @@ export function ScheduleRows({ live, upcoming }: { live: MatchState | null; upco
   });
   rows.push({
     key: "regular",
-    href: "/join",
+    href: "/queue",
     cls: "",
     time: "каждый эфир",
     icon: ScheduleIcon.aim,
@@ -522,7 +522,7 @@ export function JoinCta() {
         <div className="sf-cta-in">
           <h2 id="cta-t">готов к матчу?</h2>
           <p>Запишись и участвуй в лиге в прямом эфире!</p>
-          <Link className="sf-btn sf-btn-ink" href="/join">
+          <Link className="sf-btn sf-btn-ink" href="/queue">
             Записаться
           </Link>
         </div>

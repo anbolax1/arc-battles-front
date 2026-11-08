@@ -48,7 +48,7 @@ export default async function JoinPage() {
               <Link href="/register" className="btn btn-primary">
                 <span>Регистрация</span>
               </Link>
-              <Link href="/login?redirect=/join" className="btn btn-ghost">
+              <Link href="/login?redirect=/queue" className="btn btn-ghost">
                 <span>Войти</span>
               </Link>
             </div>

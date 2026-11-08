@@ -118,7 +118,7 @@ export async function SurfaceJoin() {
             <Link className="sf-btn sf-btn-amber" href="/register">
               Регистрация
             </Link>
-            <Link className="sf-btn sf-btn-ink-line" href="/login?redirect=/join">
+            <Link className="sf-btn sf-btn-ink-line" href="/login?redirect=/queue">
               Войти
             </Link>
           </div>

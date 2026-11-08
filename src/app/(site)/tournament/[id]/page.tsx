@@ -138,7 +138,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
               </div>
             ) : (
               <div className="pt-1">
-                <Link href="/join" className="btn btn-primary">
+                <Link href="/queue" className="btn btn-primary">
                   <span>Записаться на турнир</span>
                 </Link>
               </div>

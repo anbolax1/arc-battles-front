@@ -180,7 +180,7 @@ export async function SurfaceSchedule() {
                   <TelegramIcon />
                   Анонсы в Telegram
                 </a>
-                <Link className="sf-btn sf-btn-line" href="/join">
+                <Link className="sf-btn sf-btn-line" href="/queue">
                   Участвовать в лиге
                 </Link>
               </div>
