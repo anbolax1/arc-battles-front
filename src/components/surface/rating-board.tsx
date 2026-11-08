@@ -14,7 +14,7 @@ import type {
 import { SearchGlyph, SfAvatar, SfEmpty, TagChips } from "@/components/surface/ui";
 import { CountUp } from "@/components/surface/motion";
 import { dayMonth, winrate } from "@/components/surface/fmt";
-import { PRIZES, PRIZE_SEASON, rub } from "@/components/surface/prize-pool";
+import { rub, seasonPrizePlaces } from "@/components/surface/prize-pool";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_INFO } from "@/components/surface/patch-meta";
 
@@ -249,7 +249,7 @@ export function RatingBoard({
   const shownSeason = seasonSel === "all" ? null : seasonSel ? seasons.find((s) => s.id === seasonSel) : active;
   const seasonOver = shownSeason?.status === "finished";
   const startMmr = shownSeason?.startMmr ?? active?.startMmr ?? 1000;
-  const prizes = shownSeason?.number === PRIZE_SEASON ? PRIZES : [];
+  const prizes = seasonPrizePlaces(shownSeason);
 
   const soloPlace = React.useMemo(() => new Map(solo.map((r, i) => [r.userId || r.login, i + 1])), [solo]);
   const duoPlace = React.useMemo(() => new Map(duo.map((r, i) => [r.teamKey, i + 1])), [duo]);

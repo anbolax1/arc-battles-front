@@ -66,12 +66,22 @@ export function CountUp({ value, className, format }: { value: number; className
 
 /** Полосы растут, когда список попал в кадр (через класс go). До кадра - класс wait: высокие полосы под ним
     прячут, чтобы не мелькнули готовыми. На сервере reduce = true, так что без JavaScript всё видно сразу. */
-export function GrowOnView({ as: Tag = "div", className = "", children }: { as?: "div" | "ol" | "ul"; className?: string; children: React.ReactNode }) {
+export function GrowOnView({
+  as: Tag = "div",
+  className = "",
+  style,
+  children,
+}: {
+  as?: "div" | "ol" | "ul";
+  className?: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
   const [ref, seen] = useSeen<HTMLElement>();
   const reduce = useReducedMotion();
   const El = Tag as "div";
   return (
-    <El ref={ref as React.RefObject<HTMLDivElement>} className={`${className} ${seen ? "go" : reduce ? "" : "wait"}`}>
+    <El ref={ref as React.RefObject<HTMLDivElement>} className={`${className} ${seen ? "go" : reduce ? "" : "wait"}`} style={style}>
       {children}
     </El>
   );

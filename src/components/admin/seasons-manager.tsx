@@ -45,6 +45,26 @@ function parseIntIn(v: string, min: number, max: number): number | null {
   return n >= min && n <= max ? n : null;
 }
 
+// Пределы призов - те же, что проверяет сервер.
+const PRIZE_MAX = 100_000_000;
+const PLACES_MAX = 8;
+
+/** Сумма из поля в рублях; пустое поле - null (не задано), ошибка - NaN. */
+function parseRub(v: string): number | null {
+  const t = v.replace(/\s/g, "");
+  if (!t) return null;
+  if (!/^\d+$/.test(t)) return Number.NaN;
+  const n = Number(t);
+  return n <= PRIZE_MAX ? n : Number.NaN;
+}
+
+/** Убирает пустые строки с конца списка мест. */
+function trimTrailingEmpty(list: Array<number | null>): Array<number | null> {
+  let end = list.length;
+  while (end > 0 && list[end - 1] === null) end--;
+  return list.slice(0, end);
+}
+
 /** Поле правила рейтинга. Значение хранится строкой, чтобы его можно было стереть и вписать заново. */
 function RuleField({
   label,
@@ -95,12 +115,19 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
   const [eStartMmr, setEStartMmr] = React.useState("1000");
   const [newK, setNewK] = React.useState("100");
   const [newStartMmr, setNewStartMmr] = React.useState("1000");
+  const [ePool, setEPool] = React.useState("");
+  const [ePlaces, setEPlaces] = React.useState<string[]>([]);
+  const [eNote, setENote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
 
   const active = seasons.find((s) => s.status === "active");
   const newRule = { k: parseIntIn(newK, K_MIN, K_MAX), start: parseIntIn(newStartMmr, START_MIN, START_MAX) };
   const editRule = { k: parseIntIn(eK, K_MIN, K_MAX), start: parseIntIn(eStartMmr, START_MIN, START_MAX) };
+  const poolSum = parseRub(ePool);
+  const placeSums = ePlaces.map(parseRub);
+  const prizesValid = !Number.isNaN(poolSum) && placeSums.every((n) => n === null || !Number.isNaN(n));
+  const placesTotal = placeSums.reduce<number>((acc, n) => acc + (n ?? 0), 0);
 
   async function startNew() {
     if (!name.trim() || newRule.k === null || newRule.start === null) return;
@@ -143,11 +170,14 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
     setEEnd(toDateInput(s.endedAt));
     setEK(String(s.kFactor || 100));
     setEStartMmr(String(s.startMmr || 1000));
+    setEPool(s.prizes?.pool ? String(s.prizes.pool) : "");
+    setEPlaces((s.prizes?.places ?? []).map(String));
+    setENote(s.prizes?.note ?? "");
     setError("");
   }
 
   async function saveEdit() {
-    if (!editing || !eName.trim() || !eStart || editRule.k === null || editRule.start === null) return;
+    if (!editing || !eName.trim() || !eStart || editRule.k === null || editRule.start === null || !prizesValid) return;
     const startedAt = fromDateInput(eStart);
     // Дата окончания необязательна для любого сезона (пусто = не задана).
     const endedAt = fromDateInput(eEnd);
@@ -164,6 +194,12 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
         endedAt,
         kFactor: editRule.k,
         startMmr: editRule.start,
+        // Пустые места в конце не нужны, а пустое посередине - ошибка организатора: считаем его нулём.
+        prizes: {
+          pool: poolSum ?? 0,
+          places: trimTrailingEmpty(placeSums).map((n) => n ?? 0),
+          note: eNote.trim(),
+        },
       });
       setSeasons((prev) => prev.map((s) => (s.id === upd.id ? upd : s)));
       setEditing(null);
@@ -212,6 +248,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
               <span className="font-display text-lg uppercase">{s.name}</span>
               <span className="text-xs text-muted">
                 K {s.kFactor} · старт {s.startMmr}
+                {s.prizes?.places?.length ? ` · призы: ${s.prizes.places.length} мест` : ""}
               </span>
               <span className="ml-auto text-xs text-muted">
                 {fmtDate(s.startedAt)}
@@ -316,7 +353,7 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              disabled={busy || !eName.trim() || !eStart || editRule.k === null || editRule.start === null}
+              disabled={busy || !eName.trim() || !eStart || editRule.k === null || editRule.start === null || !prizesValid}
               onClick={saveEdit}
             >
               <span>{busy ? "Сохраняем…" : "Сохранить"}</span>
@@ -352,6 +389,64 @@ export function SeasonsManager({ initial }: { initial: Season[] }) {
             <RuleField label="Стартовый MMR" value={eStartMmr} min={START_MIN} max={START_MAX} onChange={setEStartMmr} />
           </div>
           <p className="text-xs text-muted">Если поменять K или стартовый MMR, рейтинг сезона пересчитается по всем его матчам.</p>
+
+          <div className="space-y-2 border-t border-[var(--border)] pt-3">
+            <p className="text-sm font-semibold">Призовой фонд</p>
+            <p className="text-xs text-muted">
+              Блок с призами показывается на главной странице, пока в сезоне есть хотя бы одно место с суммой.
+            </p>
+            <label className="block text-sm">
+              <span className="text-muted">Весь фонд, ₽ (пусто — сумма мест)</span>
+              <input
+                inputMode="numeric"
+                className="input mt-1 w-full"
+                placeholder={placesTotal ? String(placesTotal) : "например 30000"}
+                aria-invalid={Number.isNaN(poolSum)}
+                value={ePool}
+                onChange={(e) => setEPool(e.target.value)}
+              />
+            </label>
+            <div className="space-y-2">
+              {ePlaces.map((v, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="w-20 text-sm text-muted">{i + 1} место</span>
+                  <input
+                    inputMode="numeric"
+                    className="input w-full"
+                    placeholder="сумма, ₽"
+                    aria-label={`Приз за ${i + 1} место`}
+                    aria-invalid={Number.isNaN(placeSums[i])}
+                    value={v}
+                    onChange={(e) => setEPlaces((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-danger"
+                    aria-label={`Убрать ${i + 1} место`}
+                    onClick={() => setEPlaces((prev) => prev.filter((_, j) => j !== i))}
+                  >
+                    <span>Убрать</span>
+                  </button>
+                </div>
+              ))}
+              {ePlaces.length < PLACES_MAX && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEPlaces((prev) => [...prev, ""])}>
+                  <span>Добавить место</span>
+                </button>
+              )}
+            </div>
+            {!prizesValid && <p className="text-xs text-danger">Суммы — целые числа в рублях, до 100 000 000.</p>}
+            <label className="block text-sm">
+              <span className="text-muted">Подпись под призами (необязательно)</span>
+              <input
+                className="input mt-1 w-full"
+                maxLength={300}
+                placeholder="Например, как и когда выплачиваются призы"
+                value={eNote}
+                onChange={(e) => setENote(e.target.value)}
+              />
+            </label>
+          </div>
           {error && <p className="text-sm text-danger">{error}</p>}
         </div>
       </Modal>

@@ -938,6 +938,14 @@ export interface Season {
   startMmr: number;
   /** Номер для адреса страницы итогов /season/{номер}. */
   number?: number | null;
+  /** Призовой фонд: суммы по местам, общий фонд (0 - сумма мест) и подпись. Без мест призов нет. */
+  prizes: SeasonPrizes;
+}
+
+export interface SeasonPrizes {
+  pool: number;
+  places: number[];
+  note: string;
 }
 
 /* ---------- итоги сезона: /api/seasons/{номер}/recap ---------- */
