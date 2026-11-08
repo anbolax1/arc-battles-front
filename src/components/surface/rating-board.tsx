@@ -18,7 +18,7 @@ import { rub, seasonPrizePlaces } from "@/components/surface/prize-pool";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_INFO } from "@/components/surface/patch-meta";
 
-type SortKey = "mmr" | "wr" | "m";
+type SortKey = "mmr" | "wr" | "m" | "k" | "w";
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е").trim();
 
@@ -29,11 +29,13 @@ function seasonLine(s: Season | null | undefined): string {
   return `${s.name} · ${dayMonth(s.startedAt)} — ${dayMonth(s.endedAt)} · завершён`;
 }
 
-/** Общая сортировка игроков и команд: по MMR, винрейту или числу матчей. */
-function sortRows<T extends { mmr: number; wins: number; losses: number }>(rows: T[], key: SortKey, games: (r: T) => number): T[] {
+/** Общая сортировка игроков и команд: по MMR, ноками, матчам, победам или винрейту; при равенстве - по MMR. */
+function sortRows<T extends { mmr: number; wins: number; losses: number; knocks: number }>(rows: T[], key: SortKey, games: (r: T) => number): T[] {
   const list = [...rows];
   if (key === "wr") list.sort((a, b) => winrate(b.wins, b.losses) - winrate(a.wins, a.losses) || games(b) - games(a) || b.mmr - a.mmr);
   else if (key === "m") list.sort((a, b) => games(b) - games(a) || b.mmr - a.mmr);
+  else if (key === "k") list.sort((a, b) => b.knocks - a.knocks || b.mmr - a.mmr);
+  else if (key === "w") list.sort((a, b) => b.wins - a.wins || b.mmr - a.mmr);
   return list;
 }
 
@@ -74,7 +76,9 @@ function Head({ who, sort, onSort }: { who: string; sort: SortKey; onSort: (k: S
         </SortButton>
       </span>
       <span role="columnheader" className="num c-m">
-        Ноков
+        <SortButton k="k" sort={sort} onSort={onSort}>
+          Ноков
+        </SortButton>
       </span>
       <span role="columnheader" className="num c-m">
         <SortButton k="m" sort={sort} onSort={onSort}>
@@ -82,7 +86,9 @@ function Head({ who, sort, onSort }: { who: string; sort: SortKey; onSort: (k: S
         </SortButton>
       </span>
       <span role="columnheader" className="num c-m">
-        Побед
+        <SortButton k="w" sort={sort} onSort={onSort}>
+          Побед
+        </SortButton>
       </span>
       <span role="columnheader" className="num">
         <SortButton k="wr" sort={sort} onSort={onSort}>
