@@ -42,9 +42,9 @@ function Rank({ place }: { place: number }) {
 }
 
 /** Приз за место: только в призовом сезоне и только в таблице 1×1; у остальных ячейка пустая. */
-function Prize({ amount }: { amount: number | undefined }) {
+function Prize({ place, amount }: { place?: number; amount: number | undefined }) {
   return (
-    <span role="cell" className={`num prz ${amount ? "on" : ""}`}>
+    <span role="cell" className={`num prz ${amount ? "on" : ""} ${amount && place && place <= 3 ? `r${place}` : ""}`}>
       {amount ? rub(amount) : null}
     </span>
   );
@@ -54,7 +54,11 @@ function SortButton({ k, sort, onSort, children }: { k: SortKey; sort: SortKey; 
   return (
     <button type="button" aria-pressed={sort === k} onClick={() => onSort(k)}>
       {children}
-      {sort === k ? " ▾" : ""}
+      {sort === k && (
+        <i className="sf-sort-arr" aria-hidden>
+          ▾
+        </i>
+      )}
     </button>
   );
 }
@@ -140,7 +144,7 @@ function SoloRows({ rows, place, prizes }: { rows: LeaderboardRow[]; place: Map<
             <span role="cell" className="num pct">
               {r.wins + r.losses ? `${winrate(r.wins, r.losses)}%` : "—"}
             </span>
-            <Prize amount={prizes[pl - 1]} />
+            <Prize place={pl} amount={prizes[pl - 1]} />
           </Link>
         );
       })}

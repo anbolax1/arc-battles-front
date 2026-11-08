@@ -3938,8 +3938,10 @@ a.sf-side-name:hover {
   transition: opacity 0.2s;
 }
 .sf-tr {
+  --num: 96px; /* наименьшая ширина числовых колонок: MMR, ноки, матчи, победы, винрейт */
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 84px 64px 72px 64px 80px 120px;
+  /* Остаток ширины делят все колонки, а не один ник: цифры не уезжают от игрока на широком экране. */
+  grid-template-columns: 52px minmax(200px, 1.5fr) repeat(5, minmax(var(--num), 1fr)) minmax(120px, 1fr);
   gap: 16px;
   align-items: center;
   padding: 12px 8px;
@@ -3978,8 +3980,18 @@ a.sf-tr:hover,
 }
 .sf-th .num,
 .sf-tr .num {
-  text-align: right;
-  justify-self: end;
+  text-align: center;
+  justify-self: center;
+}
+/* Стрелка сортировки не сдвигает подпись столбца: подпись остаётся по центру под цифрами. */
+.sf-th button {
+  position: relative;
+}
+.sf-th .sf-sort-arr {
+  position: absolute;
+  left: 100%;
+  margin-left: 4px;
+  font-style: normal;
 }
 .sf-rank {
   display: inline-grid;
@@ -4038,21 +4050,32 @@ a.sf-tr:hover,
   height: 38px;
   font-size: 14px;
 }
-/* Приз - мягкая янтарная подложка на всю высоту строки, у призовых мест подряд сливается в колонку. */
+/* Приз - янтарный градиент на всю высоту строки: к правому краю гуще, у призовых мест подряд
+   сливается в колонку. Чем выше место, тем насыщеннее (--pz-a - густота у правого края). */
 .sf-tr .prz.on {
+  --pz-a: 34%;
   align-self: stretch;
   justify-self: stretch;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   margin: -12px -8px -12px 0;
   padding: 0 14px;
-  background: color-mix(in srgb, var(--sf-amber) 18%, transparent);
-  box-shadow: inset 3px 0 0 var(--sf-amber);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sf-amber) 3%, transparent), color-mix(in srgb, var(--sf-amber) var(--pz-a), transparent));
+  box-shadow: inset -3px 0 0 var(--sf-amber);
   color: var(--sf-ink);
   font: 800 16px/1 var(--sf-ff-cc);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.sf-tr .prz.on.r1 {
+  --pz-a: 58%;
+}
+.sf-tr .prz.on.r2 {
+  --pz-a: 48%;
+}
+.sf-tr .prz.on.r3 {
+  --pz-a: 40%;
 }
 .sf-wl {
   display: flex;
@@ -4109,6 +4132,17 @@ a.sf-tr:hover,
 }
 .sf-night .sf-empty span {
   color: var(--sf-cream-2);
+}
+/* Средние экраны: числовые колонки уже, чтобы нику хватало места. */
+@media (max-width: 1060px) {
+  .sf-tr {
+    --num: 76px;
+  }
+}
+@media (max-width: 900px) {
+  .sf-tr {
+    --num: 62px;
+  }
 }
 @media (max-width: 760px) {
   .sf-tr {
