@@ -6,14 +6,19 @@ import { api, errorText } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
   FORMAT_LABEL,
+  HISTORY_HINT,
   STATE_LABEL,
   clock,
   dayClock,
+  durationLeft,
   entryStatusLabel,
   entryTone,
+  historyLine,
+  minutesLabel,
   mmss,
+  num,
   plural,
-  todayLabel,
+  untilLabel,
   useQueue,
   useSecondsLeft,
   type UseQueue,
@@ -171,6 +176,14 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
   const [err, setErr] = React.useState("");
   const [team, setTeam] = React.useState("");
   const [sure, setSure] = React.useState(false);
+  // Кулдаун считает сервер; когда он кончился, спрашиваем сервер заново - кнопка оживает без перезагрузки.
+  const cdLeft = useSecondsLeft(me?.cooldownUntil, q.serverNow);
+  const cooling = cdLeft !== null && cdLeft > 0;
+  const cdOver = cdLeft !== null && cdLeft <= 0;
+  const { reload } = q;
+  React.useEffect(() => {
+    if (cdOver) void reload();
+  }, [cdOver, reload]);
 
   async function act(action: "join" | "leave" | "confirm", body?: unknown) {
     setBusy(true);
@@ -243,6 +256,11 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
           </div>
         )}
         {me.confirmed && mine.status === "invited" && <p className="qu-me-text">Ты подтвердил. Ждём напарника.</p>}
+        {cooling && me.cooldownUntil && (mine.status === "waiting" || mine.status === "skipped") && (
+          <p className="qu-me-text">
+            У тебя кулдаун после матча до <strong>{untilLabel(me.cooldownUntil, q.serverNow())} МСК</strong>: до этого времени тебя не вызовут.
+          </p>
+        )}
         {me.canLeave && s.state !== "finished" && (
           <div className="qu-me-actions">
             {sure ? (
@@ -268,9 +286,30 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
 
   const teams = me?.teams ?? [];
   const pick = team || teams.find((t) => !t.blocked)?.teamKey || "";
+  const joinLabel = s.format === "2x2" ? "Записать команду" : "Встать в очередь";
   return (
     <aside className="qu-me">
-      <p className="qu-me-title">{s.format === "2x2" ? "Записать команду" : "Встать в очередь"}</p>
+      <p className="qu-me-title">{joinLabel}</p>
+      {me?.inMatch ? (
+        <div className="qu-avail">
+          <span className="qu-badge performing">В матче</span>
+          <p className="qu-me-head">Регистрация недоступна</p>
+          <p className="qu-me-text">Ты сейчас в матче - встать в очередь можно после него.</p>
+        </div>
+      ) : cooling && me?.cooldownUntil ? (
+        <div className="qu-avail" role="status">
+          <span className="qu-badge cooldown">Кулдаун</span>
+          <p className="qu-me-head">Повторная регистрация недоступна</p>
+          <p className="qu-me-text">
+            Вы уже выступали. Следующая запись будет доступна через <strong>{durationLeft(cdLeft ?? 0)}</strong>.
+          </p>
+          <p className="qu-me-text">
+            Можно записаться с <strong>{untilLabel(me.cooldownUntil, q.serverNow())} МСК</strong>.
+          </p>
+        </div>
+      ) : me?.canJoin ? (
+        <span className="qu-badge avail">Доступно</span>
+      ) : null}
       {s.format === "2x2" && teams.length > 0 && (
         <fieldset className="qu-teams" disabled={busy}>
           <legend className="sr-only">Твоя команда</legend>
@@ -285,11 +324,15 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
           ))}
         </fieldset>
       )}
-      <p className="qu-me-text">
-        {me?.canJoin
-          ? "Запись займёт место в очереди перед теми, кто сегодня уже играл."
-          : (me?.joinBlocked ?? "Записаться сейчас нельзя.")}
-      </p>
+      {!cooling && !me?.inMatch && (
+        <p className="qu-me-text">
+          {me?.canJoin
+            ? me.todayMatches
+              ? "Ты сегодня уже играл: запись встанет за теми, кто ещё не играл, - по времени твоего последнего матча."
+              : "Запись займёт место в очереди перед теми, кто сегодня уже играл."
+            : (me?.joinBlocked ?? "Записаться сейчас нельзя.")}
+        </p>
+      )}
       {me?.needsStats && (
         <Link href="/profile" className="sf-btn sf-btn-amber">
           Заполнить профиль
@@ -298,11 +341,14 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
       <button
         type="button"
         className="sf-btn sf-btn-amber"
-        disabled={busy || !me?.canJoin || (s.format === "2x2" && !pick)}
+        disabled={busy || !me?.canJoin || cooling || (s.format === "2x2" && !pick)}
         onClick={() => act("join", s.format === "2x2" ? { teamKey: pick } : undefined)}
       >
-        {s.format === "2x2" ? "Записать команду" : "Встать в очередь"}
+        {joinLabel}
       </button>
+      {snap.cooldownMinutes > 0 && !cooling && (
+        <p className="qu-me-note">После матча следующая запись - через {minutesLabel(snap.cooldownMinutes)}.</p>
+      )}
       {err && <p className="qu-err" role="alert">{err}</p>}
     </aside>
   );
@@ -310,31 +356,82 @@ function MePanel({ q, onChanged }: { q: UseQueue; onChanged: () => void }) {
 
 /* ---------- Список очереди ---------- */
 
+/** Прицел у числа ноков: компактно и без подписи в каждой строке. */
+function KnockIcon() {
+  return (
+    <svg className="qu-knock-ico" viewBox="0 0 16 16" width="12" height="12" aria-hidden focusable="false">
+      <circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 0.5v4M8 11.5v4M0.5 8h4M11.5 8h4" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+/** Ноки из профиля: у команды - у каждого игрока. Ещё не проверенное модератором число помечено, как в профиле. */
+function Knocks({ members }: { members: QueueMember[] }) {
+  const unconfirmed = members.some((m) => m.knocks != null && !m.knocksConfirmed);
+  return (
+    <span className="qu-knocks" title={`Количество ноков${unconfirmed ? " (не подтверждено модератором)" : ""}`}>
+      <small>Ноки</small>
+      <KnockIcon />
+      {members.map((m, i) => (
+        <React.Fragment key={m.userId}>
+          {i > 0 && " · "}
+          {num(m.knocks ?? 0)}
+          {m.knocks != null && !m.knocksConfirmed && <i className="qu-unconf">*</i>}
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
+
+/** Новичок или когда игрок последний раз выступал и сколько раз сегодня. */
+function LastMatch({ e, serverNow }: { e: QueueEntry; serverNow: () => number }) {
+  if (e.newbie) return null; // новичок помечен рядом с ником
+  const h = historyLine(e, serverNow());
+  return (
+    <small className={`qu-hist ${h.kind}`} title={HISTORY_HINT[h.kind]}>
+      {h.text}
+    </small>
+  );
+}
+
 function Row({ e, mine, serverNow }: { e: QueueEntry; mine: boolean; serverNow: () => number }) {
   // Без очереди сегодня ещё не играл: запись стоит выше остальных и выделена.
   const jumped = !!e.priority && e.todayMatches === 0 && (e.status === "waiting" || e.status === "skipped");
+  const waits = e.status === "waiting" || e.status === "skipped";
   return (
     <li className={`qu-row ${entryTone(e)} ${jumped ? "prio" : ""} ${mine ? "mine" : ""}`} aria-current={mine ? "true" : undefined}>
       <span className="qu-pos">{e.position}</span>
       <Faces members={e.members} />
       <span className="qu-who">
         <Who e={e} />
-        {e.members.length > 1 && <small>{e.members.map((m) => m.displayName || m.login).join(" · ")}</small>}
+        {e.newbie && (
+          <em className="qu-newbie" title={HISTORY_HINT.newbie}>
+            Новичок
+          </em>
+        )}
         {mine && <em className="qu-you">это ты</em>}
         {e.priority && <em className="qu-prio">без очереди</em>}
+        {e.members.length > 1 && (
+          <small>{e.members.map((m) => `${m.displayName || m.login}${m.newbie && !e.newbie ? " (новичок)" : ""}`).join(" · ")}</small>
+        )}
+        <LastMatch e={e} serverNow={serverNow} />
       </span>
       <span className="qu-mmr">
         <small>MMR</small> {e.mmr}
       </span>
+      <Knocks members={e.members} />
       <span className="qu-time">
         <small>в очереди с</small> {clock(e.joinedAt)}
-      </span>
-      <span className={`qu-today ${e.todayMatches > 0 ? "has" : ""}`}>
-        <small>сегодня</small> {todayLabel(e.todayMatches)}
       </span>
       <span className="qu-state">
         <span className={`qu-badge ${entryTone(e)}`}>{entryStatusLabel(e)}</span>
         {e.status === "invited" && e.inviteExpiresAt && <Countdown until={e.inviteExpiresAt} serverNow={serverNow} />}
+        {waits && e.cooldownUntil && Date.parse(e.cooldownUntil) > serverNow() && (
+          <small className="qu-cd" title="Выступал в другом матче: до конца кулдауна не вызывают">
+            кулдаун до {untilLabel(e.cooldownUntil, serverNow())}
+          </small>
+        )}
       </span>
     </li>
   );
@@ -484,6 +581,12 @@ export function SurfaceQueue({ initial, format, sessionId }: { initial: QueueSna
                 <h2 className="qu-h" id="qu-list-t">
                   {s.state === "finished" ? "Итоговый порядок" : "Кто за кем"}
                 </h2>
+                {s.state !== "finished" && (
+                  <p className="qu-rule">
+                    Сначала те, кто сегодня ещё не играл, - кто раньше записался, тот выше. Дальше сыгравшие: кто играл давнее, тот выше.
+                    {snap.cooldownMinutes > 0 && ` После матча записаться снова можно через ${minutesLabel(snap.cooldownMinutes)}.`}
+                  </p>
+                )}
                 <EntryList snap={snap} serverNow={q.serverNow} />
                 <History snap={snap} />
                 <PastSessions currentId={s.id} />

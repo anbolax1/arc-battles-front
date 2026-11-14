@@ -1430,11 +1430,22 @@ export interface QueueMember {
   login: string;
   displayName: string;
   avatarUrl: string;
-  /** Подтверждённые модератором часы в игре и ноки за всё время. */
+  /** Часы в игре и ноки за всё время - те же числа, что в профиле; ещё не проверенные модератором помечены. */
   hours?: number;
+  hoursConfirmed?: boolean;
   knocks?: number;
+  knocksConfirmed?: boolean;
   /** Матчей, сыгранных сегодня. */
   todayMatches: number;
+  /** Завершённых матчей за всё время и когда завершился последний. */
+  totalMatches?: number;
+  lastMatchAt?: string;
+  /** Ни одного завершённого матча в лиге. */
+  newbie?: boolean;
+  /** Своих матчей нет, но под этим ником он в лиге играл: не новичок, дата неизвестна. */
+  historyUnknown?: boolean;
+  /** До какого времени кулдаун после матча. */
+  cooldownUntil?: string;
   ready: boolean;
   readyAt?: string | null;
 }
@@ -1458,6 +1469,13 @@ export interface QueueEntry {
   addedByOrganizer?: boolean;
   /** Сегодня действует жетон «Без очереди». */
   priority?: boolean;
+  /** У команды - самый поздний матч из двух игроков. */
+  lastMatchAt?: string;
+  /** Ни у кого из игроков записи нет ни одного матча. */
+  newbie?: boolean;
+  historyUnknown?: boolean;
+  /** Пока у кого-то из игроков кулдаун, запись не вызывают. */
+  cooldownUntil?: string;
 }
 
 export interface QueueMatchSide {
@@ -1493,6 +1511,8 @@ export interface QueueTeamOption {
   name: string;
   members: QueueMember[];
   blocked?: string;
+  /** Когда закончится кулдаун у всех игроков команды. */
+  cooldownUntil?: string;
 }
 
 export interface QueueMe {
@@ -1509,6 +1529,12 @@ export interface QueueMe {
   canJoin: boolean;
   joinBlocked?: string;
   teams?: QueueTeamOption[];
+  /** Уже выступал: снова записаться можно с этого времени. */
+  cooldownUntil?: string;
+  /** Сейчас играет или вызван на матч в другой очереди. */
+  inMatch?: boolean;
+  /** Сколько уже сыграл сегодня: сыгравший встаёт среди сыгравших. */
+  todayMatches?: number;
 }
 
 export interface QueueSnapshot {
@@ -1520,6 +1546,8 @@ export interface QueueSnapshot {
   active: QueueSessionRef[];
   me?: QueueMe;
   history: QueueMatch[];
+  /** Общий кулдаун после матча, минут; 0 - выключен. */
+  cooldownMinutes: number;
 }
 
 export interface QueueEvent {
@@ -1528,6 +1556,45 @@ export interface QueueEvent {
   kind: string;
   actor?: string;
   label?: string;
+  data?: Record<string, unknown>;
+}
+
+/** Кулдаун игрока в кабинете: что действует сейчас и что задано вручную. */
+export interface CooldownPlayer {
+  userId: string;
+  login: string;
+  displayName: string;
+  avatarUrl: string;
+  /** Своя длительность, минут; нет - общая. */
+  minutes?: number;
+  disabled?: boolean;
+  /** Поставлен вручную до этого времени. */
+  manualUntil?: string;
+  /** Кулдаун идёт до этого времени; нет - кулдауна нет. */
+  until?: string;
+  todayMatches: number;
+  totalMatches: number;
+  lastMatchAt?: string;
+  newbie?: boolean;
+  historyUnknown?: boolean;
+  /** Стоит в живой очереди. */
+  inQueue?: boolean;
+}
+
+export interface CooldownOverview {
+  serverTime: string;
+  /** Общая длительность, минут; 0 - кулдаун выключен для всех без своей. */
+  defaultMinutes: number;
+  players: CooldownPlayer[];
+}
+
+export interface CooldownLogEntry {
+  id: number;
+  at: string;
+  actor?: string;
+  userId?: string;
+  label?: string;
+  action: "default" | "duration" | "disable" | "enable" | "clear" | "set" | string;
   data?: Record<string, unknown>;
 }
 

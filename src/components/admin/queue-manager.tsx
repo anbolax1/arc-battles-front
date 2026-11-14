@@ -9,16 +9,20 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHead } from "@/components/ui/section-head";
 import {
   FORMAT_LABEL,
+  HISTORY_HINT,
   STATE_LABEL,
   clock,
   dayClock,
   entryStatusLabel,
+  historyLine,
+  minutesLabel,
   mmss,
   num,
   plural,
-  todayLabel,
+  untilLabel,
   useQueue,
   useSecondsLeft,
+  type HistoryInfo,
   type UseQueue,
 } from "@/lib/queue";
 import type {
@@ -59,6 +63,7 @@ const EVENT_LABEL: Record<string, string> = {
   match_finished: "Матч завершён",
   match_cancelled: "Матч отменён",
   performed: "Отыграл матч, вышел из очереди",
+  played_elsewhere: "Сыграл матч вне этой очереди: встал к сыгравшим",
 };
 
 function Countdown({ until, serverNow }: { until: string; serverNow: () => number }) {
@@ -87,20 +92,54 @@ function StatusText({ e }: { e: QueueEntry }) {
   );
 }
 
-/** Часы и ноки игрока, как их подтвердил модератор: ведущему видно, с кем он играет. */
+/** Часы и ноки игрока - те же, что в профиле; не проверенное модератором помечено: ведущему видно, с кем он играет. */
 function MemberStats({ m, named }: { m: QueueMember; named: boolean }) {
-  const known = m.hours != null && m.knocks != null;
+  const ok = m.hoursConfirmed && m.knocksConfirmed;
   return (
-    <span className={known ? "" : "text-danger"}>
+    <span className={ok ? "" : "text-danger"}>
       {named && <b className="font-semibold">{m.displayName || m.login}: </b>}
-      {m.hours != null ? `${num(m.hours)} ч` : "часы не подтверждены"} · {m.knocks != null ? `${num(m.knocks)} нок` : "ноки не подтверждены"}
+      {m.hours != null ? `${num(m.hours)} ч${m.hoursConfirmed ? "" : " (не подтв.)"}` : "часы не заполнены"} ·{" "}
+      <span title="Количество ноков из профиля">
+        {num(m.knocks ?? 0)} нок{m.knocks != null && !m.knocksConfirmed ? " (не подтв.)" : ""}
+      </span>
     </span>
   );
 }
 
-/** Сколько матчей человек сыграл сегодня: сыгравшие стоят позади тех, кто ещё не играл. */
-function TodayChip({ n }: { n: number }) {
-  return <span className={n > 0 ? "font-semibold text-primary" : ""}>сегодня: {todayLabel(n)}</span>;
+/** Новичок или когда последний раз выступал и сколько раз сегодня: по этому стоит порядок. */
+function HistoryChip({ h, serverNow }: { h: HistoryInfo; serverNow: () => number }) {
+  const line = historyLine(h, serverNow());
+  if (line.kind === "newbie") {
+    return (
+      <span className="font-semibold uppercase tracking-wide text-ok" title={HISTORY_HINT.newbie}>
+        Новичок
+      </span>
+    );
+  }
+  return (
+    <span className={line.kind === "today" ? "font-semibold text-primary" : line.kind === "unknown" ? "italic" : ""} title={HISTORY_HINT[line.kind]}>
+      {line.text}
+    </span>
+  );
+}
+
+/** Кулдаун игроков записи: до какого времени их не вызывают и кнопка «Снять» - правка попадёт в журнал кулдаунов. */
+function CooldownChips({ members, serverNow, onClear, busy }: { members: QueueMember[]; serverNow: () => number; onClear: (m: QueueMember) => void; busy: boolean }) {
+  const now = serverNow();
+  const cooling = members.filter((m) => m.cooldownUntil && Date.parse(m.cooldownUntil) > now);
+  if (cooling.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      {cooling.map((m) => (
+        <span key={m.userId} className="flex items-center gap-1.5 font-semibold text-danger">
+          {members.length > 1 ? `${m.displayName || m.login}: ` : ""}кулдаун до {untilLabel(m.cooldownUntil!, now)}
+          <button type="button" className="btn btn-ghost btn-sm h-6 px-2 py-0 text-xs" disabled={busy} onClick={() => onClear(m)}>
+            <span>Снять</span>
+          </button>
+        </span>
+      ))}
+    </div>
+  );
 }
 
 /* ---------- Создание и настройки сессии ---------- */
@@ -305,7 +344,7 @@ function MatchPanel({
                         {e.members.map((x) => (
                           <MemberStats key={x.userId} m={x} named={e.members.length > 1} />
                         ))}
-                        <TodayChip n={e.todayMatches} />
+                        <HistoryChip h={e} serverNow={q.serverNow} />
                       </div>
                     )}
                   </>
@@ -335,6 +374,7 @@ function EntryRow({
   busy,
   run,
   move,
+  clearCooldown,
 }: {
   e: QueueEntry;
   last: number;
@@ -343,13 +383,16 @@ function EntryRow({
   busy: boolean;
   run: (path: string, body?: unknown, method?: "POST" | "DELETE") => void;
   move: (e: QueueEntry, position: number) => void;
+  clearCooldown: (m: QueueMember) => void;
 }) {
   const s = snap.session!;
   const base = `/queue/sessions/${s.id}/entries/${e.id}`;
   const [pos, setPos] = React.useState("");
   const inMatch = e.status === "invited" || e.status === "ready" || e.status === "performing";
   const matchFull = !!snap.match && snap.match.sides.length >= 2;
-  const canCall = (e.status === "waiting" || e.status === "skipped") && !s.paused && snap.match?.status !== "live" && !matchFull;
+  // Запись с кулдауном стоит на месте, но вызвать её сервер не даст - кнопки нет, рядом «Снять».
+  const cooling = !!e.cooldownUntil && Date.parse(e.cooldownUntil) > q.serverNow();
+  const canCall = (e.status === "waiting" || e.status === "skipped") && !s.paused && snap.match?.status !== "live" && !matchFull && !cooling;
   // Без очереди сегодня ещё не сыграл: запись стоит в начале выше остальных.
   const jumped = !!e.priority && e.todayMatches === 0 && (e.status === "waiting" || e.status === "skipped");
   const num = Number(pos);
@@ -378,8 +421,9 @@ function EntryRow({
           {e.members.map((m) => (
             <MemberStats key={m.userId} m={m} named={e.members.length > 1} />
           ))}
-          <TodayChip n={e.todayMatches} />
+          <HistoryChip h={e} serverNow={q.serverNow} />
         </div>
+        <CooldownChips members={e.members} serverNow={q.serverNow} onClear={clearCooldown} busy={busy} />
       </div>
       <div className="flex min-w-[8rem] flex-col items-start gap-0.5">
         <StatusText e={e} />
@@ -491,7 +535,10 @@ function AddEntry({ session, busy, run }: { session: QueueSession; busy: boolean
           {found.length === 0 && <li className="text-sm text-muted">Никого не нашли.</li>}
         </ul>
       )}
-      <p className="text-xs text-muted">Организатор добавляет и при закрытой записи или паузе. Игрок встаёт после тех, кто ещё не выступал.</p>
+      <p className="text-xs text-muted">
+        Организатор добавляет и при закрытой записи или паузе. Место - по тем же правилам, что у записавшегося сам. Игрока на кулдауне или в
+        матче не добавить: кулдаун снимают в разделе «Кулдауны».
+      </p>
     </Panel>
   );
 }
@@ -503,6 +550,7 @@ function eventText(ev: QueueEvent): string {
   let t = EVENT_LABEL[ev.kind] ?? ev.kind;
   if (ev.kind === "move") t += ` с ${String(d.from)} на ${String(d.to)}`;
   if (ev.kind === "priority") t += d.from === d.to ? `, остался на месте ${String(d.to)}` : ` с ${String(d.from)} на ${String(d.to)}`;
+  if (ev.kind === "played_elsewhere") t += d.from === d.to ? `, остался на месте ${String(d.to)}` : `, с ${String(d.from)} на ${String(d.to)}`;
   if (ev.kind === "invite") t += ` (матч №${String(d.match)})`;
   if ((ev.kind === "skip" || ev.kind === "no_show") && d.mode === "remove") t += ", исключён из сессии";
   if (ev.kind === "match_cancelled" || ev.kind === "match_started" || ev.kind === "match_finished") t += ` №${String(d.match)}`;
@@ -609,6 +657,19 @@ export function QueueManager() {
     [q],
   );
   const run = (path: string, body?: unknown, method: "POST" | "DELETE" = "POST") => void call(path, body, method);
+  // Кулдаун снимается в своём разделе; очередь перечитывается и по сообщению сервера.
+  const clearCooldown = async (m: QueueMember) => {
+    setBusy(true);
+    setErr("");
+    try {
+      await api.post(`/cooldowns/players/${m.userId}`, { action: "clear" });
+      await q.reload();
+    } catch (e) {
+      setErr(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
   const move = (e: QueueEntry, position: number) =>
     void call(`/queue/sessions/${s!.id}/entries/${e.id}/move`, { position, rev: s!.rev });
 
@@ -627,8 +688,14 @@ export function QueueManager() {
         }
       />
       <p className="-mt-2 max-w-3xl text-sm text-muted">
-        Игроки записываются сами, порядок считается на сервере и сразу виден всем. Первым выступает тот, кто записался раньше; новичок
-        встаёт перед теми, кто сегодня уже играл. Сыгравший матч выходит из очереди и может записаться снова. Очереди 1×1 и 2×2 идут отдельно.
+        Игроки записываются сами, порядок считается на сервере и сразу виден всем. Сначала те, кто сегодня не играл, - по времени записи;
+        дальше сыгравшие сегодня - кто играл давнее, тот выше (у команды - по самому недавнему матчу из двух). Сыгравший выходит из очереди
+        и записывается снова только после кулдауна
+        {snap ? ` (сейчас ${minutesLabel(snap.cooldownMinutes)})` : ""}; записи с кулдауном стоят на месте, но «Вызвать следующего» их
+        пропускает. Очереди 1×1 и 2×2 идут отдельно.{" "}
+        <Link href="/admin/cooldowns" className="font-semibold text-primary hover:underline">
+          Кулдауны →
+        </Link>
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -720,7 +787,7 @@ export function QueueManager() {
             <Panel className="divide-y divide-[var(--border)] overflow-visible">
               <ol className="divide-y divide-[var(--border)]">
                 {entries.map((e) => (
-                  <EntryRow key={e.id} e={e} last={entries.length} snap={snap} q={q} busy={busy} run={run} move={move} />
+                  <EntryRow key={e.id} e={e} last={entries.length} snap={snap} q={q} busy={busy} run={run} move={move} clearCooldown={(m) => void clearCooldown(m)} />
                 ))}
               </ol>
             </Panel>

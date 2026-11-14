@@ -228,3 +228,79 @@ export function todayLabel(n: number): string {
 export function num(n: number): string {
   return n.toLocaleString("ru-RU");
 }
+
+/** День по Москве «2026-11-14»: сегодня и вчера считаются по московскому календарю, как на сервере. */
+function mskDayKey(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: MSK }).format(new Date(ms));
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Дата по Москве: «07.11.2026». */
+export function mskDate(iso: string): string {
+  return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: MSK }).format(new Date(iso));
+}
+
+/** Когда сыгран матч, относительно серверного «сейчас»: «сегодня», «вчера» или дата. */
+export function matchDay(iso: string, nowMs: number): "today" | "yesterday" | string {
+  const day = mskDayKey(Date.parse(iso));
+  if (day === mskDayKey(nowMs)) return "today";
+  if (day === mskDayKey(nowMs - DAY_MS)) return "yesterday";
+  return mskDate(iso);
+}
+
+/** История выступлений записи или игрока. */
+export interface HistoryInfo {
+  todayMatches: number;
+  lastMatchAt?: string;
+  newbie?: boolean;
+  historyUnknown?: boolean;
+}
+
+export type HistoryKind = "newbie" | "today" | "before" | "unknown";
+
+/** Строка истории для очереди: «Сегодня · последний матч 14:35 · 2 матча», «Сегодня не играл · последний матч
+    вчера, 20:15», «Сегодня не играл · последний матч 07.11.2026, 18:45». Новичок - отдельная метка. */
+export function historyLine(h: HistoryInfo, nowMs: number): { kind: HistoryKind; text: string } {
+  if (h.newbie) return { kind: "newbie", text: "Новичок" };
+  if (!h.lastMatchAt) return { kind: "unknown", text: "Сегодня не играл · играл раньше" };
+  const at = clock(h.lastMatchAt);
+  if (h.todayMatches > 0) {
+    return { kind: "today", text: `Сегодня · последний матч ${at} · ${h.todayMatches} ${plural(h.todayMatches, W_MATCHES)}` };
+  }
+  const day = matchDay(h.lastMatchAt, nowMs);
+  const when = day === "today" ? at : day === "yesterday" ? `вчера, ${at}` : `${day}, ${at}`;
+  return { kind: "before", text: `Сегодня не играл · последний матч ${when}` };
+}
+
+/** Подсказка к строке истории: что значит метка. */
+export const HISTORY_HINT: Record<HistoryKind, string> = {
+  newbie: "Ни одного завершённого матча в лиге",
+  today: "Уже выступал сегодня: стоит среди сыгравших, по времени последнего матча",
+  before: "Сегодня ещё не выступал: стоит выше тех, кто сегодня уже играл",
+  unknown: "В лиге есть матчи под этим ником, но они не привязаны к аккаунту: дату последнего матча не определить",
+};
+
+/** Сколько осталось: «2 ч 35 мин», «35 мин», «меньше минуты». */
+export function durationLeft(sec: number): string {
+  if (sec < 60) return "меньше минуты";
+  const min = Math.ceil(sec / 60);
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m} мин`;
+  return m === 0 ? `${h} ч` : `${h} ч ${m} мин`;
+}
+
+/** Длительность кулдауна: «3 ч», «1 ч 30 мин», «45 мин», «выключен». */
+export function minutesLabel(min: number): string {
+  if (min <= 0) return "выключен";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m} мин`;
+  return m === 0 ? `${h} ч` : `${h} ч ${m} мин`;
+}
+
+/** Время окончания кулдауна по Москве: «18:30», не сегодня - «15.11 18:30». */
+export function untilLabel(iso: string, nowMs: number): string {
+  return matchDay(iso, nowMs) === "today" ? clock(iso) : dayClock(iso).replace(",", "");
+}
