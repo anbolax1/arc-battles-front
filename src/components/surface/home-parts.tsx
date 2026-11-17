@@ -521,9 +521,9 @@ export function JoinCta() {
       <div className="sf-wrap">
         <div className="sf-cta-in">
           <h2 id="cta-t">готов к матчу?</h2>
-          <p>Запишись и участвуй в лиге в прямом эфире!</p>
+          <p>Встань в очередь на выступление и играй!</p>
           <Link className="sf-btn sf-btn-ink" href="/queue">
-            Записаться
+            ИГРАТЬ
           </Link>
         </div>
       </div>
