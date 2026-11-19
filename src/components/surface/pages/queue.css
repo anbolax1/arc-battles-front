@@ -677,6 +677,181 @@ a.qu-name:hover {
     order: -1;
   }
 }
+/* Запись-команда: тёмная строка с двумя жетонами игроков. Тон статуса задаёт полоса слева и значок справа. */
+.qu-row.team {
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  padding-block: 14px;
+  background: linear-gradient(100deg, var(--sf-night-3), var(--sf-night-2) 60%);
+  color: var(--sf-paper-2);
+  box-shadow: 0 0 0 1px rgba(241, 170, 28, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+.qu-row.team::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(115deg, transparent 0 14px, rgba(241, 170, 28, 0.045) 14px 16px);
+  pointer-events: none;
+}
+.qu-row.team.mine {
+  box-shadow: 0 0 0 2px var(--sf-amber);
+}
+.qu-row.team .qu-pos {
+  color: var(--sf-amber);
+}
+.qu-tmain,
+.qu-trt {
+  position: relative;
+  z-index: 1;
+}
+.qu-tmain {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.qu-ttop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.qu-tttl {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.qu-row.team .qu-name {
+  color: var(--sf-paper-2);
+  font: 900 24px/1 var(--sf-ff-c);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.qu-tmmr {
+  font: 700 12px/1 var(--sf-ff-m);
+  letter-spacing: 0.06em;
+  color: var(--sf-ink);
+  background: var(--sf-paper-2);
+  padding: 5px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.qu-tmmr small {
+  margin-right: 5px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--sf-ink-2);
+}
+/* Сумма ноков обоих игроков: низкая плашка со срезанным углом, не выше названия. */
+.qu-tsum {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid rgba(241, 170, 28, 0.55);
+  background: rgba(241, 170, 28, 0.1);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);
+}
+.qu-tsum small {
+  font: 600 9px/1 var(--sf-ff-m);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #d8cddc;
+}
+.qu-tsum strong {
+  font: 900 18px/1 var(--sf-ff-c);
+  color: var(--sf-amber);
+  font-variant-numeric: tabular-nums;
+}
+.qu-tsum .qu-knock-ico,
+.qu-tag-knocks .qu-knock-ico {
+  color: var(--sf-amber);
+}
+.qu-row.team .qu-unconf {
+  color: #d8cddc;
+}
+.qu-tags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.qu-tag {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 14px;
+  background: rgba(245, 238, 223, 0.06);
+  border: 1px solid rgba(245, 238, 223, 0.14);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+.qu-tag.today {
+  background: rgba(192, 38, 26, 0.22);
+  border-color: rgba(255, 120, 100, 0.45);
+}
+.qu-tag-nick {
+  font: 900 26px/1 var(--sf-ff-c);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--sf-paper-2);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+a.qu-tag-nick:hover {
+  text-decoration: underline;
+}
+.qu-tag-knocks {
+  font: 600 13px/1.2 var(--sf-ff-m);
+  color: var(--sf-amber);
+  font-variant-numeric: tabular-nums;
+}
+.qu-tag-state {
+  font: 600 11px/1.3 var(--sf-ff-m);
+  color: #d8cddc;
+}
+.qu-tag.today .qu-tag-state {
+  color: #ff9f90;
+}
+.qu-tag.newbie .qu-tag-state {
+  color: #7fe0a6;
+}
+.qu-trt {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+.qu-row.team .qu-time {
+  color: var(--sf-paper-2);
+  text-align: right;
+}
+.qu-row.team .qu-time small {
+  color: #b9abbf;
+}
+.qu-row.team .qu-state {
+  align-items: flex-end;
+}
+.qu-row.team .qu-state .qu-timer {
+  color: var(--sf-paper-2);
+}
+.qu-row.team .qu-state .qu-timer.late,
+.qu-row.team .qu-cd {
+  color: #ff9f90;
+}
+.qu-row.team .qu-badge.skipped {
+  box-shadow: inset 0 0 0 1.5px #b9abbf;
+  color: #d8cddc;
+}
+.qu-row.team .qu-prio {
+  border-color: #d8cddc;
+  color: #d8cddc;
+}
+.qu-row.team.prio .qu-prio {
+  color: var(--sf-ink);
+  border-color: var(--sf-amber);
+}
+
 @media (max-width: 720px) {
   .qu-vs {
     grid-template-columns: minmax(0, 1fr);
@@ -727,6 +902,32 @@ a.qu-name:hover {
   }
   .qu-me-pos b {
     font-size: 56px;
+  }
+  .qu-row.team {
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-areas:
+      "pos main"
+      "pos rt";
+  }
+  .qu-row.team > .qu-tmain {
+    grid-area: main;
+  }
+  .qu-row.team > .qu-trt {
+    grid-area: rt;
+    grid-auto-flow: column;
+    justify-content: start;
+    justify-items: start;
+    align-items: center;
+    gap: 14px;
+  }
+  .qu-row.team .qu-time {
+    text-align: left;
+  }
+  .qu-row.team .qu-state {
+    align-items: flex-start;
+  }
+  .qu-tags {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (prefers-reduced-motion: reduce) {

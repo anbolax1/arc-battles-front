@@ -395,7 +395,93 @@ function LastMatch({ e, serverNow }: { e: QueueEntry; serverNow: () => number })
   );
 }
 
+const W_KNOCKS: [string, string, string] = ["нок", "нока", "ноков"];
+
+/** Жетон игрока в команде: у каждого свои ноки и свой матч сегодня - у пары общего «сегодня» нет. */
+function PlayerTag({ m, serverNow }: { m: QueueMember; serverNow: () => number }) {
+  const h = historyLine(m, serverNow());
+  const status = h.kind === "newbie" ? "новичок · матчей нет" : h.text;
+  const name = m.displayName || m.login;
+  return (
+    <span className={`qu-tag ${h.kind}`}>
+      <Link href={`/profile/${encodeURIComponent(m.login)}`} className="qu-tag-nick">
+        {name}
+      </Link>
+      <span className="qu-tag-knocks" title={m.knocks != null && !m.knocksConfirmed ? "Ноки из профиля, ещё не подтверждены модератором" : "Ноки из профиля"}>
+        <KnockIcon />
+        {m.knocks != null ? `${num(m.knocks)} ${plural(m.knocks, W_KNOCKS)}` : "ноки не указаны"}
+        {m.knocks != null && !m.knocksConfirmed && <i className="qu-unconf">*</i>}
+      </span>
+      <span className="qu-tag-state" title={HISTORY_HINT[h.kind]}>
+        {status}
+      </span>
+    </span>
+  );
+}
+
+/** Запись-команда: название, MMR и сумма ноков в шапке, под ней жетоны обоих игроков. */
+function TeamRow({ e, mine, serverNow }: { e: QueueEntry; mine: boolean; serverNow: () => number }) {
+  const jumped = !!e.priority && e.todayMatches === 0 && (e.status === "waiting" || e.status === "skipped");
+  const waits = e.status === "waiting" || e.status === "skipped";
+  const withKnocks = e.members.some((m) => m.knocks != null);
+  const total = e.members.reduce((sum, m) => sum + (m.knocks ?? 0), 0);
+  const unconfirmed = e.members.some((m) => m.knocks != null && !m.knocksConfirmed);
+  return (
+    <li className={`qu-row team ${entryTone(e)} ${jumped ? "prio" : ""} ${mine ? "mine" : ""}`} aria-current={mine ? "true" : undefined}>
+      <span className="qu-pos">{e.position}</span>
+      <span className="qu-tmain">
+        <span className="qu-ttop">
+          <span className="qu-tttl">
+            <Who e={e} />
+            <span className="qu-tmmr" title="Рейтинг команды">
+              <small>MMR</small>
+              {e.mmr}
+            </span>
+            {e.newbie && (
+              <em className="qu-newbie" title={HISTORY_HINT.newbie}>
+                Новичок
+              </em>
+            )}
+            {mine && <em className="qu-you">это ты</em>}
+            {e.priority && <em className="qu-prio">без очереди</em>}
+          </span>
+          {withKnocks && (
+            <span className="qu-tsum" title={`Ноки обоих игроков вместе${unconfirmed ? " (не всё подтверждено модератором)" : ""}`}>
+              <small>Ноков в сумме</small>
+              <strong>
+                <KnockIcon />
+                {num(total)}
+                {unconfirmed && <i className="qu-unconf">*</i>}
+              </strong>
+            </span>
+          )}
+        </span>
+        <span className="qu-tags">
+          {e.members.map((m) => (
+            <PlayerTag key={m.userId} m={m} serverNow={serverNow} />
+          ))}
+        </span>
+      </span>
+      <span className="qu-trt">
+        <span className="qu-time">
+          <small>в очереди с</small> {clock(e.joinedAt)}
+        </span>
+        <span className="qu-state">
+          <span className={`qu-badge ${entryTone(e)}`}>{entryStatusLabel(e)}</span>
+          {e.status === "invited" && e.inviteExpiresAt && <Countdown until={e.inviteExpiresAt} serverNow={serverNow} />}
+          {waits && e.cooldownUntil && Date.parse(e.cooldownUntil) > serverNow() && (
+            <small className="qu-cd" title="Выступал в другом матче: до конца кулдауна не вызывают">
+              кулдаун до {untilLabel(e.cooldownUntil, serverNow())}
+            </small>
+          )}
+        </span>
+      </span>
+    </li>
+  );
+}
+
 function Row({ e, mine, serverNow }: { e: QueueEntry; mine: boolean; serverNow: () => number }) {
+  if (e.members.length > 1) return <TeamRow e={e} mine={mine} serverNow={serverNow} />;
   // Без очереди сегодня ещё не играл: запись стоит выше остальных и выделена.
   const jumped = !!e.priority && e.todayMatches === 0 && (e.status === "waiting" || e.status === "skipped");
   const waits = e.status === "waiting" || e.status === "skipped";
@@ -412,9 +498,6 @@ function Row({ e, mine, serverNow }: { e: QueueEntry; mine: boolean; serverNow: 
         )}
         {mine && <em className="qu-you">это ты</em>}
         {e.priority && <em className="qu-prio">без очереди</em>}
-        {e.members.length > 1 && (
-          <small>{e.members.map((m) => `${m.displayName || m.login}${m.newbie && !e.newbie ? " (новичок)" : ""}`).join(" · ")}</small>
-        )}
         <LastMatch e={e} serverNow={serverNow} />
       </span>
       <span className="qu-mmr">
