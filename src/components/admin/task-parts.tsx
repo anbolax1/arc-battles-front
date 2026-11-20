@@ -6,15 +6,12 @@ import {
   FORMATS,
   FORMAT_COLOR,
   KINDS,
-  MAX_POINTS,
-  MIN_POINTS,
   RARITIES,
   ROUND_TYPES,
   TIMED_META,
-  defaultPoints,
   formatLabel,
   kindLabel,
-  parsePoints,
+  rarityPoints,
   rarityMeta,
   roundTypeMeta,
   taskFormat,
@@ -102,19 +99,14 @@ export function TaskSettingsFields({
   value,
   onChange,
   maps,
-  idPrefix,
-  pointsHint,
   layout = "stack",
 }: {
   value: TaskSettings;
   onChange: (next: TaskSettings) => void;
   maps: MapInfo[];
-  idPrefix: string;
-  pointsHint?: string;
   layout?: "stack" | "flow";
 }) {
   const set = (patch: Partial<TaskSettings>) => onChange({ ...value, ...patch });
-  const pointsBad = parsePoints(value.points) === null;
   const flow = layout === "flow";
 
   const format = (
@@ -191,38 +183,8 @@ export function TaskSettingsFields({
       </Field>
   );
   const points = (
-    <Field
-      label="Баллы"
-      hint={
-        <>
-          {pointsHint}
-          {value.pointsTouched && (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="underline hover:text-fg"
-                onClick={() => onChange({ ...value, pointsTouched: false, points: String(defaultPoints(value.timed)) })}
-              >
-                Вернуть стандартные
-              </button>
-            </>
-          )}
-        </>
-      }
-    >
-      <input
-        id={`${idPrefix}-pts`}
-        type="number"
-        inputMode="numeric"
-        min={MIN_POINTS}
-        max={MAX_POINTS}
-        className="input"
-        style={flow ? undefined : { maxWidth: 112 }}
-        aria-invalid={pointsBad}
-        value={value.points}
-        onChange={(e) => set({ points: e.target.value, pointsTouched: true })}
-      />
+    <Field label="Баллы" hint="Равны редкости: обычное 1, необычное 2, редкое 3, эпическое 4, легендарное 5.">
+      <span className="text-sm font-semibold">{rarityPoints(value.rarity)}</span>
     </Field>
   );
   const source = (
@@ -253,7 +215,7 @@ export function TaskSettingsFields({
         {rarity}
         {timed}
         {round}
-        <div className="w-28">{points}</div>
+        <div className="max-w-[240px]">{points}</div>
         {source}
         <div className="basis-full">{mapsField}</div>
         {boosty && <div className="basis-full">{boosty}</div>}

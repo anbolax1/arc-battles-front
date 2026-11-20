@@ -47,6 +47,8 @@ export const ROUND_TYPES: OptionMeta<TaskRoundType>[] = [
 /** Цвет метки формата матча: общий для 1×1 и 2×2, чтобы не множить цвета на карточке. */
 export const FORMAT_COLOR = "#8b8fa8";
 
+/** Очки задания: обычное 1, необычное 2, редкое 3, эпическое 4, легендарное 5. */
+export const rarityPoints = (v?: string): number => RARITIES.findIndex((r) => r.id === v) + 1 || 1;
 export const rarityMeta = (v?: string): RarityMeta => RARITIES.find((r) => r.id === v) ?? RARITIES[0];
 export const formatLabel = (v?: string): string => FORMATS.find((f) => f.id === v)?.label ?? "Оба формата";
 export const kindLabel = (v?: string): string => KINDS.find((k) => k.id === v)?.label ?? v ?? "";
@@ -137,7 +139,7 @@ export function describeSettings(s: TaskSettings, mapName: (code: string) => str
   if (s.timed) parts.push(TIMED_META.label);
   if (s.roundType !== "any") parts.push(roundTypeMeta(s.roundType).label);
   parts.push(s.mapCodes.length ? s.mapCodes.map(mapName).join(", ") : "все карты");
-  parts.push(`${s.points || "?"} б.`);
+  parts.push(`${rarityPoints(s.rarity)} б.`);
   return parts.join(" / ");
 }
 

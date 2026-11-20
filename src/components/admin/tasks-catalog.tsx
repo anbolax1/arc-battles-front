@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Panel } from "@/components/ui/card";
 import { TaskSettingsFields, TaskTags } from "@/components/admin/task-parts";
+import { TaskDealSettingsPanel } from "@/components/admin/task-deal-settings";
 import type { CatalogTask, MapInfo } from "@/lib/types";
 import {
   FORMATS,
@@ -19,6 +20,7 @@ import {
   matchesFilter,
   parsePoints,
   rarityMeta,
+  rarityPoints,
   settingsBody,
   taskFormat,
   taskRarity,
@@ -176,6 +178,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
 
   return (
     <div className="space-y-5">
+      <TaskDealSettingsPanel />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl">Задания</h2>
         <div className="flex gap-2">
@@ -320,7 +323,7 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
                     )}
                   </div>
                   <span className="pts pts-orange">
-                    <span>+{t.points}</span>
+                    <span>+{rarityPoints(t.rarity)}</span>
                   </span>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => toggle(t)}>
                     <span>{t.active ? "Выключить" : "Включить"}</span>
@@ -364,11 +367,9 @@ export function TasksCatalog({ initial, maps }: { initial: CatalogTask[]; maps: 
               </div>
             </div>
             <TaskSettingsFields
-              idPrefix="d"
               maps={maps}
               value={draft.settings}
               onChange={(settings) => setDraft({ ...draft, settings })}
-              pointsHint="Обычное - 2, на время - 1; можно задать своё."
             />
             <div className="sticky bottom-[-1.25rem] z-10 -mx-5 -mb-5 space-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-3">
               {err && <p className="text-sm text-danger">{err}</p>}
@@ -534,11 +535,9 @@ function BulkForm({
           Выберите общие настройки: их получат <b>все</b> задания из списка.
         </p>
         <TaskSettingsFields
-          idPrefix="b"
           maps={maps}
           value={settings}
           onChange={(s) => setState({ ...state, settings: s })}
-          pointsHint="Обычное - 2, на время - 1."
           layout="flow"
         />
       </div>
