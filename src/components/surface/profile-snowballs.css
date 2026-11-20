@@ -1,0 +1,91 @@
+/* Снежки в профиле (profile-snowballs.tsx). Летящий снежок и брызги живут в body: профиль может быть
+   где угодно на странице, а летят они поверх всего. */
+.sb-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 22px;
+  max-width: 820px;
+}
+.sb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid rgba(190, 224, 255, 0.5);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(120, 175, 235, 0.32), rgba(70, 120, 190, 0.28));
+  color: #e8f4ff;
+  font: 700 13px/1 var(--sf-ff-c, system-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.sb-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(150, 205, 255, 0.5);
+  background: linear-gradient(180deg, rgba(140, 195, 250, 0.42), rgba(90, 140, 210, 0.36));
+}
+.sb-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.sb-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.sb-text {
+  margin: 0;
+  color: var(--sf-cream, #ece2d0);
+  font: 500 15px/1.4 var(--sf-ff-c, system-ui);
+}
+.sb-text small {
+  display: block;
+  margin-top: 2px;
+  color: var(--sf-cream-2, #b9ad9f);
+  font-size: 13px;
+}
+.sb-text a {
+  color: #bfe0ff;
+}
+.sb-text .sb-err {
+  color: #ffb4a8;
+}
+html[data-snow="off"] .sb-strip {
+  display: none;
+}
+
+.sb-ball,
+.sb-bit,
+.sb-mark {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+.sb-ball {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #dcecff 55%, #9fc4ee);
+  box-shadow: 0 0 14px 3px rgba(180, 220, 255, 0.7);
+}
+.sb-bit {
+  width: 9px;
+  height: 9px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #f4faff;
+  box-shadow: 0 0 6px rgba(180, 220, 255, 0.9);
+}
+.sb-mark {
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 38%, rgba(230, 243, 255, 0.85) 52%, rgba(190, 220, 248, 0) 72%);
+}

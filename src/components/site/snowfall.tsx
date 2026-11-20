@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import { apiFetch } from "@/lib/api";
+import type { CurrentMatchResponse } from "@/lib/types";
+import { inSnowSeason, SNOW_ATTR } from "@/lib/snow-season";
 import "./snowfall.css";
 
 /* Падающий снег на всю витрину: три слоя глубины, ветер с порывами, снег отталкивается
@@ -14,6 +17,11 @@ const MAX_FLAKES = 480;
 const MOBILE_WIDTH = 700;
 const MOBILE_SHARE = 0.55; // на телефонах снега меньше
 const MAX_DPR = 2;
+const LIVE_POLL_MS = 60_000; // как часто спрашиваем, идёт ли матч
+const STORM_EXTRA = 0.8; // во время эфира снега больше на эту долю
+const STORM_WIND = 1.2; // и ветер сильнее
+const STORM_FALL = 0.5; // и падает быстрее
+const STORM_EASE = 0.7; // сек^-1: метель набирает силу плавно
 const MAX_FRAME = 0.05; // сек: после паузы вкладки снег не прыгает
 const FADE_IN = 2.2; // сек: плавное появление при включении
 const MOUSE_RADIUS = 150;
@@ -183,7 +191,7 @@ function subscribeMotion(cb: () => void) {
   return () => media.removeEventListener("change", cb);
 }
 function readMotionAllowed(): boolean {
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return inSnowSeason(new Date()) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function Snowfall() {
@@ -206,6 +214,8 @@ export function Snowfall() {
     let t = 0;
     let gust = 0;
     let gustIn = rand(3, 7);
+    let storm = 0; // 0 - обычный снегопад, 1 - метель (идёт матч)
+    let stormTarget = 0;
     let lastScroll = window.scrollY;
     const mouse = { x: -9999, y: -9999, vx: 0, vy: 0, seen: 0 };
 
@@ -215,9 +225,20 @@ export function Snowfall() {
       h = window.innerHeight;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
-      const want = targetCount(w, h);
-      if (flakes.length > want) flakes = flakes.slice(0, want);
-      while (flakes.length < want) flakes.push(makeFlake(w, h, true));
+      // Запас снежинок на метель: лишние рисуются, только когда идёт матч.
+      const pool = Math.round(targetCount(w, h) * (1 + STORM_EXTRA));
+      if (flakes.length > pool) flakes = flakes.slice(0, pool);
+      while (flakes.length < pool) flakes.push(makeFlake(w, h, true));
+    };
+    const checkLive = () => {
+      if (document.hidden) return;
+      apiFetch<CurrentMatchResponse>("/matches/current")
+        .then((r) => {
+          stormTarget = r.current ? 1 : 0;
+        })
+        .catch(() => {
+          /* связи нет - остаётся прежняя погода */
+        });
     };
 
     const onMove = (e: PointerEvent) => {
@@ -255,10 +276,14 @@ export function Snowfall() {
       gustIn -= dt;
       if (gustIn <= 0) {
         gust = (Math.random() < 0.5 ? -1 : 1) * rand(45, 110);
-        gustIn = rand(7, 18);
+        gustIn = rand(7, 18) / (1 + storm * 1.5);
       }
       gust *= Math.exp(-dt / 2.6);
-      const wind = Math.sin(t * 0.07) * 16 + Math.sin(t * 0.23 + 1.3) * 7 + gust;
+      storm += (stormTarget - storm) * Math.min(dt * STORM_EASE, 1);
+      const wind = (Math.sin(t * 0.07) * 16 + Math.sin(t * 0.23 + 1.3) * 7 + gust) * (1 + storm * STORM_WIND);
+      const fall = 1 + storm * STORM_FALL;
+      const base = flakes.length / (1 + STORM_EXTRA);
+      const visible = base * (1 + STORM_EXTRA * storm); // сколько снежинок на экране сейчас
       mouse.vx *= Math.exp(-dt * 3);
       mouse.vy *= Math.exp(-dt * 3);
       const fade = Math.min(t / FADE_IN, 1);
@@ -267,7 +292,8 @@ export function Snowfall() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
-      for (const f of flakes) {
+      for (let i = 0; i < flakes.length && i < visible; i++) {
+        const f = flakes[i];
         const near = 0.35 + f.z * 0.9;
         if (mouse.x > -9000) {
           const dx = f.x - mouse.x;
@@ -282,7 +308,7 @@ export function Snowfall() {
         f.vx *= damp;
         f.vy *= damp;
         f.x += (wind * near + f.vx) * dt;
-        f.y += (f.fall + f.vy) * dt;
+        f.y += (f.fall * fall + f.vy) * dt;
         f.rot += f.spin * dt;
 
         if (f.y > h + f.r * 2) {
@@ -294,7 +320,7 @@ export function Snowfall() {
         else if (f.x > w + f.r * 2 + 40) f.x -= w + f.r * 4 + 80;
 
         const px = f.x + Math.sin(f.phase + t * f.freq) * f.amp;
-        let a = f.alpha * fade;
+        let a = f.alpha * fade * Math.min(visible - i, 1); // лишние снежинки появляются по одной
         if (f.twinkle) a *= 0.65 + 0.35 * Math.sin(f.phase + t * f.twinkle);
         ctx.globalAlpha = a;
         const size = f.r * 2;
@@ -314,6 +340,8 @@ export function Snowfall() {
     };
 
     resize();
+    checkLive();
+    const poll = window.setInterval(checkLive, LIVE_POLL_MS);
     raf = requestAnimationFrame(frame);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -321,11 +349,19 @@ export function Snowfall() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
+      window.clearInterval(poll);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onMove);
       document.documentElement.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("scroll", onScroll);
     };
+  }, [on, allowed]);
+
+  // Остальное снежное оформление (ники, профили) прячется, когда снег выключен.
+  useEffect(() => {
+    if (!allowed) return;
+    document.documentElement.setAttribute(SNOW_ATTR, on ? "on" : "off");
+    return () => document.documentElement.removeAttribute(SNOW_ATTR);
   }, [on, allowed]);
 
   const toggle = () => {

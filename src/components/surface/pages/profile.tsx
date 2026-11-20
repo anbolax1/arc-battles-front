@@ -16,6 +16,8 @@ import { PATCH_ORDER } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
 import { BeltProfile } from "@/components/surface/belt-parts";
 import { ProfileModeration } from "@/components/surface/profile-moderation";
+import { ProfileDrift } from "@/components/surface/profile-drift";
+import { ProfileSnowballs } from "@/components/surface/profile-snowballs";
 import { roleAtLeast } from "@/lib/roles";
 import { profileMovedTo } from "@/lib/profile-url";
 import { fmtCount, regionLabel, STAT_LABEL, TOKEN_KINDS, TOKEN_LABEL } from "@/lib/tokens";
@@ -68,7 +70,8 @@ function IdCard({ profile }: { profile: PlayerProfile }) {
     { k: "Сброс рейтинга", v: tokens?.lastReset ? shortDate(tokens.lastReset) : "—", title: fullDate(tokens?.lastReset), m: 12 },
   ];
   return (
-    <article className="sf-idcard pf-card" aria-label={`Профиль игрока ${name}`}>
+    <article className="sf-idcard pf-card" data-frost={mmr1x1.place === 1 ? "" : undefined} aria-label={`Профиль игрока ${name}`}>
+      <ProfileDrift login={user.login} seed={user.id} />
       <div className="sf-id-head">
         <span>
           Профиль игрока<span className="sf-hide-sm"> · GOARC.PRO</span>
@@ -241,6 +244,7 @@ export async function ProfileView({
               </a>
             )}
           </div>
+          <ProfileSnowballs login={user.login} />
           <div className={`pf-extra ${profile.favorites ? "" : "solo"}`}>
             <FavoritesCard profile={profile} />
             <WalletCard profile={profile} solo={!profile.favorites} />

@@ -17,6 +17,7 @@ import { dayMonth, winrate } from "@/components/surface/fmt";
 import { rub, seasonPrizePlaces } from "@/components/surface/prize-pool";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_INFO } from "@/components/surface/patch-meta";
+import "@/components/surface/profile-drift.css";
 
 type SortKey = "mmr" | "wr" | "m" | "k" | "w";
 
@@ -111,7 +112,7 @@ function SoloRows({ rows, place, prizes }: { rows: LeaderboardRow[]; place: Map<
         const name = r.displayName || r.login;
         const pl = place.get(r.userId || r.login) ?? i + 1;
         return (
-          <Link key={r.userId || r.login} className="sf-tr" role="row" href={r.login ? `/profile/${r.login}` : "#"} style={rowStyle(i)}>
+          <Link key={r.userId || r.login} className="sf-tr" role="row" data-frost={pl === 1 ? "" : undefined} href={r.login ? `/profile/${r.login}` : "#"} style={rowStyle(i)}>
             <span role="cell">
               <Rank place={pl} />
             </span>
