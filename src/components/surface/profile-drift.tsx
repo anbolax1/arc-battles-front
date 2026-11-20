@@ -5,11 +5,12 @@ import { loadIdle } from "@/lib/snow-idle";
 import { daysWord, idleLevel, inSnowSeason, type IdleLevel } from "@/lib/snow-season";
 import "./profile-drift.css";
 
-/* Сугроб на карточке игрока, который давно не играл: чем дольше без матчей, тем гуще.
-   Снег стирается курсором или пальцем, как запотевшее стекло; после перезагрузки возвращается. */
+/* Снег на карточке игрока, который давно не играл: сугробы в углах и иней на фото, чем дольше без матчей,
+   тем гуще. Стирается курсором или пальцем, как запотевшее стекло; после перезагрузки возвращается.
+   Сугроб на самом имени лежит в мире снега (snow-world.ts). */
 
-const CAP_DEPTH = [0, 16, 34, 60]; // толщина шапки сверху по ступеням, px
 const BRUSH = 26; // радиус стирания, px
+const SETTLE_MS = 1000; // через сколько перерисовать: карточка уже въехала
 const NOISE_SEED = 9301;
 
 /** Детерминированное «случайное» по строке: у одного игрока сугроб всегда одинаковый. */
@@ -25,34 +26,6 @@ function seeded(seed: string): () => number {
 
 function drift(ctx: CanvasRenderingContext2D, w: number, h: number, level: IdleLevel, seed: string, photo: DOMRect | null) {
   const rnd = seeded(seed);
-  const wave = Array.from({ length: 4 }, () => ({ f: 0.012 + rnd() * 0.03, p: rnd() * 6.28, a: 0.3 + rnd() * 0.7 }));
-  const noise = (x: number) => {
-    let v = 0;
-    for (const k of wave) v += Math.sin(x * k.f + k.p) * k.a;
-    return v / 2.6 + 0.5; // примерно 0..1
-  };
-  const depth = CAP_DEPTH[level];
-  const floor = level === 3 ? 0.72 : 0.45; // на третьей ступени шапка карточки закрыта целиком
-
-  // Шапка снега по верхнему краю: низ лепной, с натёками.
-  const top = ctx.createLinearGradient(0, 0, 0, depth + 10);
-  top.addColorStop(0, "#ffffff");
-  top.addColorStop(0.7, "#eef6ff");
-  top.addColorStop(1, "#bcd8f5");
-  ctx.fillStyle = top;
-  ctx.shadowColor = "rgba(40, 80, 140, 0.45)";
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 3;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(w, 0);
-  for (let x = w; x >= 0; x -= 4) {
-    const bump = Math.max(0, noise(x) * 0.8 + Math.sin(x * 0.19 + 1) * 0.12);
-    ctx.lineTo(x, depth * (floor + (1 - floor) * bump));
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowColor = "transparent";
 
   // Сугробы в нижних углах: со второй ступени.
   if (level >= 2) {
@@ -91,14 +64,6 @@ function drift(ctx: CanvasRenderingContext2D, w: number, h: number, level: IdleL
       ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
       ctx.stroke();
     }
-  }
-
-  // Блестки по всему снегу.
-  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-  for (let i = 0; i < 26 + level * 12; i++) {
-    const x = rnd() * w;
-    const y = rnd() * Math.max(depth, 20);
-    ctx.fillRect(x, y, 1.6, 1.6);
   }
 }
 
@@ -147,6 +112,10 @@ export function ProfileDrift({ login, seed }: { login: string; seed: string }) {
       drift(ctx, w, h, level, seed, photo);
     };
     paint();
+    // Карточка въезжает с анимацией, а шрифты подгружаются позже - перерисовываем, когда всё встало на место.
+    const settle = window.setTimeout(paint, SETTLE_MS);
+    host.addEventListener("animationend", paint);
+    void document.fonts?.ready.then(paint);
     const resize = new ResizeObserver(paint);
     resize.observe(host);
 
@@ -176,6 +145,8 @@ export function ProfileDrift({ login, seed }: { login: string; seed: string }) {
     host.addEventListener("pointermove", erase);
     host.addEventListener("pointerleave", stop);
     return () => {
+      window.clearTimeout(settle);
+      host.removeEventListener("animationend", paint);
       resize.disconnect();
       host.removeEventListener("pointermove", erase);
       host.removeEventListener("pointerleave", stop);

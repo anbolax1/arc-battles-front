@@ -3,31 +3,17 @@
 import { useEffect } from "react";
 import { loadIdle } from "@/lib/snow-idle";
 import { daysWord, idleLevel, inSnowSeason } from "@/lib/snow-season";
+import { clearDrifts, syncDrifts, type Level } from "./snow-world";
 import "./snow-nicks.css";
 
-/* Снег на никах тех, кто давно не играл: сугроб над ссылкой на профиль, чем дольше без матчей, тем выше.
-   Ники по всему сайту - это ссылки /profile/<ник>, поэтому метим их все разом, а не в каждом месте. */
+/* Находит на странице ники давно не игравших и отдаёт их миру снега (snow-world.ts): там на буквах
+   лежит сугроб, который растёт от упавших снежинок. Ники на сайте выводятся в сотне мест (ссылки,
+   строки таблиц, текст), поэтому ищем их по тексту, а не правим каждое место. */
 
-const LINKS = 'a[href^="/profile/"]';
-
-function loginOf(a: HTMLAnchorElement): string | null {
-  const m = (a.getAttribute("href") ?? "").match(/^\/profile\/([^/?#]+)/);
-  if (!m) return null;
-  try {
-    return decodeURIComponent(m[1]).toLowerCase();
-  } catch {
-    return m[1].toLowerCase();
-  }
-}
-
-/** Сугроб рисуется псевдоэлементом ссылки; если оба заняты вёрсткой самой ссылки - снега у неё нет. */
-function freeSlot(a: HTMLElement): "before" | "after" | null {
-  for (const slot of ["before", "after"] as const) {
-    const content = getComputedStyle(a, `::${slot}`).content;
-    if (content === "none" || content === "normal") return slot;
-  }
-  return null;
-}
+// Где слово-ник не трогаем: меню с именем самого игрока, подвал, поля ввода.
+const SKIP = "header, footer, button, input, textarea, select, option, script, style, svg, canvas, [data-no-snow]";
+const MIN_NAME = 2; // короче - слишком часто совпадает с обычным текстом
+const MAX_NAME = 40;
 
 export function SnowNicks() {
   useEffect(() => {
@@ -37,24 +23,31 @@ export function SnowNicks() {
 
     const mark = () => {
       frame = 0;
-      document.querySelectorAll<HTMLAnchorElement>(LINKS).forEach((a) => {
-        const login = loginOf(a);
-        const days = login ? idle.get(login) : undefined;
-        const level = days === undefined ? 0 : idleLevel(days);
-        if (!level || days === undefined) {
-          if (a.dataset.idle) {
-            delete a.dataset.idle;
-            delete a.dataset.idleSlot;
-          }
-          return;
+      // Ник - элемент, в котором нет ничего, кроме самого слова (в том числе внутри ссылки и строки таблицы).
+      const found = new Map<HTMLElement, Level>();
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const raw = n.nodeValue;
+        if (!raw || raw.length > MAX_NAME + 8) continue;
+        const key = raw.trim().toLowerCase();
+        if (key.length < MIN_NAME || key.length > MAX_NAME || /^\d+$/.test(key)) continue;
+        const days = idle.get(key);
+        const el = n.parentElement;
+        if (days === undefined || !el || el.childElementCount > 0 || el.closest(SKIP)) continue;
+        if (el.textContent?.trim().toLowerCase() !== key) continue;
+        const level = idleLevel(days);
+        if (!level) continue;
+        found.set(el, level);
+        if (el.dataset.idle !== String(level)) {
+          el.dataset.idle = String(level);
+          if (!el.title) el.title = `Не играл ${daysWord(days)}`;
         }
-        if (a.dataset.idle === String(level)) return;
-        const slot = a.dataset.idleSlot ?? freeSlot(a);
-        if (!slot) return;
-        a.dataset.idleSlot = slot;
-        a.dataset.idle = String(level);
-        if (!a.title) a.title = `Не играл ${daysWord(days)}`;
+      }
+      // Страницу перерисовали - с тех, кто больше не ник, снимаем метку.
+      document.querySelectorAll<HTMLElement>("[data-idle]").forEach((el) => {
+        if (!found.has(el)) delete el.dataset.idle;
       });
+      syncDrifts(found);
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(mark);
@@ -66,13 +59,15 @@ export function SnowNicks() {
       idle = m;
       schedule();
     });
-    // Страницы подгружаются без перезагрузки и таблицы перерисовываются - метим заново.
+    // Страницы подгружаются без перезагрузки и таблицы перерисовываются - ищем заново.
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
+    void document.fonts?.ready.then(schedule);
     return () => {
       alive = false;
       observer.disconnect();
       if (frame) cancelAnimationFrame(frame);
+      clearDrifts();
     };
   }, []);
 

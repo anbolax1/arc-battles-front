@@ -1,33 +1,8 @@
-/* Снег на никах давно не игравших (см. snow-nicks.tsx). Слой сугроба - псевдоэлемент ссылки;
-   прячется, когда снег выключен кнопкой. */
-a[data-idle] {
-  position: relative;
-  --cap-h: 6px;
+/* Метка ника давно не игравшего (см. snow-nicks.tsx). Сам снег рисует snow-world.ts на холсте;
+   на третьей ступени у букв ещё холодное свечение. */
+[data-idle="3"] {
+  text-shadow: 0 0 0.6em rgba(150, 205, 255, 0.55);
 }
-a[data-idle="2"] {
-  --cap-h: 9px;
-}
-a[data-idle="3"] {
-  --cap-h: 13px;
-  text-shadow: 0 0 0.7em rgba(150, 205, 255, 0.55);
-}
-a[data-idle][data-idle-slot="before"]::before,
-a[data-idle][data-idle-slot="after"]::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% - 2px);
-  height: var(--cap-h);
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='10' viewBox='0 0 28 10'><path d='M0 10V6Q2 2 5 4Q8 0 11 3Q14 -1 17 3Q20 0 23 3Q26 2 28 6V10Z' fill='%23fff'/><path d='M0 10V8Q4 6 8 8Q12 6 16 8Q20 6 24 8Q26 7 28 8V10Z' fill='%23b9d6f4'/></svg>") repeat-x left bottom / auto 100%;
-  filter: drop-shadow(0 0 1px rgba(90, 140, 205, 0.7));
-  pointer-events: none;
-  z-index: 2;
-}
-html[data-snow="off"] a[data-idle][data-idle-slot="before"]::before,
-html[data-snow="off"] a[data-idle][data-idle-slot="after"]::after {
-  display: none;
-}
-html[data-snow="off"] a[data-idle="3"] {
+html[data-snow="off"] [data-idle="3"] {
   text-shadow: none;
 }

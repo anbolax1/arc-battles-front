@@ -4,6 +4,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { apiFetch } from "@/lib/api";
 import type { CurrentMatchResponse } from "@/lib/types";
 import { inSnowSeason, SNOW_ATTR } from "@/lib/snow-season";
+import { drawWorld, landFlake, resizeWorld, scatterGround, stepWorld, world } from "./snow-world";
 import "./snowfall.css";
 
 /* Падающий снег на всю витрину: три слоя глубины, ветер с порывами, снег отталкивается
@@ -17,10 +18,15 @@ const MAX_FLAKES = 480;
 const MOBILE_WIDTH = 700;
 const MOBILE_SHARE = 0.55; // на телефонах снега меньше
 const MAX_DPR = 2;
-const LIVE_POLL_MS = 60_000; // как часто спрашиваем, идёт ли матч
-const STORM_EXTRA = 0.8; // во время эфира снега больше на эту долю
-const STORM_WIND = 1.2; // и ветер сильнее
-const STORM_FALL = 0.5; // и падает быстрее
+const LIVE_POLL_MS = 15_000; // как часто спрашиваем, идёт ли матч
+const STORM_EXTRA = 1.6; // во время эфира снега больше на эту долю: метель должна быть видна сразу
+const STORM_WIND = 2.4; // ветер сильнее
+const STORM_FALL = 0.8; // и падает быстрее
+const STORM_HAZE = 0.12; // непрозрачность белёсой мглы на пике метели
+const STORM_TRAIL_FROM = 0.3; // с какой силы метели у снежинок появляется росчерк по ветру
+const STORM_TRAIL = 0.03; // длина росчерка, сек движения
+const LAND_VOLUME = 0.28; // сколько снега даёт снежинка при посадке: радиус² на это
+const LAND_VOLUME_MAX = 3.5;
 const STORM_EASE = 0.7; // сек^-1: метель набирает силу плавно
 const MAX_FRAME = 0.05; // сек: после паузы вкладки снег не прыгает
 const FADE_IN = 2.2; // сек: плавное появление при включении
@@ -226,6 +232,7 @@ export function Snowfall() {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       // Запас снежинок на метель: лишние рисуются, только когда идёт матч.
+      resizeWorld(w, h);
       const pool = Math.round(targetCount(w, h) * (1 + STORM_EXTRA));
       if (flakes.length > pool) flakes = flakes.slice(0, pool);
       while (flakes.length < pool) flakes.push(makeFlake(w, h, true));
@@ -261,6 +268,7 @@ export function Snowfall() {
       const dy = window.scrollY - lastScroll;
       lastScroll = window.scrollY;
       // Снег «остаётся в мире»: при прокрутке ближние снежинки смещаются заметнее дальних.
+      scatterGround(dy); // сугроб внизу взметается
       for (const f of flakes) {
         f.y -= dy * (0.06 + f.z * 0.3);
         if (f.y < -f.r * 2) f.y += h + f.r * 4;
@@ -275,8 +283,8 @@ export function Snowfall() {
 
       gustIn -= dt;
       if (gustIn <= 0) {
-        gust = (Math.random() < 0.5 ? -1 : 1) * rand(45, 110);
-        gustIn = rand(7, 18) / (1 + storm * 1.5);
+        gust = (Math.random() < 0.5 ? -1 : 1) * rand(45, 110) * (1 + storm * 0.8);
+        gustIn = rand(7, 18) / (1 + storm * 2.5);
       }
       gust *= Math.exp(-dt / 2.6);
       storm += (stormTarget - storm) * Math.min(dt * STORM_EASE, 1);
@@ -291,6 +299,19 @@ export function Snowfall() {
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
+
+      // Мир снега: сугробы на никах и внизу экрана, брызги. Снежинки рисуются поверх.
+      world.wind = wind;
+      world.mouse.x = mouse.x;
+      world.mouse.y = mouse.y;
+      world.mouse.vx = mouse.vx;
+      world.mouse.vy = mouse.vy;
+      stepWorld(dt, now);
+      drawWorld(ctx);
+      if (storm > 0.02) {
+        ctx.fillStyle = `rgba(224, 238, 255, ${STORM_HAZE * storm})`; // белёсая мгла метели
+        ctx.fillRect(0, 0, w, h);
+      }
 
       for (let i = 0; i < flakes.length && i < visible; i++) {
         const f = flakes[i];
@@ -320,6 +341,11 @@ export function Snowfall() {
         else if (f.x > w + f.r * 2 + 40) f.x -= w + f.r * 4 + 80;
 
         const px = f.x + Math.sin(f.phase + t * f.freq) * f.amp;
+        if (f.kind !== 1 && f.y > 0 && landFlake(px, f.y + f.r * 0.4, Math.min(f.r * f.r * LAND_VOLUME, LAND_VOLUME_MAX))) {
+          f.y = -f.r * 2 - Math.random() * 60; // осела на ник или в сугроб внизу, новая начинает путь сверху
+          f.x = Math.random() * w;
+          continue;
+        }
         let a = f.alpha * fade * Math.min(visible - i, 1); // лишние снежинки появляются по одной
         if (f.twinkle) a *= 0.65 + 0.35 * Math.sin(f.phase + t * f.twinkle);
         ctx.globalAlpha = a;
@@ -332,6 +358,12 @@ export function Snowfall() {
           ctx.drawImage(img, -f.r, -f.r, size, size);
           ctx.restore();
         } else {
+          if (storm > STORM_TRAIL_FROM && f.kind === 0) {
+            // В метель снежинки тянутся по ветру росчерком.
+            ctx.globalAlpha = a * 0.45;
+            ctx.drawImage(img, px - f.r - wind * near * STORM_TRAIL, f.y - f.r - f.fall * fall * STORM_TRAIL, size, size);
+            ctx.globalAlpha = a;
+          }
           ctx.drawImage(img, px - f.r, f.y - f.r, size, size);
         }
       }
@@ -342,6 +374,10 @@ export function Snowfall() {
     resize();
     checkLive();
     const poll = window.setInterval(checkLive, LIVE_POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) checkLive();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     raf = requestAnimationFrame(frame);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -350,6 +386,7 @@ export function Snowfall() {
     return () => {
       cancelAnimationFrame(raf);
       window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onMove);
       document.documentElement.removeEventListener("pointerleave", onLeave);
