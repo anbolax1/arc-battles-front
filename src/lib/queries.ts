@@ -23,7 +23,6 @@ import type {
   RulesResponse,
   Season,
   SeasonRecap,
-  StarterTask,
   Tournament,
   TournamentMode,
   TournamentStatus,
@@ -207,11 +206,6 @@ export function getUsersOverview(params: {
     serverFetch<{ items: UserOverview[]; total: number }>(`/users/overview${suffix}`, { auth: true }),
     { items: [], total: 0 },
   );
-}
-
-/** Пул стартовых заданий (скрыт от публики). Organizer-only. */
-export function getStarterTasks(): Promise<StarterTask[]> {
-  return safe("starter-tasks", serverFetch<StarterTask[]>("/starter-tasks", { auth: true }), []);
 }
 
 /** Мои заявки (требует входа). [] — аноним/ошибка. */

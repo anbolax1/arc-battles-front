@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useOverlayFeed } from "@/lib/ws";
-import { OverlayLinks } from "@/components/admin/live-manager";
+import { OverlayLinks } from "@/components/admin/overlay-links";
 import { OverlaySceneEditor } from "@/components/admin/overlay-scenes";
 
 /** Редактор оверлея отдельно от пульта: сцены и их ссылки для OBS, данные матча считает сервер. */
