@@ -5,6 +5,7 @@ import { getDesign } from "@/lib/design";
 import { SiteNav } from "@/components/site/nav";
 import { SiteFooter } from "@/components/site/footer";
 import { SurfaceShell } from "@/components/surface/shell";
+import { Snowfall } from "@/components/site/snowfall";
 
 /* Общий «хром» публичной витрины: навбар + футер + контекст авторизации.
    Текущего пользователя подгружаем на сервере (cookie сессии) и отдаём в
@@ -18,6 +19,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     return (
       <AuthProvider initialUser={user}>
         <SurfaceShell>{children}</SurfaceShell>
+        <Snowfall />
       </AuthProvider>
     );
   }
@@ -34,6 +36,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         </main>
         <SiteFooter />
       </div>
+      <Snowfall />
     </AuthProvider>
   );
 }
