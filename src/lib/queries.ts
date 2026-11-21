@@ -7,7 +7,6 @@
 import { serverFetch, serverGetOptional } from "@/lib/server-api";
 import { ApiError } from "@/lib/api";
 import type {
-  CatalogLegendary,
   CurrentMatchResponse,
   MapInfo,
   MatchState,
@@ -95,18 +94,12 @@ export function getSeasons(): Promise<Season[]> {
   return safe("seasons", serverFetch<Season[]>(`/seasons`), []);
 }
 
-/** Каталог правил: контракты + протоколы + легендарные (ответ обёрнут в {tasks,complications,legendary}). */
+/** Каталог правил: контракты + протоколы (ответ обёрнут в {tasks,complications}). */
 export function getRules(): Promise<RulesResponse> {
   return safe("rules", serverFetch<RulesResponse>("/rules"), {
     tasks: [],
     complications: [],
-    legendary: [],
   });
-}
-
-/** Легендарные контракты (глобальный пул со статусом и журналом). */
-export function getLegendary(): Promise<CatalogLegendary[]> {
-  return safe("legendary", serverFetch<CatalogLegendary[]>("/legendary"), []);
 }
 
 /** Итоги сезона по номеру; null - сезона нет или бэкенд недоступен. Матч в идущем сезоне меняет

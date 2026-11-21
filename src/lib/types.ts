@@ -461,19 +461,6 @@ export interface RoundPenalty {
   times: number;
 }
 
-/** Легендарный контракт (глобальный пул, 10 баллов, выполним один раз навсегда). */
-export interface CatalogLegendary {
-  id: string;
-  text: string;
-  points: number;
-  kind: TaskKind;
-  source: CatalogSource;
-  author?: string;
-  title?: string;
-  status: "available" | "done";
-  completion?: LegendaryCompletion | null;
-}
-
 /** Запись о выполнении легендарного контракта (ник/дата/карта). */
 export interface LegendaryCompletion {
   id: string;
@@ -1329,11 +1316,10 @@ export interface MatchTeam {
   createdAt: string;
 }
 
-/** Ответ GET /api/rules — ОБЁРНУТ в { tasks (контракты), complications (протоколы), legendary }. */
+/** Ответ GET /api/rules — ОБЁРНУТ в { tasks (контракты), complications (протоколы) }. */
 export interface RulesResponse {
   tasks: CatalogTask[];
   complications: CatalogComplication[];
-  legendary?: CatalogLegendary[];
 }
 
 /** GET /api/overlay/state отдаёт «голый» LiveState (или {} если не задан). */

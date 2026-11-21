@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import type { CatalogLegendary, CatalogTask, MapInfo } from "@/lib/types";
+import type { CatalogTask, MapInfo } from "@/lib/types";
 import { mapImage } from "@/lib/match";
 import { pointsLabel } from "@/lib/format";
-import { KIND_LABEL, RULES_FORMATS, rulesCatalog, type RulesFormat } from "@/components/domain/rules-list";
+import { RULES_FORMATS, rulesCatalog, type RulesFormat } from "@/components/domain/rules-list";
 import { RuleTags } from "@/components/domain/rule-tags";
 import { SearchGlyph } from "@/components/surface/ui";
-import { fullDate } from "@/components/surface/fmt";
 
 /** Подпись источника: задания подписчиков Boosty - с названием и автором, официальные - без подписи. */
 function sourceLine(it: { source: string; title?: string; author?: string }): string {
@@ -49,12 +48,12 @@ function Item({
   );
 }
 
-/** Справочник заданий в новом дизайне: пул PvP или PvE, поиск по номеру или тексту, задания на время и легендарные задания. */
-export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[]; legendary: CatalogLegendary[]; maps: MapInfo[] }) {
+/** Справочник заданий в новом дизайне: пул PvP или PvE, поиск по номеру или тексту, задания на время. */
+export function RulesCatalog({ tasks, maps }: { tasks: CatalogTask[]; maps: MapInfo[] }) {
   const [q, setQ] = React.useState("");
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
   const [format, setFormat] = React.useState<RulesFormat>("all");
-  const cat = rulesCatalog(tasks, legendary, maps, pool, q, format);
+  const cat = rulesCatalog(tasks, maps, pool, q, format);
   const map = (code: string) => maps.find((m) => m.code === code);
   const nothing = q ? "Ничего не найдено — попробуй номер или другое слово." : "";
 
@@ -131,33 +130,6 @@ export function RulesCatalog({ tasks, legendary, maps }: { tasks: CatalogTask[];
               <p className="sf-note">{nothing || "Заданий на время пока нет."}</p>
             )}
           </aside>
-        </div>
-
-        <div className="sf-block" aria-labelledby="rl-leg">
-          <h3 className="sf-h-mid" id="rl-leg">
-            легендарные задания<span className="sf-dot">.</span>
-          </h3>
-          <p className="rl-sub">10 баллов · каждое можно выполнить один раз навсегда</p>
-          {cat.legendary.length ? (
-            <ul className="rl-list rl-legs">
-              {cat.legendary.map((l) => {
-                const c = l.completion;
-                return (
-                  <Item key={l.id} num={l.num} text={l.text} points={l.points} meta={[KIND_LABEL[l.kind], sourceLine(l)].filter(Boolean).join(" · ")} tone="leg">
-                    {l.status === "done" ? (
-                      <em className="rl-done">
-                        выполнено{c ? ` · ${[c.nickname, c.map, c.completedAt ? fullDate(c.completedAt) : ""].filter(Boolean).join(" · ")}` : ""}
-                      </em>
-                    ) : (
-                      <em className="rl-open">доступно</em>
-                    )}
-                  </Item>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="sf-note">{nothing || "Легендарных заданий пока нет."}</p>
-          )}
         </div>
       </div>
     </section>

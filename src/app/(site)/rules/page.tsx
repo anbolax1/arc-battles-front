@@ -8,12 +8,12 @@ import { SurfaceRules } from "@/components/surface/pages/rules";
 
 export const metadata = {
   title: "Правила — GOARC.PRO",
-  description: "Формат матчей, пики-баны карт, задания, легендарные задания и MMR.",
+  description: "Формат матчей, пики-баны карт, задания и MMR.",
 };
 
 export default async function RulesPage() {
   if ((await getDesign()) === "surface") return <SurfaceRules />;
-  const [{ tasks, legendary }, maps] = await Promise.all([getRules(), getMaps()]);
+  const [{ tasks }, maps] = await Promise.all([getRules(), getMaps()]);
 
   return (
     <div className="mx-auto max-w-[1240px] space-y-10 px-6 py-12 sm:py-16">
@@ -39,9 +39,11 @@ export default async function RulesPage() {
         <Panel className="p-6">
           <h3 className="mb-3 font-display text-lg uppercase">Как считаются очки</h3>
           <p className="text-sm text-muted">
-            Перед каждым раундом участник получает три задания, одно из них на
-            время (до 15-й минуты). Обычное задание — +2 балла, на время — +1, легендарное
-            задание — +10 один раз навсегда; задания соперника не засчитываются.
+            Перед каждым раундом участник получает задание на время (до 15-й
+            минуты) и обычные задания по одному: следующее открывается, когда
+            выполнено текущее. Очки обычного задания равны его редкости: обычное
+            1, необычное 2, редкое 3, эпическое 4, легендарное 5, всего не больше
+            5 за раунд; задания соперника не засчитываются.
             Ведущий может начислить и ручные очки, например +3 за нок
             рейдера. Побеждает тот, кто наберёт больше за матч. MMR — Эло внутри
             сезона: в начале сезона у всех стартовый, матч ×2 считается дважды.
@@ -49,7 +51,7 @@ export default async function RulesPage() {
         </Panel>
       </div>
 
-      <RulesList tasks={tasks} legendary={legendary} maps={maps} />
+      <RulesList tasks={tasks} maps={maps} />
     </div>
   );
 }

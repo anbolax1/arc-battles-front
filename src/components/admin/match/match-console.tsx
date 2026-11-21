@@ -18,7 +18,7 @@ import { ScheduledPanel } from "@/components/admin/match/scheduled-panel";
 import { putShowPreview } from "@/components/admin/match/show-preview";
 import { DoubleTokens, doubleNames } from "@/components/admin/match/double-tokens";
 import { PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
-import type { CatalogLegendary, LiveState, MapInfo, MatchState, Participant } from "@/lib/types";
+import type { LiveState, MapInfo, MatchState, Participant } from "@/lib/types";
 
 type Confirm = "finish" | "early" | "cancel" | "void" | "unvoid" | null;
 
@@ -78,15 +78,12 @@ function conflictMatchId(e: unknown): string {
 export function MatchConsole({
   initial,
   maps,
-  legendary: initialLegendary,
 }: {
   initial: MatchState;
   maps: MapInfo[];
-  legendary: CatalogLegendary[];
 }) {
   const router = useRouter();
   const [st, setSt] = React.useState(initial);
-  const [legendary, setLegendary] = React.useState(initialLegendary);
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
   const [gone, setGone] = React.useState(false);
@@ -202,11 +199,6 @@ export function MatchConsole({
     } finally {
       if (key) inFlight.current.delete(key);
     }
-  }
-
-  async function creditLegendary(legendaryId: string, participantId: string, userId?: string) {
-    const next = await act(`/tournaments/${id}/legendary`, { legendaryId, participantId, userId, round: fix?.round }, `legendary:${legendaryId}`);
-    if (next) setLegendary((xs) => xs.map((l) => (l.id === legendaryId ? { ...l, status: "done" } : l)));
   }
 
   async function cancelMatch() {
@@ -360,7 +352,6 @@ export function MatchConsole({
         <RoundConsole
           st={st}
           sides={sides}
-          legendary={legendary}
           focusId={focusId}
           online={!!feed.state}
           saving={pending > 0}
@@ -405,7 +396,6 @@ export function MatchConsole({
           onPoints={(pid, delta, label, userId) =>
             act(`/tournaments/${id}/points`, { participantId: pid, userId, delta, label, round: fix?.round })
           }
-          onLegendary={creditLegendary}
         />
       )}
 

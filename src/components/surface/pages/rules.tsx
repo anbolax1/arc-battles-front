@@ -7,7 +7,7 @@ import { RulesCatalog } from "@/components/surface/rules-catalog";
 
 /** Правила в новом дизайне: как устроен матч - тот же разбор, что на главной, ниже справочник заданий. */
 export async function SurfaceRules() {
-  const [{ tasks, legendary }, maps, finished, match, seasons] = await Promise.all([getRules(), getMaps(), getTournaments("finished"), getCurrentMatch(), getSeasons()]);
+  const [{ tasks }, maps, finished, match, seasons] = await Promise.all([getRules(), getMaps(), getTournaments("finished"), getCurrentMatch(), getSeasons()]);
   const season = seasons.find((s) => s.status === "active");
   const last = match.last ?? (finished[0] ? await getMatch(finished[0].id) : null);
 
@@ -21,7 +21,7 @@ export async function SurfaceRules() {
             правила<span className="sf-dot">.</span>
           </h1>
           <p className="sf-lead rl-lead">
-            Как устроен матч, за что дают очки и как считается рейтинг. Ниже — все задания, задания на время и легендарные задания с поиском по номеру.
+            Как устроен матч, за что дают очки и как считается рейтинг. Ниже — все задания и задания на время с поиском по номеру.
           </p>
           <div className="sf-controls">
             <a className="sf-btn sf-btn-amber" href="#tasks">
@@ -35,7 +35,7 @@ export async function SurfaceRules() {
       </section>
       <HowSection maps={maps} finished={finished} last={last} season={season} tone="sf-night-2" />
       {/* Карты в том же порядке, что в прежнем дизайне: по нему нумеруются задания. */}
-      <RulesCatalog tasks={tasks} legendary={legendary ?? []} maps={maps} />
+      <RulesCatalog tasks={tasks} maps={maps} />
     </>
   );
 }

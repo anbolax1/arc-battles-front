@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import type { ReactNode } from "react";
-import type { CatalogLegendary, CatalogTask, MapInfo } from "@/lib/types";
+import type { CatalogTask, MapInfo } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Panel } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { fmtDate, pointsLabel } from "@/lib/format";
+import { pointsLabel } from "@/lib/format";
 import { RuleTags } from "@/components/domain/rule-tags";
 import { taskFormat } from "@/lib/task-meta";
 
@@ -37,11 +37,10 @@ function matches(it: { num: number; label: string }, q: string): boolean {
   return String(it.num) === s || String(it.num).startsWith(s) || it.label.toLowerCase().includes(s);
 }
 
-/** Справочник для показа: обычные задания пула, задания на время и легендарные. Задания на карту
+/** Справочник для показа: обычные задания пула и задания на время. Задания на карту
     пока не выдаются, поэтому в справочнике их нет. Номера идут подряд в порядке показа - по ним ищут задание. */
 export function rulesCatalog(
   tasks: CatalogTask[],
-  legendary: CatalogLegendary[],
   maps: MapInfo[],
   pool: "pvp" | "pve",
   q: string,
@@ -63,7 +62,6 @@ export function rulesCatalog(
       .map((code) => ({ code, items: poolTasks.filter((t) => t.mapCode === code && matches(t, q)) }))
       .filter((g) => g.items.length),
     timed: numbered(active.filter((t) => t.tag === "timed" && !t.mapCodes.length && (t.kind === pool || t.kind === "pvpve"))).filter((t) => matches(t, q)),
-    legendary: numbered(legendary).filter((l) => matches(l, q)),
   };
 }
 
@@ -112,55 +110,18 @@ function CatalogItem({
   );
 }
 
-/** Один легендарный контракт: текст, источник, статус и (если выполнен) журнальная запись. */
-function LegendaryItem({ num, item }: { num: number; item: CatalogLegendary }) {
-  const done = item.status === "done";
-  const c = item.completion;
-  return (
-    <li className="flex items-start gap-3 border-b border-[var(--border)] py-3 last:border-0">
-      <span className="mt-0.5 w-7 flex-none text-right font-display text-sm text-muted tnum">{num}</span>
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <p className="text-sm leading-snug">{item.text}</p>
-        <div className="flex flex-wrap items-center gap-2">
-          {KIND_LABEL[item.kind] && (
-            <span className="chip">
-              <span>{KIND_LABEL[item.kind]}</span>
-            </span>
-          )}
-          <SourceTag source={item.source} author={item.author} title={item.title} />
-          <span className={`pill ${done ? "pill-done" : "pill-ok"}`}>
-            <span>{done ? "Выполнен" : "Доступен"}</span>
-          </span>
-        </div>
-        {done && c && (
-          <div className="text-xs text-muted">
-            {c.nickname}
-            {c.map ? ` · ${c.map}` : ""}
-            {c.completedAt ? ` · ${fmtDate(c.completedAt)}` : ""}
-          </div>
-        )}
-      </div>
-      <span className="pts pts-orange mt-0.5 flex-none">
-        <span>+{pointsLabel(item.points)}</span>
-      </span>
-    </li>
-  );
-}
-
 export function RulesList({
   tasks,
-  legendary = [],
   maps = [],
 }: {
   tasks: CatalogTask[];
-  legendary?: CatalogLegendary[];
   maps?: MapInfo[];
 }) {
   const [q, setQ] = React.useState("");
   const [pool, setPool] = React.useState<"pvp" | "pve">("pvp");
   const [format, setFormat] = React.useState<RulesFormat>("all");
   const mapName = (code?: string) => maps.find((m) => m.code === code)?.name ?? code ?? "";
-  const { groups, timed: shownTimed, legendary: shownLegendary } = rulesCatalog(tasks, legendary, maps, pool, q, format);
+  const { groups, timed: shownTimed } = rulesCatalog(tasks, maps, pool, q, format);
 
   return (
     <div className="space-y-5">
@@ -254,22 +215,6 @@ export function RulesList({
           )}
         </Panel>
       </div>
-
-      <Panel glow className="p-6">
-        <div className="mb-4 flex items-baseline justify-between gap-3">
-          <h3 className="font-display text-lg uppercase">Легендарные задания</h3>
-          <span className="text-xs text-muted">10 баллов · один раз навсегда</span>
-        </div>
-        {shownLegendary.length ? (
-          <ul>
-            {shownLegendary.map((l) => (
-              <LegendaryItem key={l.id} num={l.num} item={l} />
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title={q ? "Ничего не найдено" : "Легендарных заданий пока нет"} />
-        )}
-      </Panel>
     </div>
   );
 }

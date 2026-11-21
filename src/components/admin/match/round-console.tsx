@@ -16,7 +16,7 @@ import {
   totalScore,
   type TeamPlayer,
 } from "@/lib/match";
-import type { CatalogLegendary, MatchLogEntry, MatchState, Participant, Round, RoundBonusTask } from "@/lib/types";
+import type { MatchLogEntry, MatchState, Participant, Round, RoundBonusTask } from "@/lib/types";
 
 /** Цвета сторон как на табло: A - оранжевая, B - бирюзовая. */
 const SIDE_STYLE = [
@@ -291,46 +291,6 @@ function ScoreRow({
   );
 }
 
-function LegendaryPicker({
-  available,
-  players,
-  onPick,
-}: {
-  available: CatalogLegendary[];
-  /** Игроки команды 2×2: легендарка на счету того, кто её выполнил. */
-  players: TeamPlayer[];
-  onPick: (legendaryId: string, userId?: string) => void;
-}) {
-  const pick = "btn btn-sm text-gold [&::before]:shadow-[inset_0_0_0_1px_rgba(255,197,61,0.45)]";
-  return (
-    <div className="space-y-2 rounded-md bg-[rgba(255,197,61,0.06)] p-3 shadow-[inset_0_0_0_1px_rgba(255,197,61,0.25)]">
-      <span className="field-label text-gold">Легендарные — +10, один раз навсегда</span>
-      {available.length ? (
-        <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
-          {available.map((l) => (
-            <li key={l.id} className="flex flex-wrap items-center gap-2">
-              <span className="min-w-[200px] flex-1 text-sm">{l.text}</span>
-              {players.length ? (
-                players.map((pl) => (
-                  <button key={pl.userId} type="button" className={pick} title={`Выполнил ${pl.name}`} onClick={() => onPick(l.id, pl.userId)}>
-                    <span className="max-w-[7rem] truncate">{pl.name}</span>
-                  </button>
-                ))
-              ) : (
-                <button type="button" className={pick} onClick={() => onPick(l.id)}>
-                  <span>Засчитать</span>
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted">Доступных легендарок не осталось.</p>
-      )}
-    </div>
-  );
-}
-
 /** Журнал матча: последние действия ведущего, последнее можно отменить. */
 export function MatchLog({ log, onUndo }: { log: MatchLogEntry[]; onUndo: () => void }) {
   return (
@@ -354,7 +314,7 @@ export function MatchLog({ log, onUndo }: { log: MatchLogEntry[]; onUndo: () => 
           ))}
         </ol>
       ) : (
-        <p className="text-sm text-muted">Пока пусто — здесь появятся зачёты, ручные очки и легендарки.</p>
+        <p className="text-sm text-muted">Пока пусто — здесь появятся зачёты и ручные очки.</p>
       )}
     </Panel>
   );
@@ -364,7 +324,6 @@ export function MatchLog({ log, onUndo }: { log: MatchLogEntry[]; onUndo: () => 
 export function RoundConsole({
   st,
   sides,
-  legendary,
   focusId,
   online,
   saving,
@@ -375,11 +334,9 @@ export function RoundConsole({
   onReroll,
   onKnock,
   onPoints,
-  onLegendary,
 }: {
   st: MatchState;
   sides: [Participant | null, Participant | null];
-  legendary: CatalogLegendary[];
   focusId: string | null;
   online: boolean;
   /** Есть запросы, на которые сервер ещё не ответил. */
@@ -394,13 +351,10 @@ export function RoundConsole({
   onReroll: (id: string) => void;
   onKnock: (participantId: string, delta: 1 | -1, userId?: string) => void;
   onPoints: (participantId: string, delta: number, label: string, userId?: string) => void;
-  onLegendary: (legendaryId: string, participantId: string, userId?: string) => void;
 }) {
-  const [legFor, setLegFor] = React.useState<string | null>(null);
   const round = fix?.round ?? (st.currentRound || 1);
   const rounds = [...(st.tournament.rounds ?? [])].sort((a, b) => a.number - b.number);
   const [a, b] = sides;
-  const available = legendary.filter((l) => l.status === "available");
 
   return (
     <div className="space-y-3">
@@ -532,25 +486,6 @@ export function RoundConsole({
                   tasks.map((t) => <TaskRow key={t.id} t={t} players={players} onMark={onMark} onReroll={fix ? undefined : onReroll} />)
                 ) : (
                   <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
-                )}
-                <button
-                  type="button"
-                  className="flex min-h-[40px] w-full items-center justify-between gap-3 rounded-md border border-dashed border-[rgba(255,197,61,0.35)] px-3 text-left transition hover:bg-[rgba(255,197,61,0.06)]"
-                  aria-expanded={legFor === p.id}
-                  onClick={() => setLegFor((x) => (x === p.id ? null : p.id))}
-                >
-                  <span className="font-display text-xs uppercase text-gold">+ Легендарка +10</span>
-                  <span className="text-xs text-muted">один раз за всё время</span>
-                </button>
-                {legFor === p.id && (
-                  <LegendaryPicker
-                    available={available}
-                    players={players}
-                    onPick={(id, userId) => {
-                      onLegendary(id, p.id, userId);
-                      setLegFor(null);
-                    }}
-                  />
                 )}
               </div>
             </Panel>

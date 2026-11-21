@@ -21,7 +21,6 @@ const LINKS = [
   { href: "/admin/news", label: "Новости" },
   { href: "/admin/overlay", label: "Оверлей" },
   { href: "/admin/tasks", label: "Задания" },
-  { href: "/admin/legendary", label: "Легендарки" },
   { href: "/admin/seasons", label: "Сезоны" },
   { href: "/admin/users", label: "Игроки" },
   { href: "/admin/teams", label: "Команды" },
