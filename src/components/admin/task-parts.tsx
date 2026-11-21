@@ -163,7 +163,7 @@ export function TaskSettingsFields({
     </Field>
   );
   const mapsField = (
-      <Field label="Карты" hint={value.mapCodes.length ? "Задания на карту в матчах пока не выдаются." : "Ничего не выбрано - задание действует на всех картах. Задания на карту в матчах пока не выдаются."}>
+      <Field label="Карты" hint={value.mapCodes.length ? "Задание выпадает только на выбранных картах, вместе с общими." : "Ничего не выбрано - общее задание, выпадает на любой карте."}>
         <div className="flex flex-wrap gap-1.5">
           {maps.map((m) => {
             const on = value.mapCodes.includes(m.code);

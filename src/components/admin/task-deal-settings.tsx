@@ -14,7 +14,7 @@ interface TaskDealSettings {
 }
 
 const MAX_POINTS = 30;
-const MAX_TASKS = 10;
+const MAX_TASKS = 30;
 
 /** Целое от 1 до max из поля ввода; иначе null. */
 function toInt(v: string, max: number): number | null {
@@ -114,7 +114,7 @@ export function TaskDealSettingsPanel() {
             value={tasks}
             onChange={(e) => setTasks(e.target.value)}
           />
-          <p className="text-xs text-muted">Обычных, от 1 до {MAX_TASKS}</p>
+          <p className="max-w-[260px] text-xs text-muted">Необязательный предел: по умолчанию заданий столько, сколько влезает в лимит очков</p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">

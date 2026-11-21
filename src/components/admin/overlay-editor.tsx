@@ -768,6 +768,23 @@ export function OverlayEditor({
               <span className="w-9 text-right text-xs text-muted tnum">{sel.bg.on ? `${Math.round(sel.bg.opacity * 100)}%` : "—"}</span>
             </SettingRow>
             {sel.type === "tasksV2" && (
+              <SettingRow label="Выполненные">
+                <div className="seg" role="group" aria-label="показ выполненных заданий">
+                  {([true, false] as const).map((on) => (
+                    <button
+                      key={String(on)}
+                      type="button"
+                      className="seg-btn"
+                      aria-pressed={(sel.props?.showDone !== false) === on}
+                      onClick={() => patch(sel.id, { props: { ...sel.props, showDone: on } })}
+                    >
+                      <span>{on ? "Показывать" : "Скрывать"}</span>
+                    </button>
+                  ))}
+                </div>
+              </SettingRow>
+            )}
+            {sel.type === "tasksV2" && (
               <SettingRow label="Тема">
                 <div className="seg" role="group" aria-label="тема виджета">
                   {(["dark", "light"] as const).map((t) => (

@@ -174,10 +174,8 @@ export function taskDescription(t: RoundBonusTask): string {
   return t.name ? t.text : "";
 }
 
-/** Плашка задания: «На время» - оранжевая, остальные - редкость своим цветом. Задание на карту
-    встречается только в прошедших матчах, его плашка прежняя. */
+/** Плашка задания: «На время» - оранжевая, остальные - редкость своим цветом (в том числе у задания карты). */
 export function taskKindBadge(t: RoundBonusTask): TaskBadge {
-  if (t.tag !== "timed" && t.mapCode) return { label: "На карту", color: "#3a8a9c", ink: "#ffffff" };
   return taskBadge(t);
 }
 

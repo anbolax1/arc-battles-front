@@ -36,13 +36,15 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
     ...(state.complications ?? [])
       .filter((c) => c.reward) // протокол-штраф старого пульта остаётся в виджете «Протоколы»
       .map((c) => toRow({ tag: c.tag, rarity: c.rarity, points: c.reward ?? 0, done: !!c.done, text: c.text })),
-    // Задания на карту пока отключены: в виджете их нет
-    ...(state.bonusTasks ?? []).filter((b) => !b.opponent && b.category !== "map").map(bonus),
+    // Задание карты раунда выглядит как любое другое: плашка - только редкость
+    ...(state.bonusTasks ?? []).filter((b) => !b.opponent).map(bonus),
     ...(state.roundTasks ?? []).map((t) => toRow({ points: t.points, done: t.completed, text: t.text })),
   ];
-  if (!all.length) return null;
-  const rows = all.slice(0, MAX_ROWS);
-  const rest = all.length - rows.length;
+  // По умолчанию выполненные остаются на экране; в настройках виджета их можно скрыть.
+  const shown = instance.props?.showDone === false ? all.filter((r) => !r.done) : all;
+  if (!shown.length) return null;
+  const rows = shown.slice(0, MAX_ROWS);
+  const rest = shown.length - rows.length;
   const theme = instance.props?.theme === "light" ? "light" : "dark";
   return (
     <WidgetFrame instance={instance} className={`tw-panel tw-${theme}`}>
