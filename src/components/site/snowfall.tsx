@@ -18,6 +18,14 @@ const MAX_FLAKES = 480;
 const MOBILE_WIDTH = 700;
 const MOBILE_SHARE = 0.55; // на телефонах снега меньше
 const MAX_DPR = 2;
+// Порыв ветра: плавно набирает силу, держится и так же плавно стихает, иначе снег дёргается скачком.
+const GUST_MIN = 25; // px/с
+const GUST_MAX = 65;
+const GUST_RISE = 1.6; // сек: за сколько порыв набирает силу
+const GUST_FALL = 3.2; // сек: за сколько стихает
+const GUST_HOLD_MIN = 1.5; // сек: сколько держится пик
+const GUST_HOLD_MAX = 3.5;
+const FLAKE_INERTIA = 1.2; // 1/с: как быстро снежинка подхватывает ветер; лёгкие дальние - быстрее
 const LIVE_POLL_MS = 15_000; // как часто спрашиваем, идёт ли матч
 const STORM_EXTRA = 1.6; // во время эфира снега больше на эту долю: метель должна быть видна сразу
 const STORM_WIND = 2.4; // ветер сильнее
@@ -49,6 +57,7 @@ type Flake = {
   rot: number;
   spin: number;
   twinkle: number; // 0 - не мерцает
+  wx: number; // скорость, которую снежинка набрала от ветра: она подхватывает его не мгновенно
   vx: number; // добавка скорости от курсора и порывов
   vy: number;
   tint: 0 | 1;
@@ -162,6 +171,7 @@ function makeFlake(w: number, h: number, scatter: boolean): Flake {
     rot: Math.random() * Math.PI * 2,
     spin: rand(-0.7, 0.7),
     twinkle: Math.random() < 0.22 ? rand(1.5, 4) : 0,
+    wx: 0,
     vx: 0,
     vy: 0,
     tint: Math.random() < 0.35 ? 1 : 0,
@@ -218,7 +228,9 @@ export function Snowfall() {
     let raf = 0;
     let last = performance.now();
     let t = 0;
-    let gust = 0;
+    let gust = 0; // сила порыва сейчас
+    let gustGoal = 0; // к чему она тянется
+    let gustHold = 0; // сколько ещё держится пик
     let gustIn = rand(3, 7);
     let storm = 0; // 0 - обычный снегопад, 1 - метель (идёт матч)
     let stormTarget = 0;
@@ -283,10 +295,13 @@ export function Snowfall() {
 
       gustIn -= dt;
       if (gustIn <= 0) {
-        gust = (Math.random() < 0.5 ? -1 : 1) * rand(45, 110) * (1 + storm * 0.8);
-        gustIn = rand(7, 18) / (1 + storm * 2.5);
+        gustGoal = (Math.random() < 0.5 ? -1 : 1) * rand(GUST_MIN, GUST_MAX) * (1 + storm * 0.6);
+        gustHold = rand(GUST_HOLD_MIN, GUST_HOLD_MAX);
+        gustIn = rand(9, 20) / (1 + storm * 2);
       }
-      gust *= Math.exp(-dt / 2.6);
+      if (gustHold > 0) gustHold -= dt;
+      else gustGoal = 0;
+      gust += (gustGoal - gust) * (1 - Math.exp(-dt / (gustGoal === 0 ? GUST_FALL : GUST_RISE)));
       storm += (stormTarget - storm) * Math.min(dt * STORM_EASE, 1);
       const wind = (Math.sin(t * 0.07) * 16 + Math.sin(t * 0.23 + 1.3) * 7 + gust) * (1 + storm * STORM_WIND);
       const fall = 1 + storm * STORM_FALL;
@@ -328,7 +343,8 @@ export function Snowfall() {
         }
         f.vx *= damp;
         f.vy *= damp;
-        f.x += (wind * near + f.vx) * dt;
+        f.wx += (wind * near - f.wx) * (1 - Math.exp(-dt * FLAKE_INERTIA * (1.6 - f.z)));
+        f.x += (f.wx + f.vx) * dt;
         f.y += (f.fall * fall + f.vy) * dt;
         f.rot += f.spin * dt;
 
