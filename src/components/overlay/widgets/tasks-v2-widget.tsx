@@ -41,7 +41,8 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
     ...(state.roundTasks ?? []).map((t) => toRow({ points: t.points, done: t.completed, text: t.text })),
   ];
   // По умолчанию выполненные остаются на экране; в настройках виджета их можно скрыть.
-  const shown = instance.props?.showDone === false ? all.filter((r) => !r.done) : all;
+  // Выполненные уходят вниз списка, внутри групп порядок выдачи.
+  const shown = (instance.props?.showDone === false ? all.filter((r) => !r.done) : all).sort((a, b) => Number(a.done) - Number(b.done));
   if (!shown.length) return null;
   const rows = shown.slice(0, MAX_ROWS);
   const rest = shown.length - rows.length;

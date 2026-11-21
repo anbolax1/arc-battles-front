@@ -413,7 +413,10 @@ export function RoundConsole({
           if (!p) return null;
           const side = i === 0 ? 0 : 1;
           const style = SIDE_STYLE[side];
-          const tasks = st.tasks.filter((t) => t.roundNumber === round && t.participantId === p.id);
+          // Невыполненные сверху, выполненные внизу; внутри групп - порядок выдачи.
+          const tasks = st.tasks
+            .filter((t) => t.roundNumber === round && t.participantId === p.id)
+            .sort((a, b) => Number(!!a.completedBy) - Number(!!b.completedBy));
           const done = tasks.filter((t) => t.completedBy === p.id).length;
           const parts = roundBreakdown(st, round, p.id);
           const raiding = !fix && focusId === p.id;
