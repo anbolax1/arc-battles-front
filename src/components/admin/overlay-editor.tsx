@@ -240,9 +240,39 @@ export function OverlayEditor({
     return () => window.removeEventListener("keydown", onKey);
   }, [fs]);
 
+  // Закреплённый виджет ставится по живому размеру (как в эфире), поэтому следим за ростом
+  // содержимого и перерисовываем сцену. Сравнение размера защищает от цикла: наблюдатель
+  // срабатывает и при первом подключении.
+  const [, setSizeTick] = React.useState(0);
+  const sizeSeen = React.useRef(new WeakMap<Element, string>());
+  const sizeObs = React.useRef<ResizeObserver | null>(null);
+  React.useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      let changed = false;
+      for (const en of entries) {
+        const t = en.target as HTMLElement;
+        const key = `${t.offsetWidth}x${t.offsetHeight}`;
+        if (sizeSeen.current.get(t) !== key) {
+          sizeSeen.current.set(t, key);
+          changed = true;
+        }
+      }
+      if (changed) setSizeTick((n) => n + 1);
+    });
+    sizeObs.current = ro;
+    targets.current.forEach((el) => ro.observe(el));
+    return () => {
+      ro.disconnect();
+      sizeObs.current = null;
+    };
+  }, []);
+
   const setRef = (id: string) => (el: HTMLDivElement | null) => {
-    if (el) targets.current.set(id, el);
-    else targets.current.delete(id);
+    if (el) {
+      targets.current.set(id, el);
+      sizeObs.current?.observe(el);
+    } else targets.current.delete(id);
   };
 
   const ordered = bottomUp(layout.widgets);
@@ -354,14 +384,27 @@ export function OverlayEditor({
     return { w: r.width / z, h: r.height / z };
   }
 
+  // Положение виджета в px сцены: закреплённый считается от текущего размера и отступа
+  // (как на /overlay), свободный - из сохранённых x/y.
+  function effPos(w: WidgetInstance, z: number): { x: number; y: number } {
+    const el = targets.current.get(w.id);
+    if (!w.anchor || !el) return { x: w.x * STAGE_W, y: w.y * STAGE_H };
+    const v = visBox(el, z);
+    const a = w.anchor as AnchorPos;
+    const col = a.endsWith("l") ? 0 : a.endsWith("r") ? 2 : 1;
+    const row = a.startsWith("t") ? 0 : a.startsWith("b") ? 2 : 1;
+    const xs = [pad, (STAGE_W - v.w) / 2, STAGE_W - pad - v.w];
+    const ys = [pad, (STAGE_H - v.h) / 2, STAGE_H - pad - v.h];
+    return { x: xs[col], y: ys[row] };
+  }
+
   function snapMove(nx: number, ny: number, wpx: number, hpx: number, id: string, z: number) {
     const vs = [0, STAGE_W / 2, STAGE_W];
     const hs = [0, STAGE_H / 2, STAGE_H];
     for (const w of layout.widgets) {
       if (w.id === id || !w.visible) continue;
       const v = visBox(targets.current.get(w.id), z);
-      const ox = w.x * STAGE_W;
-      const oy = w.y * STAGE_H;
+      const { x: ox, y: oy } = effPos(w, z);
       vs.push(ox, ox + v.w / 2, ox + v.w);
       hs.push(oy, oy + v.h / 2, oy + v.h);
     }
@@ -393,10 +436,11 @@ export function OverlayEditor({
     const v = visBox(targets.current.get(w.id), z); // видимый бокс = бокс × ws
     const sw = w.w ? w.w * STAGE_W : v.w / ws; // бокс в px сцены (без множителя ws)
     const sh = w.h ? w.h * STAGE_H : v.h / ws;
+    const p0 = effPos(w, z); // закреплённый виджет тянем оттуда, где он сейчас виден
     const st: DragState = {
       id: w.id, mode, dir, z, ws,
-      px, py, sx: w.x * STAGE_W, sy: w.y * STAGE_H, sw, sh,
-      cx: w.x * STAGE_W, cy: w.y * STAGE_H, cw: sw, ch: sh, cScale: ws,
+      px, py, sx: p0.x, sy: p0.y, sw, sh,
+      cx: p0.x, cy: p0.y, cw: sw, ch: sh, cScale: ws,
       moved: false,
     };
     dragRef.current = st;
@@ -542,6 +586,7 @@ export function OverlayEditor({
             // Скрытый виджет на сцене не виден, как и в эфире; выбранный в «Слоях» показан одной рамкой.
             // Он остаётся в разметке, чтобы привязка к краю считалась от настоящего размера.
             const hidden = !w.visible;
+            const pos = effPos(w, scale || 1);
             return (
               <div
                 key={w.id}
@@ -552,7 +597,7 @@ export function OverlayEditor({
                   position: "absolute",
                   left: 0,
                   top: 0,
-                  transform: `translate(${w.x * STAGE_W}px, ${w.y * STAGE_H}px)${w.scale !== 1 ? ` scale(${w.scale})` : ""}`,
+                  transform: `translate(${pos.x}px, ${pos.y}px)${w.scale !== 1 ? ` scale(${w.scale})` : ""}`,
                   transformOrigin: "top left",
                   width: w.w ? w.w * STAGE_W : undefined,
                   height: w.h ? w.h * STAGE_H : undefined,
