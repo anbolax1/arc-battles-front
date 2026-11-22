@@ -7,22 +7,26 @@ import "./tasks-v2-widget.css";
 
 const MAX_ROWS = 8;
 
-type Row = { label: string; color: string; ink: string; tag: TaskTag; points: number; done: boolean; text: string };
+type Row = { label: string; color: string; ink: string; tag: TaskTag; points: number; done: boolean; failed: boolean; text: string };
 
 /** Строка блока: плашка - «На время» или редкость своим цветом. Задание без тега и редкости - «Обычное». */
-function toRow(r: { tag?: string; rarity?: string; points: number; done: boolean; text: string }): Row {
+function toRow(r: { tag?: string; rarity?: string; points: number; done: boolean; failed?: boolean; text: string }): Row {
   const tag: TaskTag = r.tag === "timed" ? "timed" : "normal";
   const badge = taskBadge(r);
-  return { label: badge.label, color: badge.color, ink: badge.ink, tag, points: r.points, done: r.done, text: r.text };
+  return { label: badge.label, color: badge.color, ink: badge.ink, tag, points: r.points, done: r.done, failed: !!r.failed, text: r.text };
 }
 
-/** Знак в квадрате слева: плюс - задание выполнено, минус - ещё нет. Знак 13px в поле 14px:
+/** Знак в квадрате слева: плюс - задание выполнено, крестик - провалено, минус - ещё нет. Знак 13px в поле 14px:
     чётный размер браузер ставит точно по центру квадрата, нечётный сдвигает на полпикселя. */
-function Mark({ done }: { done: boolean }) {
+function Mark({ done, failed }: { done: boolean; failed: boolean }) {
   return (
-    <span className={done ? "tw-mark tw-done" : "tw-mark"}>
+    <span className={done || failed ? "tw-mark tw-done" : "tw-mark"}>
       <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden>
-        <path d={done ? "M4.5.5h5v4h4v5h-4v4h-5v-4h-4v-5h4z" : "M.5 5h13v4H.5z"} fill="currentColor" />
+        {failed ? (
+          <path d="M1.5 1.5l11 11M12.5 1.5l-11 11" stroke="currentColor" strokeWidth="3" fill="none" />
+        ) : (
+          <path d={done ? "M4.5.5h5v4h4v5h-4v4h-5v-4h-4v-5h4z" : "M.5 5h13v4H.5z"} fill="currentColor" />
+        )}
       </svg>
     </span>
   );
@@ -35,14 +39,20 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
   const all: Row[] = [
     ...(state.complications ?? [])
       .filter((c) => c.reward) // протокол-штраф старого пульта остаётся в виджете «Протоколы»
-      .map((c) => toRow({ tag: c.tag, rarity: c.rarity, points: c.reward ?? 0, done: !!c.done, text: c.text })),
+      .map((c) => toRow({ tag: c.tag, rarity: c.rarity, points: c.reward ?? 0, done: !!c.done, failed: c.failed, text: c.text })),
     // Задание карты раунда выглядит как любое другое: плашка - только редкость
     ...(state.bonusTasks ?? []).filter((b) => !b.opponent).map(bonus),
     ...(state.roundTasks ?? []).map((t) => toRow({ points: t.points, done: t.completed, text: t.text })),
   ];
   // По умолчанию выполненные остаются на экране; в настройках виджета их можно скрыть.
-  // Выполненные уходят вниз списка, внутри групп порядок выдачи.
-  const shown = (instance.props?.showDone === false ? all.filter((r) => !r.done) : all).sort((a, b) => Number(a.done) - Number(b.done));
+  // Порядок: открытое задание на время (его игрок берёт первым), остальные открытые, выполненные, и в самом конце
+  // закрытое задание на время (выполнено или провалено). Внутри групп - порядок выдачи.
+  const rank = (r: Row) => {
+    const closed = r.done || r.failed;
+    if (r.tag === "timed") return closed ? 3 : 0;
+    return closed ? 2 : 1;
+  };
+  const shown = (instance.props?.showDone === false ? all.filter((r) => !r.done && !r.failed) : all).sort((a, b) => rank(a) - rank(b));
   if (!shown.length) return null;
   const rows = shown.slice(0, MAX_ROWS);
   const rest = shown.length - rows.length;
@@ -58,12 +68,12 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
         <div className="tw-list">
           {rows.map((r, i) => (
             <React.Fragment key={i}>
-              <Mark done={r.done} />
-              <span className={r.done ? "tw-kind tw-done" : "tw-kind"} style={{ background: r.color, color: r.ink }}>
+              <Mark done={r.done} failed={r.failed} />
+              <span className={r.done || r.failed ? "tw-kind tw-done" : "tw-kind"} style={{ background: r.color, color: r.ink }}>
                 {r.label}
               </span>
-              <span className={`tw-pts tw-pts-${r.tag}${r.done ? " tw-done" : ""}`}>+{r.points}</span>
-              <span className={r.done ? "tw-text tw-done" : "tw-text"}>{r.text}</span>
+              <span className={`tw-pts tw-pts-${r.tag}${r.done || r.failed ? " tw-done" : ""}`}>+{r.points}</span>
+              <span className={r.done || r.failed ? "tw-text tw-done" : "tw-text"}>{r.text}</span>
             </React.Fragment>
           ))}
           {rest > 0 && <span className="tw-more">+{rest} ещё</span>}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Panel } from "@/components/ui/card";
-import { CheckIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon } from "@/components/icons";
 import {
   KNOCK_POINTS,
   loadoutLabel,
@@ -124,6 +124,7 @@ function TaskRow({
   players,
   onMark,
   onReroll,
+  onFail,
 }: {
   t: RoundBonusTask;
   /** Игроки команды 2×2; у стороны из одного игрока - пусто. */
@@ -131,9 +132,12 @@ function TaskRow({
   onMark: (id: string, by: "owner" | "none", userId?: string) => void;
   /** Нет - задание не перебросить: раунд уже сыгран. */
   onReroll?: (id: string) => void;
+  /** Нет - провал не отметить: раунд уже сыгран. Только у задания на время. */
+  onFail?: (id: string, failed: boolean) => void;
 }) {
   const badge = taskKindBadge(t);
   const done = !!t.completedBy;
+  const failed = !!t.failed && !done;
   const desc = taskDescription(t);
   const doneBy = players.find((pl) => pl.userId === t.completedUserId)?.name;
   const markClass =
@@ -141,7 +145,11 @@ function TaskRow({
   return (
     <div
       className={`flex items-center gap-3 rounded-md px-3 py-2 ${
-        done ? "bg-[rgba(52,211,153,0.08)] shadow-[inset_0_0_0_1px_rgba(52,211,153,0.4)]" : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
+        done
+          ? "bg-[rgba(52,211,153,0.08)] shadow-[inset_0_0_0_1px_rgba(52,211,153,0.4)]"
+          : failed
+            ? "bg-[rgba(248,113,113,0.08)] shadow-[inset_0_0_0_1px_rgba(248,113,113,0.4)]"
+            : "bg-surface-2 shadow-[inset_0_0_0_1px_var(--border)]"
       }`}
     >
       <div className="min-w-0 flex-1">
@@ -167,6 +175,20 @@ function TaskRow({
             type="button"
             className="min-h-[36px] flex-none px-1 text-sm text-muted underline transition hover:text-fg"
             onClick={() => onMark(t.id, "none")}
+          >
+            Отменить
+          </button>
+        </>
+      ) : failed ? (
+        <>
+          <span className="inline-flex flex-none items-center gap-1.5 text-sm font-semibold text-red-400">
+            <CloseIcon className="h-4 w-4" />
+            Провалено
+          </span>
+          <button
+            type="button"
+            className="min-h-[36px] flex-none px-1 text-sm text-muted underline transition hover:text-fg"
+            onClick={() => onFail?.(t.id, false)}
           >
             Отменить
           </button>
@@ -200,6 +222,17 @@ function TaskRow({
             >
               <CheckIcon />
               <span>+{t.points}</span>
+            </button>
+          )}
+          {onFail && t.tag === "timed" && (
+            <button
+              type="button"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-surface text-red-400 transition hover:bg-[rgba(248,113,113,0.15)]"
+              onClick={() => onFail(t.id, true)}
+              title="Провалено: не уложились в срок"
+              aria-label={`Отметить «${taskTitle(t)}» проваленным`}
+            >
+              <CloseIcon className="h-4 w-4" />
             </button>
           )}
           {onReroll && (
@@ -332,6 +365,7 @@ export function RoundConsole({
   onFocus,
   onMark,
   onReroll,
+  onFail,
   onKnock,
   onPoints,
 }: {
@@ -349,6 +383,7 @@ export function RoundConsole({
   /** userId - игрок команды 2×2, которому засчитан зачёт; у стороны из одного игрока его нет. */
   onMark: (id: string, by: "owner" | "none", userId?: string) => void;
   onReroll: (id: string) => void;
+  onFail: (id: string, failed: boolean) => void;
   onKnock: (participantId: string, delta: 1 | -1, userId?: string) => void;
   onPoints: (participantId: string, delta: number, label: string, userId?: string) => void;
 }) {
@@ -486,7 +521,7 @@ export function RoundConsole({
                   )}
                 </div>
                 {tasks.length ? (
-                  tasks.map((t) => <TaskRow key={t.id} t={t} players={players} onMark={onMark} onReroll={fix ? undefined : onReroll} />)
+                  tasks.map((t) => <TaskRow key={t.id} t={t} players={players} onMark={onMark} onReroll={fix ? undefined : onReroll} onFail={fix ? undefined : onFail} />)
                 ) : (
                   <p className="text-sm text-muted">Задания раунда не выданы — пул каталога пуст для этой карты и типа игроков.</p>
                 )}

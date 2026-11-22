@@ -392,6 +392,7 @@ export function MatchConsole({
           onFocus={(pid) => act(`/tournaments/${id}/focus`, { participantId: pid })}
           onMark={(asg, by, userId) => act(`/round-bonus-tasks/${asg}/mark`, { by, userId }, `task:${asg}`)}
           onReroll={(asg) => act(`/round-bonus-tasks/${asg}/reroll`, undefined, `task:${asg}`)}
+          onFail={(asg, failed) => act(`/round-bonus-tasks/${asg}/fail`, { failed }, `task:${asg}`)}
           onKnock={(pid, delta, userId) => act(`/tournaments/${id}/knocks`, { participantId: pid, userId, delta, round: fix?.round })}
           onPoints={(pid, delta, label, userId) =>
             act(`/tournaments/${id}/points`, { participantId: pid, userId, delta, label, round: fix?.round })

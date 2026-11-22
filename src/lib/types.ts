@@ -447,6 +447,8 @@ export interface RoundBonusTask {
   tag?: TaskTag;
   rarity?: TaskRarity;
   mapCode?: string;
+  /** Задание на время провалено: срок вышел. */
+  failed?: boolean;
 }
 
 /** Протокол стороны в раунде. times — число нарушений (= минут штрафа в рейде; на очки НЕ влияет). */
@@ -499,6 +501,8 @@ export interface LiveComplication {
   reward?: number;
   /** Задание на время выполнено. */
   done?: boolean;
+  /** Задание на время провалено. */
+  failed?: boolean;
   tag?: TaskTag;
   rarity?: TaskRarity;
 }
