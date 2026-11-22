@@ -4,13 +4,12 @@ import * as React from "react";
 import type { CSSProperties, PointerEvent as RPointerEvent } from "react";
 import type { LiveState, OverlayBg, OverlayLayout, WidgetInstance, WidgetType } from "@/lib/types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { STAGE_W, STAGE_H } from "@/components/overlay/overlay-stage";
+import { STAGE_W, STAGE_H, DEFAULT_PAD } from "@/components/overlay/overlay-stage";
 import { DEFAULT_LAYOUT, makeWidget } from "@/components/overlay/default-layout";
 import { PreviewBgLayer, PreviewBgSwitch, type PreviewBg } from "@/components/overlay/preview-bg";
 import { accentVars } from "@/components/overlay/accent";
 import { WIDGET_LABELS, WIDGET_ORDER, WIDGET_REGISTRY } from "@/components/overlay/widgets/registry";
 
-const DEFAULT_PAD = 48; // отступ от края при выравнивании, px сцены (по умолчанию)
 const SNAP = 10; // порог прилипания, px сцены
 const CLICK_SLOP = 3; // экранных px: меньше — это клик-выбор (не двигаем и не снимаем привязку), больше — таскание
 

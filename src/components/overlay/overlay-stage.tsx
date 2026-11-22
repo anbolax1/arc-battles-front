@@ -11,6 +11,27 @@ import { accentVars } from "./accent";
 
 export const STAGE_W = 1920;
 export const STAGE_H = 1080;
+export const DEFAULT_PAD = 48; // отступ от края для закреплённых виджетов, px сцены (по умолчанию)
+
+const ANCHOR_FLEX = { t: "flex-start", m: "center", b: "flex-end", l: "flex-start", c: "center", r: "flex-end" } as const;
+const ANCHOR_ORIGIN = { t: "top", m: "center", b: "bottom", l: "left", c: "center", r: "right" } as const;
+
+/** Закреплённый виджет ("tl".."br") прижимается к краю самим CSS, а не сохранёнными x/y:
+    когда содержимое вытягивается (список заданий), он растёт от края внутрь и не уезжает за экран. */
+function parseAnchor(anchor?: string): { v: "t" | "m" | "b"; h: "l" | "c" | "r" } | null {
+  switch (anchor) {
+    case "tl": return { v: "t", h: "l" };
+    case "tc": return { v: "t", h: "c" };
+    case "tr": return { v: "t", h: "r" };
+    case "ml": return { v: "m", h: "l" };
+    case "c": return { v: "m", h: "c" };
+    case "mr": return { v: "m", h: "r" };
+    case "bl": return { v: "b", h: "l" };
+    case "bc": return { v: "b", h: "c" };
+    case "br": return { v: "b", h: "r" };
+    default: return null;
+  }
+}
 
 /** Раскладка: явный пропс → из состояния → дефолт. Единый источник истины
     для /overlay, превью в кабинете и редактора. */
@@ -93,13 +114,43 @@ export function OverlayStage({
         {widgets.map((inst) => {
           const Cmp = WIDGET_REGISTRY[inst.type];
           if (!Cmp) return null;
+          const size: CSSProperties = {
+            width: inst.w ? inst.w * STAGE_W : undefined,
+            height: inst.h ? inst.h * STAGE_H : undefined,
+          };
+          const sc = inst.scale && inst.scale !== 1 ? `scale(${inst.scale})` : undefined;
+          const a = parseAnchor(inst.anchor);
+          if (a) {
+            // Слой на всю сцену с отступом: виджет внутри прижат к краю, масштаб растёт от этого края.
+            const pad = lay.pad ?? DEFAULT_PAD;
+            return (
+              <div
+                key={inst.id}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  padding: pad,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  justifyContent: ANCHOR_FLEX[a.h],
+                  alignItems: ANCHOR_FLEX[a.v],
+                  pointerEvents: "none",
+                  zIndex: inst.z,
+                  ...accentVars(inst.accent),
+                }}
+              >
+                <div style={{ ...size, flex: "0 0 auto", transform: sc, transformOrigin: `${ANCHOR_ORIGIN[a.v]} ${ANCHOR_ORIGIN[a.h]}` }}>
+                  <Cmp state={state} instance={inst} />
+                </div>
+              </div>
+            );
+          }
           const wStyle: CSSProperties = {
             position: "absolute",
             left: inst.x * STAGE_W,
             top: inst.y * STAGE_H,
-            width: inst.w ? inst.w * STAGE_W : undefined,
-            height: inst.h ? inst.h * STAGE_H : undefined,
-            transform: inst.scale && inst.scale !== 1 ? `scale(${inst.scale})` : undefined,
+            ...size,
+            transform: sc,
             transformOrigin: "top left",
             zIndex: inst.z,
             ...accentVars(inst.accent),
