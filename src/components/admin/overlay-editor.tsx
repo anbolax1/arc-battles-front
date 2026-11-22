@@ -240,33 +240,40 @@ export function OverlayEditor({
     return () => window.removeEventListener("keydown", onKey);
   }, [fs]);
 
-  // Закреплённый виджет ставится по живому размеру (как в эфире), поэтому следим за ростом
-  // содержимого и перерисовываем сцену. Сравнение размера защищает от цикла: наблюдатель
-  // срабатывает и при первом подключении.
-  const [, setSizeTick] = React.useState(0);
-  const sizeSeen = React.useRef(new WeakMap<Element, string>());
+  // Закреплённый виджет ставится по живому размеру (как в эфире): замеры лежат в состоянии,
+  // а не читаются из DOM при рендере. Замер идёт после каждого рендера и при росте содержимого;
+  // сравнение значений защищает от лишних перерисовок и цикла.
+  const [sizes, setSizes] = React.useState<Record<string, { w: number; h: number }>>({});
+  const scaleRef = React.useRef(0);
   const sizeObs = React.useRef<ResizeObserver | null>(null);
+  const measure = React.useCallback(() => {
+    const z = scaleRef.current;
+    if (z <= 0) return;
+    const next: Record<string, { w: number; h: number }> = {};
+    targets.current.forEach((el, id) => {
+      const r = el.getBoundingClientRect();
+      next[id] = { w: Math.round((r.width / z) * 10) / 10, h: Math.round((r.height / z) * 10) / 10 };
+    });
+    setSizes((prev) => {
+      const ids = Object.keys(next);
+      const same = ids.length === Object.keys(prev).length && ids.every((id) => prev[id]?.w === next[id].w && prev[id]?.h === next[id].h);
+      return same ? prev : next;
+    });
+  }, []);
+  React.useEffect(() => {
+    scaleRef.current = scale;
+    measure();
+  });
   React.useEffect(() => {
     if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      let changed = false;
-      for (const en of entries) {
-        const t = en.target as HTMLElement;
-        const key = `${t.offsetWidth}x${t.offsetHeight}`;
-        if (sizeSeen.current.get(t) !== key) {
-          sizeSeen.current.set(t, key);
-          changed = true;
-        }
-      }
-      if (changed) setSizeTick((n) => n + 1);
-    });
+    const ro = new ResizeObserver(() => measure());
     sizeObs.current = ro;
     targets.current.forEach((el) => ro.observe(el));
     return () => {
       ro.disconnect();
       sizeObs.current = null;
     };
-  }, []);
+  }, [measure]);
 
   const setRef = (id: string) => (el: HTMLDivElement | null) => {
     if (el) {
@@ -386,10 +393,9 @@ export function OverlayEditor({
 
   // Положение виджета в px сцены: закреплённый считается от текущего размера и отступа
   // (как на /overlay), свободный - из сохранённых x/y.
-  function effPos(w: WidgetInstance, z: number): { x: number; y: number } {
-    const el = targets.current.get(w.id);
-    if (!w.anchor || !el) return { x: w.x * STAGE_W, y: w.y * STAGE_H };
-    const v = visBox(el, z);
+  function effPos(w: WidgetInstance): { x: number; y: number } {
+    const v = sizes[w.id];
+    if (!w.anchor || !v) return { x: w.x * STAGE_W, y: w.y * STAGE_H };
     const a = w.anchor as AnchorPos;
     const col = a.endsWith("l") ? 0 : a.endsWith("r") ? 2 : 1;
     const row = a.startsWith("t") ? 0 : a.startsWith("b") ? 2 : 1;
@@ -404,7 +410,7 @@ export function OverlayEditor({
     for (const w of layout.widgets) {
       if (w.id === id || !w.visible) continue;
       const v = visBox(targets.current.get(w.id), z);
-      const { x: ox, y: oy } = effPos(w, z);
+      const { x: ox, y: oy } = effPos(w);
       vs.push(ox, ox + v.w / 2, ox + v.w);
       hs.push(oy, oy + v.h / 2, oy + v.h);
     }
@@ -436,7 +442,7 @@ export function OverlayEditor({
     const v = visBox(targets.current.get(w.id), z); // видимый бокс = бокс × ws
     const sw = w.w ? w.w * STAGE_W : v.w / ws; // бокс в px сцены (без множителя ws)
     const sh = w.h ? w.h * STAGE_H : v.h / ws;
-    const p0 = effPos(w, z); // закреплённый виджет тянем оттуда, где он сейчас виден
+    const p0 = effPos(w); // закреплённый виджет тянем оттуда, где он сейчас виден
     const st: DragState = {
       id: w.id, mode, dir, z, ws,
       px, py, sx: p0.x, sy: p0.y, sw, sh,
@@ -586,7 +592,7 @@ export function OverlayEditor({
             // Скрытый виджет на сцене не виден, как и в эфире; выбранный в «Слоях» показан одной рамкой.
             // Он остаётся в разметке, чтобы привязка к краю считалась от настоящего размера.
             const hidden = !w.visible;
-            const pos = effPos(w, scale || 1);
+            const pos = effPos(w);
             return (
               <div
                 key={w.id}
