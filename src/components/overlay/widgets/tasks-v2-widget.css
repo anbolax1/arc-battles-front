@@ -134,6 +134,10 @@
   font: 800 18px/1.25 var(--font-montserrat), sans-serif;
   overflow-wrap: anywhere;
 }
+/* Выполненные приглушены: взгляд идёт на активные задания */
+.tw-done {
+  opacity: 0.4;
+}
 .tw-more {
   grid-column: 1 / -1;
   color: var(--tw-ink);

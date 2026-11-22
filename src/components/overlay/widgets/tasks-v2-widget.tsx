@@ -20,7 +20,7 @@ function toRow(r: { tag?: string; rarity?: string; points: number; done: boolean
     чётный размер браузер ставит точно по центру квадрата, нечётный сдвигает на полпикселя. */
 function Mark({ done }: { done: boolean }) {
   return (
-    <span className="tw-mark">
+    <span className={done ? "tw-mark tw-done" : "tw-mark"}>
       <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden>
         <path d={done ? "M4.5.5h5v4h4v5h-4v4h-5v-4h-4v-5h4z" : "M.5 5h13v4H.5z"} fill="currentColor" />
       </svg>
@@ -59,11 +59,11 @@ export function TasksV2Widget({ state, instance }: WidgetProps) {
           {rows.map((r, i) => (
             <React.Fragment key={i}>
               <Mark done={r.done} />
-              <span className="tw-kind" style={{ background: r.color, color: r.ink }}>
+              <span className={r.done ? "tw-kind tw-done" : "tw-kind"} style={{ background: r.color, color: r.ink }}>
                 {r.label}
               </span>
-              <span className={`tw-pts tw-pts-${r.tag}`}>+{r.points}</span>
-              <span className="tw-text">{r.text}</span>
+              <span className={`tw-pts tw-pts-${r.tag}${r.done ? " tw-done" : ""}`}>+{r.points}</span>
+              <span className={r.done ? "tw-text tw-done" : "tw-text"}>{r.text}</span>
             </React.Fragment>
           ))}
           {rest > 0 && <span className="tw-more">+{rest} ещё</span>}
