@@ -98,6 +98,20 @@ export function winsWord(n: number): string {
   return b === 1 ? "победа" : b >= 2 && b <= 4 ? "победы" : "побед";
 }
 
+/** Последний день идущего сезона - в него вручаются итоговые нашивки. Пусто, если день не назначен или прошёл. */
+export function awardDay(season?: Pick<Season, "status" | "endedAt"> | null): string {
+  const end = season?.status === "active" && season.endedAt ? new Date(season.endedAt).getTime() : NaN;
+  // конец сезона - полночь по Москве: сам день на секунду раньше
+  return end > Date.now() ? dayMonth(new Date(end - 1000).toISOString()) : "";
+}
+
+/** «сезон 3» или «сезоны 2, 3»; сезон без номера - по названию. */
+export function seasonsLabel(seasons: Array<Pick<Season, "name" | "number">>): string {
+  const numbers = seasons.map((s) => s.number);
+  if (numbers.some((n) => n == null)) return seasons.map((s) => s.name).join(", ");
+  return `${numbers.length > 1 ? "сезоны" : "сезон"} ${numbers.join(", ")}`;
+}
+
 /** Название с учётом ступени: «Охотник II». */
 export function patchName(code: PatchCode, tier = 1): string {
   const n = PATCH_INFO[code].name;

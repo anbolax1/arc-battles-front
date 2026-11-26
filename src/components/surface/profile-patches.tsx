@@ -14,6 +14,7 @@ import {
   PATCH_TIERS,
   ROMAN,
   STREAK_GOAL,
+  awardDay,
   cardRarity,
   cardRarityScale,
   patchName,
@@ -66,11 +67,6 @@ function Segs({ cur, goal }: { cur: number; goal: number }) {
   );
 }
 
-function seasonsWord(n: number): string {
-  const a = n % 100, b = n % 10;
-  return a > 10 && a < 20 ? "сезонов" : b === 1 ? "сезоне" : "сезонах";
-}
-
 /** Блок профиля «карточка и нашивки»: карточка сезона и все нашивки с правилами и своим результатом. */
 export function ProfilePatches({
   user,
@@ -90,25 +86,30 @@ export function ProfilePatches({
   players: number;
   /** Сезон идёт: итоговые нашивки пока у претендентов. */
   active: boolean;
-  /** Вкладка «все сезоны»: в скольких сезонах получена нашивка. */
-  seasonsHeld?: Partial<Record<PatchCode, number>>;
+  /** Вкладка «все сезоны»: в каких сезонах получена нашивка. */
+  seasonsHeld?: Partial<Record<PatchCode, string>>;
   stats: PatchStatsInput;
   mapName: (s: string) => string;
 }) {
   const [all, setAll] = React.useState(false);
   const byCode = new Map(items.map((p) => [p.code, p]));
   const earned = items.filter((p) => !p.provisional).length;
+  const pending = active ? items.length - earned : 0;
+  const day = awardDay(season);
 
   const rowOf = (code: PatchCode): Row => {
     const p = byCode.get(code);
     const on = !!p && !p.provisional;
+    const provisional = active && !!p?.provisional;
     const tier = on ? p.tier : 1;
-    const row: Row = { code, on, provisional: !!p?.provisional, tier, name: patchName(code, on ? tier : 0) };
+    const row: Row = { code, on, provisional, tier, name: patchName(code, on ? tier : 0) };
     if (on) {
-      const held = seasonsHeld?.[code] ?? 0;
-      row.result = patchResult(p, mapName) + (held > 1 ? ` · в ${held} ${seasonsWord(held)}` : "");
+      const held = seasonsHeld?.[code];
+      row.result = patchResult(p, mapName) + (held ? ` · ${held}` : "");
       row.href = p.matchId ? `/tournament/${p.matchId}` : undefined;
       row.title = `Получена ${dayMonth(p.earnedAt)}`;
+    } else if (provisional && p) {
+      row.result = patchResult(p, mapName);
     }
     const tiers = PATCH_TIERS[code];
     if (tiers && !tiers.chance) {
@@ -133,7 +134,7 @@ export function ProfilePatches({
   };
 
   const groups = PATCH_GROUPS.map((g) => ({ ...g, rows: g.codes.map(rowOf) }));
-  const locked = PATCH_ORDER.map(rowOf).filter((r) => !r.on);
+  const locked = PATCH_ORDER.map(rowOf).filter((r) => !r.on && !r.provisional);
   const closest = locked
     .filter((r) => r.progress && r.progress.cur < r.progress.goal)
     .sort((a, b) => b.progress!.cur / b.progress!.goal - a.progress!.cur / a.progress!.goal)[0];
@@ -164,6 +165,7 @@ export function ProfilePatches({
             <b>{earned}</b>
             <span>из {PATCH_ORDER.length}</span>
           </p>
+          {pending > 0 && <span className="pt-stake">ещё {pending} на кону</span>}
           <Link className="sf-more" href={season ? `/patches?season=${season.id}` : "/patches"}>
             Все нашивки и правила
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -190,8 +192,9 @@ export function ProfilePatches({
         <div className={`pt-groups ${all ? "all" : ""}`}>
           {groups.map((g) => {
             const have = g.rows.filter((r) => r.on).length;
+            const shown = have > 0 || g.rows.some((r) => r.provisional);
             return (
-              <section key={g.name} className={`pt-group ${have ? "" : "none"}`}>
+              <section key={g.name} className={`pt-group ${shown ? "" : "none"}`}>
                 <div className="pt-group-head">
                   <h4>{g.name}</h4>
                   <span>
@@ -200,9 +203,9 @@ export function ProfilePatches({
                 </div>
                 <ul className="pt-list">
                   {g.rows.map((r) => (
-                    <li key={r.code} className={`pt-row ${r.on ? "" : "off"}`} title={r.title}>
+                    <li key={r.code} className={`pt-row ${r.on ? "" : r.provisional ? "pend" : "off"}`} title={r.title}>
                       <span className="pt-art">
-                        {r.on ? (
+                        {r.on || r.provisional ? (
                           <PatchArt code={r.code} tier={r.tier} className="pt-c" />
                         ) : (
                           <>
@@ -222,7 +225,11 @@ export function ProfilePatches({
                           ) : (
                             <span className="pt-res">{r.result}</span>
                           ))}
-                        {r.provisional && active && <span className="pt-prov">претендент · закрепится в конце сезона</span>}
+                        {r.provisional && (
+                          <span className="pt-prov">
+                            претендент · {r.result} · вручат {day || "в конце сезона"}
+                          </span>
+                        )}
                         {r.progress && (
                           <span className="pt-prog">
                             <Segs cur={r.progress.cur} goal={r.progress.goal} />

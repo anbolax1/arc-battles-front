@@ -8,6 +8,7 @@ import { fmtAverage } from "@/lib/format";
 import type { KnockStats, MapStat, MmrPoint, MmrStats, OpponentStat, PatchCode, PlayerPatch, PlayerProfile, Season, SeasonAnalytics } from "@/lib/types";
 import { ProfileChart, type ChartSegment } from "@/components/surface/profile-chart";
 import { ProfilePatches } from "@/components/surface/profile-patches";
+import { seasonsLabel } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
 import { fullDate, matchesWord } from "@/components/surface/fmt";
 
@@ -183,19 +184,20 @@ export function ProfileSeasons({
   const patchSeasons = profile.patches1x1 ?? {};
   let patchItems: PlayerPatch[] = [];
   let patchPlayers = 0;
-  let held: Partial<Record<PatchCode, number>> | undefined;
+  let held: Partial<Record<PatchCode, string>> | undefined;
   if (sel === ALL) {
     const merged = new Map<PatchCode, PlayerPatch>();
-    held = {};
+    const earnedIn = new Map<PatchCode, Season[]>();
     for (const s of [...seasons].sort((a, b) => a.startedAt.localeCompare(b.startedAt))) {
       for (const it of patchSeasons[s.id]?.items ?? []) {
         if (it.provisional) continue;
-        held[it.code] = (held[it.code] ?? 0) + 1;
+        earnedIn.set(it.code, [...(earnedIn.get(it.code) ?? []), s]);
         const cur = merged.get(it.code);
         if (!cur || it.tier >= cur.tier) merged.set(it.code, it);
       }
     }
     patchItems = [...merged.values()];
+    held = Object.fromEntries([...earnedIn].map(([code, list]) => [code, seasonsLabel(list)]));
     patchPlayers = patchSeasons[active?.id ?? ""]?.players ?? 0;
   } else {
     patchItems = patchSeasons[sel]?.items ?? [];

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getPatchCatalog, getSeasons } from "@/lib/queries";
-import type { PatchCode, PatchStat } from "@/lib/types";
+import type { PatchCode, PatchStat, Season } from "@/lib/types";
 import { Stripes } from "@/components/surface/stripes";
 import { PatchArt } from "@/components/surface/patch-art";
-import { PATCH_GROUPS, PATCH_INFO, PATCH_RARITIES, PATCH_TIERS, ROMAN, patchRarity, tierLabel } from "@/components/surface/patch-meta";
+import { PATCH_GROUPS, PATCH_INFO, PATCH_RARITIES, PATCH_TIERS, ROMAN, awardDay, patchRarity, tierLabel } from "@/components/surface/patch-meta";
 import "@/components/surface/patches.css";
 
 const GROUP_ABOUT: Record<string, string> = {
@@ -21,8 +21,20 @@ function raiders(n: number): string {
   return a > 10 && a < 20 ? "рейдеров" : b === 1 ? "рейдер" : b >= 2 && b <= 4 ? "рейдера" : "рейдеров";
 }
 
-function Card({ stat, players }: { stat: PatchStat; players: number }) {
+/** Сколько обладателей прошлого сезона называть по нику. */
+const PAST_NAMES = 3;
+
+/** Обладатели итоговой нашивки в одном из прошлых сезонов. */
+interface PastHolders {
+  season: Season;
+  stat: PatchStat;
+}
+
+function Card({ stat, players, season, past }: { stat: PatchStat; players: number; season: Season; past: PastHolders[] }) {
   const info = PATCH_INFO[stat.code];
+  // сезон идёт: итоговую нашивку ещё никто не получил, редкости у неё нет
+  const pending = !!info.seasonEnd && season.status === "active";
+  const day = awardDay(season);
   const rarity = patchRarity(stat.holders, players);
   const shown = stat.top.slice(0, 3);
   const more = stat.holders - shown.length;
@@ -35,7 +47,7 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
       <div>
         <div className="pt-cat-title">
           <b>{info.name}</b>
-          {info.seasonEnd && <small>в конце сезона</small>}
+          {info.seasonEnd && <small>{pending && day ? `вручат ${day}` : "в конце сезона"}</small>}
         </div>
         <p className="pt-cat-about">{info.about}</p>
         {tiers && (
@@ -50,13 +62,22 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
             ))}
           </div>
         )}
-        <span className="pt-cat-rar">
-          <i style={{ background: rarity.color }} />
-          {stat.holders ? `${rarity.label} · у ${stat.holders} из ${players}` : "пока ни у кого"}
-        </span>
-        <span className="pt-cat-bar" aria-hidden>
-          <i style={{ width: `${pct}%` }} />
-        </span>
+        {pending ? (
+          <span className="pt-cat-rar pend">
+            <i />
+            пока не вручена · {stat.holders ? (stat.holders > 1 ? "претендуют" : "претендует") : "претендентов нет"}
+          </span>
+        ) : (
+          <>
+            <span className="pt-cat-rar">
+              <i style={{ background: rarity.color }} />
+              {stat.holders ? `${rarity.label} · у ${stat.holders} из ${players}` : "пока ни у кого"}
+            </span>
+            <span className="pt-cat-bar" aria-hidden>
+              <i style={{ width: `${pct}%` }} />
+            </span>
+          </>
+        )}
         {stat.holders > 0 && (
           <span className="pt-cat-who">
             {shown.map((h) => (
@@ -67,6 +88,22 @@ function Card({ stat, players }: { stat: PatchStat; players: number }) {
             ))}
             {more > 0 && <span>+{more}</span>}
           </span>
+        )}
+        {past.length > 0 && (
+          <dl className="pt-cat-past">
+            <dt>Прошлые обладатели</dt>
+            {past.map((x) => (
+              <dd key={x.season.id}>
+                <span>{x.season.name}</span>
+                {x.stat.top.slice(0, PAST_NAMES).map((h) => (
+                  <Link key={h.login} href={`/profile/${h.login}`}>
+                    {h.displayName}
+                  </Link>
+                ))}
+                {x.stat.holders > PAST_NAMES && <small>+{x.stat.holders - PAST_NAMES}</small>}
+              </dd>
+            ))}
+          </dl>
         )}
       </div>
     </li>
@@ -101,11 +138,20 @@ export async function SurfacePatches({ season }: { season?: string }) {
   }
   const most = Math.max(0, ...[...owners.values()].map((o) => o.n));
   const leaders = [...owners.values()].filter((o) => o.n === most && most > 0).map((o) => o.name);
-  const held = catalog.patches.filter((p) => p.holders > 0);
+  const sn = catalog.season;
+  const held = catalog.patches.filter((p) => p.holders > 0 && !(sn.status === "active" && PATCH_INFO[p.code].seasonEnd));
   const rarest = Math.min(...held.map((p) => p.holders));
   const rarestNames = held.filter((p) => p.holders === rarest).map((p) => PATCH_INFO[p.code].name);
   const list = [...seasons].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  const sn = catalog.season;
+  const earlier = list.filter((s) => s.status === "finished" && s.startedAt < sn.startedAt);
+  const pastCatalogs = await Promise.all(earlier.map((s) => getPatchCatalog(s.id)));
+  const pastOf = (code: PatchCode): PastHolders[] =>
+    PATCH_INFO[code].seasonEnd
+      ? pastCatalogs.flatMap((c) => {
+          const stat = c?.patches.find((p) => p.code === code && p.holders > 0);
+          return c && stat ? [{ season: c.season, stat }] : [];
+        })
+      : [];
 
   return (
     <>
@@ -183,7 +229,7 @@ export async function SurfacePatches({ season }: { season?: string }) {
               <ul className="pt-cat-list">
                 {g.codes.map((code: PatchCode) => {
                   const stat = byCode.get(code) ?? { code, holders: 0, top: [] };
-                  return <Card key={code} stat={stat} players={catalog.players} />;
+                  return <Card key={code} stat={stat} players={catalog.players} season={sn} past={pastOf(code)} />;
                 })}
               </ul>
             </section>

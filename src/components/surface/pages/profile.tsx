@@ -182,11 +182,14 @@ function WalletCard({ profile, solo }: { profile: PlayerProfile; solo: boolean }
   );
 }
 
-/** Три самые редкие нашивки сезона, который профиль открывает первым: цифра в шапке совпадает с блоком нашивок. */
-function rarestPatches(profile: PlayerProfile, season?: Season): { items: PlayerPatch[]; count: number } {
-  const own = (season ? (profile.patches1x1?.[season.id]?.items ?? []) : []).filter((p) => !p.provisional);
+/** Три самые редкие нашивки сезона, который профиль открывает первым: цифра в шапке совпадает с блоком нашивок.
+    pending - на сколько итоговых нашивок идущего сезона рейдер претендует. */
+function rarestPatches(profile: PlayerProfile, season?: Season): { items: PlayerPatch[]; count: number; pending: number } {
+  const all = season ? (profile.patches1x1?.[season.id]?.items ?? []) : [];
+  const own = all.filter((p) => !p.provisional);
   const items = [...own].sort((a, b) => a.holders - b.holders || PATCH_ORDER.indexOf(a.code) - PATCH_ORDER.indexOf(b.code));
-  return { items: items.slice(0, 3), count: own.length };
+  const pending = season?.status === "active" ? all.length - own.length : 0;
+  return { items: items.slice(0, 3), count: own.length, pending };
 }
 
 /** Профиль игрока в новом дизайне: пропуск рейдера, рейтинг по сезонам, матчи, команды и клипы.
@@ -235,7 +238,11 @@ export async function ProfileView({
           <div className={`pt-idwrap ${sewn.items.length ? "sewn" : ""}`}>
             <IdCard profile={profile} />
             {sewn.items.length > 0 && (
-              <a className="pt-sewn" href="#patches" aria-label={`Нашивки ${name}, ${shown?.name}: ${sewn.count} из ${PATCH_ORDER.length}`}>
+              <a
+                className="pt-sewn"
+                href="#patches"
+                aria-label={`Нашивки ${name}, ${shown?.name}: ${sewn.count} из ${PATCH_ORDER.length}${sewn.pending ? `, ещё ${sewn.pending} на кону` : ""}`}
+              >
                 <span>
                   {sewn.items.map((p) => (
                     <PatchArt key={p.code} code={p.code} tier={p.tier} night />
@@ -244,6 +251,7 @@ export async function ProfileView({
                 <small>
                   {sewn.count} из {PATCH_ORDER.length} нашивок · {shown?.name} ↓
                 </small>
+                {sewn.pending > 0 && <small>ещё {sewn.pending} на кону</small>}
               </a>
             )}
           </div>

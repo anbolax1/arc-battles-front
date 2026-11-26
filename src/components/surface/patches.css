@@ -169,6 +169,29 @@
 a.pt-res:hover {
   background: var(--sf-ink-2);
 }
+/* претендент: нашивка цветная, но ещё не пришита - пунктир вокруг */
+.pt-row.pend .pt-art::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px dashed var(--sf-ink-2);
+  border-radius: 50%;
+}
+.pt-row.pend .pt-art svg {
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+}
+.pt-stake {
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border: 2px dashed var(--sf-ink-line);
+  border-radius: 3px;
+  font: 600 10px/1 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
 .pt-prov {
   margin-top: 4px;
   padding: 4px 6px;
@@ -544,6 +567,7 @@ a.pt-res:hover {
   translate: 0 -3px;
 }
 .pt-sewn small {
+  text-shadow: 0 0 6px #130918, 0 0 3px #130918;
   font: 600 10px/1 var(--sf-ff-m);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -847,6 +871,39 @@ a.pt-res:hover {
   font: 600 11px/1.2 var(--sf-ff-m);
   letter-spacing: 0.03em;
   color: var(--sf-ink-2);
+}
+.pt-cat-rar.pend i {
+  box-shadow: none;
+  border: 1.5px dashed var(--sf-ink-2);
+}
+.pt-cat-past {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--sf-ink-line);
+}
+.pt-cat-past dt {
+  font: 600 10px/1 var(--sf-ff-m);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sf-ink-2);
+}
+.pt-cat-past dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font: 700 14px/1.25 var(--sf-ff-c);
+}
+.pt-cat-past dd span,
+.pt-cat-past dd small {
+  font: 600 10px/1.25 var(--sf-ff-m);
+  color: var(--sf-ink-2);
+}
+.pt-cat-past a {
+  color: var(--sf-ink);
 }
 .pt-cat-bar {
   display: block;
