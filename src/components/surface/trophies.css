@@ -1,0 +1,176 @@
+/* ---------- знамёна трофеев внизу профиля ---------- */
+.tr-arena {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 10px;
+  background: radial-gradient(120% 90% at 50% 0%, #3a2245 0%, #1c0f22 45%, #0c0510 100%);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
+  padding-bottom: 8px;
+}
+.tr-truss {
+  display: block;
+  position: relative;
+  height: 30px;
+  border-top: 5px solid #8a7d8c;
+  border-bottom: 5px solid #5b4a57;
+  background: repeating-linear-gradient(60deg, transparent 0 22px, #6d5b70 22px 26px, transparent 26px 48px),
+    repeating-linear-gradient(-60deg, transparent 0 22px, #6d5b70 22px 26px, transparent 26px 48px), #160b1b;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.55);
+}
+.tr-beam {
+  position: absolute;
+  z-index: -1;
+  top: -40px;
+  width: 190px;
+  height: 680px;
+  transform-origin: 50% 0;
+  clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%);
+  filter: blur(3px);
+}
+.tr-beam.left {
+  left: 6%;
+  background: linear-gradient(180deg, rgba(127, 237, 230, 0.3), transparent 82%);
+  animation: tr-beam-left 11s ease-in-out infinite;
+}
+.tr-beam.right {
+  right: 6%;
+  background: linear-gradient(180deg, rgba(249, 207, 10, 0.28), transparent 82%);
+  animation: tr-beam-right 13s ease-in-out infinite;
+}
+@keyframes tr-beam-left {
+  0%,
+  100% {
+    transform: rotate(-30deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: rotate(-18deg);
+    opacity: 0.95;
+  }
+}
+@keyframes tr-beam-right {
+  0%,
+  100% {
+    transform: rotate(30deg);
+    opacity: 0.95;
+  }
+  50% {
+    transform: rotate(17deg);
+    opacity: 0.6;
+  }
+}
+.tr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 24px 22px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 28px 48px;
+}
+.tr-banner {
+  position: relative;
+  width: 250px;
+}
+.tr-straps {
+  display: block;
+  height: 30px;
+  margin: 0 30px;
+  border-inline: 4px solid #8a7d8c;
+}
+.tr-rod {
+  display: block;
+  position: relative;
+  z-index: 2;
+  height: 14px;
+  margin: 0 -10px -7px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffe7a8, #b98426 55%, #6b4a12);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.5);
+}
+.tr-cloth {
+  position: relative;
+  height: 440px;
+}
+/* заглушка цвета знамени, пока полотно рисуется */
+.tr-cloth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--cloth), var(--cloth2));
+  box-shadow: inset 5px 0 var(--trim), inset -5px 0 var(--trim);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 89%, 0 100%);
+  transition: opacity 0.4s;
+}
+.tr-cloth.ready::before {
+  opacity: 0;
+}
+/* холст шире полотна на поля из banner-gl.ts */
+.tr-cloth canvas {
+  position: absolute;
+  top: 0;
+  left: -48px;
+  width: 346px;
+  max-width: none;
+  height: 492px;
+  touch-action: pan-y;
+  filter: drop-shadow(0 20px 16px rgba(0, 0, 0, 0.5));
+}
+.tr-wins {
+  position: relative;
+  z-index: 1;
+  list-style: none;
+  margin: 44px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.tr-wins a,
+.tr-wins li > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(236, 226, 208, 0.22);
+  background: rgba(19, 9, 24, 0.82);
+  color: var(--sf-cream);
+  text-decoration: none;
+}
+.tr-wins a:hover {
+  border-color: var(--sf-amber);
+}
+.tr-wins small {
+  font: 700 10px/1.2 var(--sf-ff-m);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sf-s3);
+}
+.tr-wins span {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+.tr-wins b {
+  font: 700 14px/1.2 var(--sf-ff-d);
+}
+.tr-wins i {
+  font: 600 10px/1.2 var(--sf-ff-m);
+  font-style: normal;
+  color: var(--sf-cream-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tr-beam.left {
+    animation: none;
+    transform: rotate(-28deg);
+  }
+  .tr-beam.right {
+    animation: none;
+    transform: rotate(28deg);
+  }
+}

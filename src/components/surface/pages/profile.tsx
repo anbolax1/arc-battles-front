@@ -14,6 +14,8 @@ import { initials } from "@/lib/format";
 import { PatchArt } from "@/components/surface/patch-art";
 import { PATCH_ORDER } from "@/components/surface/patch-meta";
 import { firstProfileSeason } from "@/components/surface/profile-season";
+import { collectTrophies, mapKey } from "@/components/surface/trophies";
+import { TrophyShelf } from "@/components/surface/trophy-shelf";
 import { BeltProfile } from "@/components/surface/belt-parts";
 import { ProfileModeration } from "@/components/surface/profile-moderation";
 import { ProfileDrift } from "@/components/surface/profile-drift";
@@ -211,6 +213,7 @@ export async function ProfileView({
   const name = user.displayName || user.login;
   const shown = firstProfileSeason(timeline1x1, seasons);
   const sewn = rarestPatches(profile, shown);
+  const trophies = collectTrophies(profile.patches1x1, seasons, (map) => maps.find((m) => mapKey(m.name) === mapKey(map))?.name ?? map);
 
   return (
     <>
@@ -303,6 +306,8 @@ export async function ProfileView({
       </section>
 
       <SurfaceHighlights items={highlights} title="лучшие моменты игрока" eyebrow={`Клипы с эфиров · ${name}`} />
+
+      <TrophyShelf trophies={trophies} />
     </>
   );
 }

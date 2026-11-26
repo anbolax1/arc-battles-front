@@ -92,7 +92,7 @@ function times(n: number): string {
   return a > 10 && a < 20 ? "раз" : b >= 2 && b <= 4 ? "раза" : "раз";
 }
 
-function wins(n: number): string {
+export function winsWord(n: number): string {
   const a = Math.abs(n) % 100, b = a % 10;
   if (a > 10 && a < 20) return "побед";
   return b === 1 ? "победа" : b >= 2 && b <= 4 ? "победы" : "побед";
@@ -126,7 +126,7 @@ export function patchResult(p: Pick<PlayerPatch, "code" | "tier" | "detail" | "e
     case "comeback":
       return `${d.n ?? 1} ${times(d.n ?? 1)}`;
     case "double":
-      return `${d.n ?? 1} ${wins(d.n ?? 1)} ×2`;
+      return `${d.n ?? 1} ${winsWord(d.n ?? 1)} ×2`;
     case "photo":
     case "shutout":
     case "pacifist":
